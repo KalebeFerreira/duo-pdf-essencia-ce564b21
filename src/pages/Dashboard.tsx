@@ -2,12 +2,48 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Upload, FileText, Zap, LogOut, Settings } from "lucide-react";
+import { Upload, FileText, Zap, LogOut, Settings, Download, Eye, MoreVertical } from "lucide-react";
 
 const Dashboard = () => {
   const [pdfsUsed] = useState(2);
   const [pdfsLimit] = useState(5);
   const [automationsUsed] = useState(0);
+
+  // Mock data for PDF library
+  const recentPDFs = [
+    {
+      id: 1,
+      name: "Catálogo de Produtos 2024",
+      type: "Catálogo",
+      date: "15 Nov 2024",
+      size: "2.4 MB",
+      pages: 12
+    },
+    {
+      id: 2,
+      name: "Orçamento - Cliente ABC",
+      type: "Orçamento",
+      date: "14 Nov 2024",
+      size: "856 KB",
+      pages: 3
+    },
+    {
+      id: 3,
+      name: "Cardápio Restaurante",
+      type: "Cardápio",
+      date: "10 Nov 2024",
+      size: "1.8 MB",
+      pages: 8
+    },
+    {
+      id: 4,
+      name: "Portfólio Profissional",
+      type: "Portfólio",
+      date: "05 Nov 2024",
+      size: "5.2 MB",
+      pages: 24
+    }
+  ];
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -123,17 +159,68 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Recent Documents */}
+        {/* PDF Library */}
         <Card>
           <CardHeader>
-            <CardTitle>Documentos Recentes</CardTitle>
-            <CardDescription>Seus PDFs criados recentemente</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Biblioteca de PDFs</CardTitle>
+                <CardDescription>Seus documentos criados recentemente</CardDescription>
+              </div>
+              <Button variant="outline" size="sm">
+                Ver Todos
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-12 text-muted-foreground">
-              <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Nenhum documento ainda</p>
-              <p className="text-sm">Comece criando seu primeiro PDF!</p>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {recentPDFs.map((pdf) => (
+                <Card key={pdf.id} className="group hover:shadow-md transition-all hover:border-primary/50">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
+                        <FileText className="w-5 h-5 text-primary-foreground" />
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <CardTitle className="text-sm font-medium line-clamp-2 min-h-[2.5rem]">
+                      {pdf.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Tipo:</span>
+                        <span className="font-medium">{pdf.type}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Páginas:</span>
+                        <span className="font-medium">{pdf.pages}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Tamanho:</span>
+                        <span className="font-medium">{pdf.size}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Data:</span>
+                        <span className="font-medium">{pdf.date}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button size="sm" variant="outline" className="flex-1 h-8">
+                        <Eye className="w-3 h-3 mr-1" />
+                        Ver
+                      </Button>
+                      <Button size="sm" variant="outline" className="flex-1 h-8">
+                        <Download className="w-3 h-3 mr-1" />
+                        Baixar
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </CardContent>
         </Card>
