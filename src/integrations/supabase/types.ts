@@ -44,7 +44,7 @@ export type Database = {
       profiles: {
         Row: {
           automations_used: number | null
-          id: number
+          id: string
           nome_completo: string
           pdfs_limit: number | null
           pdfs_used: number | null
@@ -52,7 +52,7 @@ export type Database = {
         }
         Insert: {
           automations_used?: number | null
-          id?: number
+          id: string
           nome_completo?: string
           pdfs_limit?: number | null
           pdfs_used?: number | null
@@ -60,7 +60,7 @@ export type Database = {
         }
         Update: {
           automations_used?: number | null
-          id?: number
+          id?: string
           nome_completo?: string
           pdfs_limit?: number | null
           pdfs_used?: number | null
