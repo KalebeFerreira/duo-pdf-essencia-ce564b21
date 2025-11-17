@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom"; // Importado 'Link'
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Upload, FileText, Zap, LogOut, Settings, Download, Eye, MoreVertical } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast"; // Importado 'toast' para feedback
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -28,7 +28,7 @@ const Dashboard = () => {
   const handleQuickAction = (action: string) => {
     toast({
       title: `Ação "${action}" Clicada!`,
-      description: "A funcionalidade de navegação/ação será implementada na próxima fase.",
+      description: "A funcionalidade de navegação/ação será implementada na próxima fase (Mock).",
     });
   };
 
@@ -39,6 +39,7 @@ const Dashboard = () => {
       duration: 3000,
     });
   };
+  // FIM DAS FUNÇÕES MOCK
 
   if (authLoading || profileLoading) {
     return (
@@ -121,6 +122,7 @@ const Dashboard = () => {
             </div>
 
             <div className="flex items-center gap-4">
+              {/* ADICIONADO onClick */}
               <Button variant="ghost" size="icon" onClick={() => handleQuickAction("Configurações")}>
                 <Settings className="w-5 h-5" />
               </Button>
@@ -176,6 +178,7 @@ const Dashboard = () => {
               <CardTitle className="text-3xl">Grátis</CardTitle>
             </CardHeader>
             <CardContent>
+              {/* ADICIONADO asChild E LINK para navegação */}
               <Button asChild variant="secondary" className="w-full bg-white/90 hover:bg-white text-primary">
                 <Link to="/#pricing">Fazer Upgrade</Link>
               </Button>
@@ -185,6 +188,7 @@ const Dashboard = () => {
 
         {/* Quick Actions */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">
+          {/* ADICIONADO onClick */}
           <Card
             className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group"
             onClick={() => handleQuickAction("Criar PDF")}
@@ -198,6 +202,7 @@ const Dashboard = () => {
             </CardHeader>
           </Card>
 
+          {/* ADICIONADO onClick */}
           <Card
             className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group"
             onClick={() => handleQuickAction("Automação com IA")}
@@ -220,6 +225,7 @@ const Dashboard = () => {
                 <CardTitle>Biblioteca de PDFs</CardTitle>
                 <CardDescription>Seus documentos criados recentemente</CardDescription>
               </div>
+              {/* ADICIONADO onClick */}
               <Button variant="outline" size="sm" onClick={() => handleQuickAction("Ver Todos PDF")}>
                 Ver Todos
               </Button>
@@ -234,6 +240,7 @@ const Dashboard = () => {
                       <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
                         <FileText className="w-5 h-5 text-primary-foreground" />
                       </div>
+                      {/* ADICIONADO onClick */}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -265,6 +272,7 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <div className="flex gap-2 pt-2">
+                      {/* ADICIONADO onClick */}
                       <Button
                         size="sm"
                         variant="outline"
@@ -274,6 +282,7 @@ const Dashboard = () => {
                         <Eye className="w-3 h-3 mr-1" />
                         Ver
                       </Button>
+                      {/* ADICIONADO onClick */}
                       <Button
                         size="sm"
                         variant="outline"
