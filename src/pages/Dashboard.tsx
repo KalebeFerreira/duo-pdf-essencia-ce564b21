@@ -1,13 +1,58 @@
-import { useState } from "react";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Upload, FileText, Zap, LogOut, Settings, Download, Eye, MoreVertical } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 const Dashboard = () => {
-  const [pdfsUsed] = useState(2);
-  const [pdfsLimit] = useState(5);
-  const [automationsUsed] = useState(0);
+  const navigate = useNavigate();
+  const { user, loading: authLoading, signOut } = useAuth();
+  const { profile, isLoading: profileLoading } = useUserProfile();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
+
+  const handleLogout = async () => {
+    await signOut();
+  };
+
+  if (authLoading || profileLoading) {
+    return (
+      <div className="min-h-screen bg-muted/30">
+        <header className="bg-background border-b border-border">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-8 w-20" />
+            </div>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Skeleton className="h-12 w-64 mb-8" />
+          <div className="grid md:grid-cols-3 gap-6">
+            <Skeleton className="h-40" />
+            <Skeleton className="h-40" />
+            <Skeleton className="h-40" />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!user || !profile) {
+    return null;
+  }
+
+  const pdfsUsed = profile.pdfs_used || 0;
+  const pdfsLimit = profile.pdfs_limit || 5;
+  const automationsUsed = profile.automations_used || 0;
 
   // Mock data for PDF library
   const recentPDFs = [
@@ -62,7 +107,7 @@ const Dashboard = () => {
               <Button variant="ghost" size="icon">
                 <Settings className="w-5 h-5" />
               </Button>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" onClick={handleLogout}>
                 <LogOut className="w-5 h-5" />
               </Button>
             </div>
@@ -75,7 +120,7 @@ const Dashboard = () => {
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            Bem-vindo de volta! 👋
+            Bem-vindo, {profile.nome_completo || 'Usuário'}! 👋
           </h1>
           <p className="text-muted-foreground">
             Pronto para criar seus PDFs profissionais?
@@ -94,7 +139,7 @@ const Dashboard = () => {
             <CardContent>
               <Progress value={(pdfsUsed / pdfsLimit) * 100} className="h-2" />
               <p className="text-xs text-muted-foreground mt-2">
-                {pdfsLimit - pdfsUsed} PDFs restantes
+                {pdfsLimit - pdfsUsed} PDFs restantes • Plano: {profile.plan || 'free'}
               </p>
             </CardContent>
           </Card>
