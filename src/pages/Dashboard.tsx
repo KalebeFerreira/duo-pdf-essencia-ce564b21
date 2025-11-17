@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Upload, FileText, Zap, LogOut, Settings, Download, Eye, MoreVertical } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { toast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -15,12 +16,28 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/auth');
+      navigate("/auth");
     }
   }, [user, authLoading, navigate]);
 
   const handleLogout = async () => {
     await signOut();
+  };
+
+  // FUNÇÕES ADICIONADAS PARA RESTAURAR A INTERATIVIDADE
+  const handleQuickAction = (action: string) => {
+    toast({
+      title: `Ação "${action}" Clicada!`,
+      description: "A funcionalidade de navegação/ação será implementada na próxima fase.",
+    });
+  };
+
+  const handlePdfAction = (action: string, pdfName: string) => {
+    toast({
+      title: `${action} PDF: ${pdfName}`,
+      description: `Ação de ${action} em ${pdfName} executada com sucesso (Mock).`,
+      duration: 3000,
+    });
   };
 
   if (authLoading || profileLoading) {
@@ -62,7 +79,7 @@ const Dashboard = () => {
       type: "Catálogo",
       date: "15 Nov 2024",
       size: "2.4 MB",
-      pages: 12
+      pages: 12,
     },
     {
       id: 2,
@@ -70,7 +87,7 @@ const Dashboard = () => {
       type: "Orçamento",
       date: "14 Nov 2024",
       size: "856 KB",
-      pages: 3
+      pages: 3,
     },
     {
       id: 3,
@@ -78,7 +95,7 @@ const Dashboard = () => {
       type: "Cardápio",
       date: "10 Nov 2024",
       size: "1.8 MB",
-      pages: 8
+      pages: 8,
     },
     {
       id: 4,
@@ -86,8 +103,8 @@ const Dashboard = () => {
       type: "Portfólio",
       date: "05 Nov 2024",
       size: "5.2 MB",
-      pages: 24
-    }
+      pages: 24,
+    },
   ];
 
   return (
@@ -102,9 +119,9 @@ const Dashboard = () => {
               </div>
               <span>Essência Duo PDF</span>
             </div>
-            
+
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" onClick={() => handleQuickAction("Configurações")}>
                 <Settings className="w-5 h-5" />
               </Button>
               <Button variant="ghost" size="icon" onClick={handleLogout}>
@@ -120,11 +137,9 @@ const Dashboard = () => {
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            Bem-vindo, {profile.nome_completo || 'Usuário'}! 👋
+            Bem-vindo, {profile.nome_completo || "Usuário"}! 👋
           </h1>
-          <p className="text-muted-foreground">
-            Pronto para criar seus PDFs profissionais?
-          </p>
+          <p className="text-muted-foreground">Pronto para criar seus PDFs profissionais?</p>
         </div>
 
         {/* Stats Cards */}
@@ -139,7 +154,7 @@ const Dashboard = () => {
             <CardContent>
               <Progress value={(pdfsUsed / pdfsLimit) * 100} className="h-2" />
               <p className="text-xs text-muted-foreground mt-2">
-                {pdfsLimit - pdfsUsed} PDFs restantes • Plano: {profile.plan || 'free'}
+                {pdfsLimit - pdfsUsed} PDFs restantes • Plano: {profile.plan || "free"}
               </p>
             </CardContent>
           </Card>
@@ -147,31 +162,22 @@ const Dashboard = () => {
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Automações Hoje</CardDescription>
-              <CardTitle className="text-3xl">
-                {automationsUsed}/1
-              </CardTitle>
+              <CardTitle className="text-3xl">{automationsUsed}/1</CardTitle>
             </CardHeader>
             <CardContent>
               <Progress value={(automationsUsed / 1) * 100} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-2">
-                {1 - automationsUsed} automação restante
-              </p>
+              <p className="text-xs text-muted-foreground mt-2">{1 - automationsUsed} automação restante</p>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-primary text-primary-foreground border-0">
             <CardHeader className="pb-3">
-              <CardDescription className="text-primary-foreground/80">
-                Plano Atual
-              </CardDescription>
+              <CardDescription className="text-primary-foreground/80">Plano Atual</CardDescription>
               <CardTitle className="text-3xl">Grátis</CardTitle>
             </CardHeader>
             <CardContent>
-              <Button 
-                variant="secondary" 
-                className="w-full bg-white/90 hover:bg-white text-primary"
-              >
-                Fazer Upgrade
+              <Button asChild variant="secondary" className="w-full bg-white/90 hover:bg-white text-primary">
+                <Link to="/#pricing">Fazer Upgrade</Link>
               </Button>
             </CardContent>
           </Card>
@@ -179,27 +185,29 @@ const Dashboard = () => {
 
         {/* Quick Actions */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">
-          <Card className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group">
+          <Card
+            className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group"
+            onClick={() => handleQuickAction("Criar PDF")}
+          >
             <CardHeader>
               <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-smooth">
                 <Upload className="w-6 h-6 text-primary-foreground" />
               </div>
               <CardTitle>Criar PDF</CardTitle>
-              <CardDescription>
-                Faça upload de fotos ou textos e converta em PDF profissional
-              </CardDescription>
+              <CardDescription>Faça upload de fotos ou textos e converta em PDF profissional</CardDescription>
             </CardHeader>
           </Card>
 
-          <Card className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group">
+          <Card
+            className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group"
+            onClick={() => handleQuickAction("Automação com IA")}
+          >
             <CardHeader>
               <div className="w-12 h-12 bg-gradient-secondary rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-smooth">
                 <Zap className="w-6 h-6 text-secondary-foreground" />
               </div>
               <CardTitle>Automação com IA</CardTitle>
-              <CardDescription>
-                Crie catálogos, cardápios ou orçamentos automaticamente
-              </CardDescription>
+              <CardDescription>Crie catálogos, cardápios ou orçamentos automaticamente</CardDescription>
             </CardHeader>
           </Card>
         </div>
@@ -212,7 +220,7 @@ const Dashboard = () => {
                 <CardTitle>Biblioteca de PDFs</CardTitle>
                 <CardDescription>Seus documentos criados recentemente</CardDescription>
               </div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => handleQuickAction("Ver Todos PDF")}>
                 Ver Todos
               </Button>
             </div>
@@ -226,13 +234,16 @@ const Dashboard = () => {
                       <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
                         <FileText className="w-5 h-5 text-primary-foreground" />
                       </div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handlePdfAction("Mais Ações", pdf.name)}
+                      >
                         <MoreVertical className="w-4 h-4" />
                       </Button>
                     </div>
-                    <CardTitle className="text-sm font-medium line-clamp-2 min-h-[2.5rem]">
-                      {pdf.name}
-                    </CardTitle>
+                    <CardTitle className="text-sm font-medium line-clamp-2 min-h-[2.5rem]">{pdf.name}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="space-y-1">
@@ -254,11 +265,21 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <div className="flex gap-2 pt-2">
-                      <Button size="sm" variant="outline" className="flex-1 h-8">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 h-8"
+                        onClick={() => handlePdfAction("Ver", pdf.name)}
+                      >
                         <Eye className="w-3 h-3 mr-1" />
                         Ver
                       </Button>
-                      <Button size="sm" variant="outline" className="flex-1 h-8">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 h-8"
+                        onClick={() => handlePdfAction("Baixar", pdf.name)}
+                      >
                         <Download className="w-3 h-3 mr-1" />
                         Baixar
                       </Button>
