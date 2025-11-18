@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom"; // Importado 'Link'
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -7,12 +7,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Upload, FileText, Zap, LogOut, Settings, Download, Eye, MoreVertical } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { toast } from "@/hooks/use-toast"; // Importado 'toast' para feedback
+import { toast } from "@/hooks/use-toast";
+import PdfGenerator from "@/components/PdfGenerator";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
   const { profile, isLoading: profileLoading } = useUserProfile();
+
+  const handlePdfGenerated = () => {
+    // Refresh profile data after PDF generation
+    window.location.reload();
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -215,6 +221,11 @@ const Dashboard = () => {
               <CardDescription>Crie catálogos, cardápios ou orçamentos automaticamente</CardDescription>
             </CardHeader>
           </Card>
+        </div>
+
+        {/* AI PDF Generator */}
+        <div className="mb-8">
+          <PdfGenerator onPdfGenerated={handlePdfGenerated} />
         </div>
 
         {/* PDF Library */}
