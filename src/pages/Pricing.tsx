@@ -35,7 +35,7 @@ const Pricing = () => {
               price="Grátis"
               description="Perfeito para experimentar"
               features={[
-                "5 PDFs por mês",
+                "10 PDFs por dia",
                 "1 automação IA por dia",
                 "Conversão básica de fotos",
                 "Download de PDFs",
@@ -50,7 +50,7 @@ const Pricing = () => {
               price="R$ 19,90"
               description="Para uso regular"
               features={[
-                "25 PDFs por mês",
+                "25 PDFs por dia",
                 "5 automações IA por dia",
                 "Edição avançada",
                 "Envio via WhatsApp",
@@ -99,8 +99,8 @@ const Pricing = () => {
                   </thead>
                   <tbody>
                     <tr className="border-b border-border hover:bg-muted/50 transition-colors">
-                      <td className="py-4 px-6 text-muted-foreground">PDFs por mês</td>
-                      <td className="py-4 px-6 text-center text-foreground">5</td>
+                      <td className="py-4 px-6 text-muted-foreground">PDFs por dia</td>
+                      <td className="py-4 px-6 text-center text-foreground">10</td>
                       <td className="py-4 px-6 text-center text-foreground bg-primary/5">25</td>
                       <td className="py-4 px-6 text-center text-foreground">Ilimitado</td>
                     </tr>

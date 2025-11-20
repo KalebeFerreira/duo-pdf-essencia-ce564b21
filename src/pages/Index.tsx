@@ -33,7 +33,7 @@ const Index = () => {
               price="Grátis"
               description="Perfeito para experimentar"
               features={[
-                "5 PDFs por mês",
+                "10 PDFs por dia",
                 "1 automação IA por dia",
                 "Conversão básica de fotos",
                 "Download de PDFs",
@@ -48,7 +48,7 @@ const Index = () => {
               price="R$ 19,90"
               description="Para uso regular"
               features={[
-                "25 PDFs por mês",
+                "25 PDFs por dia",
                 "5 automações IA por dia",
                 "Edição avançada",
                 "Envio via WhatsApp",

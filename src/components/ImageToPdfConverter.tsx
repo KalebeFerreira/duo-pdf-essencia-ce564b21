@@ -7,6 +7,7 @@ import { Upload, X, FileText, Download } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePdfLimit } from "@/hooks/usePdfLimit";
 import jsPDF from "jspdf";
 
 interface ImageToPdfConverterProps {
@@ -15,6 +16,7 @@ interface ImageToPdfConverterProps {
 
 const ImageToPdfConverter = ({ onPdfCreated }: ImageToPdfConverterProps) => {
   const { user } = useAuth();
+  const { checkLimit } = usePdfLimit();
   const [images, setImages] = useState<File[]>([]);
   const [title, setTitle] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -55,6 +57,11 @@ const ImageToPdfConverter = ({ onPdfCreated }: ImageToPdfConverterProps) => {
         description: "Por favor, insira um título para o PDF.",
         variant: "destructive",
       });
+      return;
+    }
+
+    // Check limit before generating
+    if (!checkLimit()) {
       return;
     }
 
@@ -117,17 +124,20 @@ const ImageToPdfConverter = ({ onPdfCreated }: ImageToPdfConverterProps) => {
 
         if (error) throw error;
 
-        // Update profile pdfs_used
+        // Update profile pdfs_used (both monthly and daily)
         const { data: profile } = await supabase
           .from("profiles")
-          .select("pdfs_used")
+          .select("pdfs_used, pdfs_used_today")
           .eq("id", user.id)
           .single();
 
         if (profile) {
           await supabase
             .from("profiles")
-            .update({ pdfs_used: (profile.pdfs_used || 0) + 1 })
+            .update({ 
+              pdfs_used: (profile.pdfs_used || 0) + 1,
+              pdfs_used_today: (profile.pdfs_used_today || 0) + 1
+            })
             .eq("id", user.id);
         }
       }
