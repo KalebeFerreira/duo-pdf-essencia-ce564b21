@@ -1,21 +1,29 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Upload, FileText, Zap, LogOut, Settings, Download, Eye, MoreVertical } from "lucide-react";
+import { Upload, FileText, Zap, LogOut, Settings, Download, Eye, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useDocuments } from "@/hooks/useDocuments";
 import { toast } from "@/hooks/use-toast";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import PdfGenerator from "@/components/PdfGenerator";
+import PdfViewer from "@/components/PdfViewer";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
   const { profile, isLoading: profileLoading } = useUserProfile();
-  const { documents, isLoading: documentsLoading } = useDocuments();
+  const { documents, isLoading: documentsLoading, deleteDocument } = useDocuments();
+  
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState<{ title: string; content: string } | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [docToDelete, setDocToDelete] = useState<{ id: string; title: string } | null>(null);
 
   const handlePdfGenerated = () => {
     // Refresh profile data after PDF generation
@@ -32,22 +40,48 @@ const Dashboard = () => {
     await signOut();
   };
 
-  // FUNÇÕES ADICIONADAS PARA RESTAURAR A INTERATIVIDADE
-  const handleQuickAction = (action: string) => {
+  const handleViewDocument = (doc: any) => {
+    setSelectedDoc({
+      title: doc.title || 'Documento sem título',
+      content: doc.file_url || 'Conteúdo não disponível'
+    });
+    setViewerOpen(true);
+  };
+
+  const handleDownloadDocument = (doc: any) => {
+    // Create a blob and download
+    const blob = new Blob([doc.file_url || ''], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${doc.title || 'documento'}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
     toast({
-      title: `Ação "${action}" Clicada!`,
-      description: "A funcionalidade de navegação/ação será implementada na próxima fase (Mock).",
+      title: "Download iniciado",
+      description: `O documento "${doc.title}" está sendo baixado.`,
     });
   };
 
-  const handlePdfAction = (action: string, pdfName: string) => {
-    toast({
-      title: `${action} PDF: ${pdfName}`,
-      description: `Ação de ${action} em ${pdfName} executada com sucesso (Mock).`,
-      duration: 3000,
-    });
+  const handleDeleteClick = (doc: any) => {
+    setDocToDelete({ id: doc.id, title: doc.title || 'Documento sem título' });
+    setDeleteDialogOpen(true);
   };
-  // FIM DAS FUNÇÕES MOCK
+
+  const handleConfirmDelete = () => {
+    if (docToDelete) {
+      deleteDocument(docToDelete.id);
+      toast({
+        title: "Documento excluído",
+        description: `O documento "${docToDelete.title}" foi excluído com sucesso.`,
+      });
+      setDeleteDialogOpen(false);
+      setDocToDelete(null);
+    }
+  };
 
   if (authLoading || profileLoading) {
     return (
@@ -80,19 +114,8 @@ const Dashboard = () => {
   const pdfsLimit = profile.pdfs_limit || 5;
   const automationsUsed = profile.automations_used || 0;
 
-  // Get recent PDFs from database
-  const recentPDFs = documents?.slice(0, 4).map(doc => ({
-    id: doc.id,
-    name: doc.title || 'Documento sem título',
-    type: 'PDF',
-    date: new Date(doc.created_at || '').toLocaleDateString('pt-BR', { 
-      day: '2-digit', 
-      month: 'short', 
-      year: 'numeric' 
-    }),
-    size: doc.file_size ? `${(doc.file_size / 1024).toFixed(0)} KB` : '-',
-    pages: '-',
-  })) || [];
+  // Get recent PDFs from database with full document data
+  const recentPDFs = documents?.slice(0, 4) || [];
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -108,8 +131,7 @@ const Dashboard = () => {
             </div>
 
             <div className="flex items-center gap-4">
-              {/* ADICIONADO onClick */}
-              <Button variant="ghost" size="icon" onClick={() => handleQuickAction("Configurações")}>
+              <Button variant="ghost" size="icon">
                 <Settings className="w-5 h-5" />
               </Button>
               <Button variant="ghost" size="icon" onClick={handleLogout}>
@@ -174,11 +196,7 @@ const Dashboard = () => {
 
         {/* Quick Actions */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">
-          {/* ADICIONADO onClick */}
-          <Card
-            className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group"
-            onClick={() => handleQuickAction("Criar PDF")}
-          >
+          <Card className="hover:shadow-lg transition-all hover:-translate-y-1 group">
             <CardHeader>
               <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-smooth">
                 <Upload className="w-6 h-6 text-primary-foreground" />
@@ -188,11 +206,7 @@ const Dashboard = () => {
             </CardHeader>
           </Card>
 
-          {/* ADICIONADO onClick */}
-          <Card
-            className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group"
-            onClick={() => handleQuickAction("Automação com IA")}
-          >
+          <Card className="hover:shadow-lg transition-all hover:-translate-y-1 group">
             <CardHeader>
               <div className="w-12 h-12 bg-gradient-secondary rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-smooth">
                 <Zap className="w-6 h-6 text-secondary-foreground" />
@@ -216,8 +230,7 @@ const Dashboard = () => {
                 <CardTitle>Biblioteca de PDFs</CardTitle>
                 <CardDescription>Seus documentos criados recentemente</CardDescription>
               </div>
-              {/* ADICIONADO onClick */}
-              <Button variant="outline" size="sm" onClick={() => handleQuickAction("Ver Todos PDF")}>
+              <Button variant="outline" size="sm">
                 Ver Todos
               </Button>
             </div>
@@ -239,61 +252,84 @@ const Dashboard = () => {
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {recentPDFs.map((pdf) => (
-                <Card key={pdf.id} className="group hover:shadow-md transition-all hover:border-primary/50">
+                {recentPDFs.map((doc) => (
+                <Card key={doc.id} className="group hover:shadow-md transition-all hover:border-primary/50">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between mb-2">
                       <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
                         <FileText className="w-5 h-5 text-primary-foreground" />
                       </div>
-                      {/* ADICIONADO onClick */}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => handlePdfAction("Mais Ações", pdf.name)}
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Settings className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewDocument(doc)}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            Visualizar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDownloadDocument(doc)}>
+                            <Download className="w-4 h-4 mr-2" />
+                            Baixar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteClick(doc)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                    <CardTitle className="text-sm font-medium line-clamp-2 min-h-[2.5rem]">{pdf.name}</CardTitle>
+                    <CardTitle className="text-sm font-medium line-clamp-2 min-h-[2.5rem]">
+                      {doc.title || 'Documento sem título'}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="space-y-1">
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">Tipo:</span>
-                        <span className="font-medium">{pdf.type}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Páginas:</span>
-                        <span className="font-medium">{pdf.pages}</span>
+                        <span className="font-medium">PDF</span>
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">Tamanho:</span>
-                        <span className="font-medium">{pdf.size}</span>
+                        <span className="font-medium">
+                          {doc.file_size ? `${(doc.file_size / 1024).toFixed(0)} KB` : '-'}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">Data:</span>
-                        <span className="font-medium">{pdf.date}</span>
+                        <span className="font-medium">
+                          {new Date(doc.created_at || '').toLocaleDateString('pt-BR', { 
+                            day: '2-digit', 
+                            month: 'short', 
+                            year: 'numeric' 
+                          })}
+                        </span>
                       </div>
                     </div>
                     <div className="flex gap-2 pt-2">
-                      {/* ADICIONADO onClick */}
                       <Button
                         size="sm"
                         variant="outline"
                         className="flex-1 h-8"
-                        onClick={() => handlePdfAction("Ver", pdf.name)}
+                        onClick={() => handleViewDocument(doc)}
                       >
                         <Eye className="w-3 h-3 mr-1" />
                         Ver
                       </Button>
-                      {/* ADICIONADO onClick */}
                       <Button
                         size="sm"
                         variant="outline"
                         className="flex-1 h-8"
-                        onClick={() => handlePdfAction("Baixar", pdf.name)}
+                        onClick={() => handleDownloadDocument(doc)}
                       >
                         <Download className="w-3 h-3 mr-1" />
                         Baixar
@@ -307,6 +343,26 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </main>
+
+      {/* Modals */}
+      {selectedDoc && (
+        <PdfViewer
+          isOpen={viewerOpen}
+          onClose={() => setViewerOpen(false)}
+          title={selectedDoc.title}
+          content={selectedDoc.content}
+        />
+      )}
+      
+      <DeleteConfirmDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setDocToDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title={docToDelete?.title || ''}
+      />
     </div>
   );
 };
