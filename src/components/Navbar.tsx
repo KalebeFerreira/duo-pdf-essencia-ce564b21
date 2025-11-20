@@ -22,7 +22,7 @@ const Navbar = () => {
             <Link to="/#features" className="text-foreground hover:text-primary transition-smooth">
               Recursos
             </Link>
-            <Link to="/#pricing" className="text-foreground hover:text-primary transition-smooth">
+            <Link to="/pricing" className="text-foreground hover:text-primary transition-smooth">
               Planos
             </Link>
             <Link to="/auth" className="text-foreground hover:text-primary transition-smooth">
@@ -53,7 +53,7 @@ const Navbar = () => {
               Recursos
             </Link>
             <Link
-              to="/#pricing"
+              to="/pricing"
               className="block py-2 text-foreground hover:text-primary transition-smooth"
               onClick={() => setIsMenuOpen(false)}
             >
