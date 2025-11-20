@@ -44,8 +44,11 @@ export type Database = {
       profiles: {
         Row: {
           automations_used: number | null
+          automations_used_today: number | null
+          daily_automations_limit: number | null
           daily_pdfs_limit: number | null
           id: string
+          last_automations_reset_date: string | null
           last_reset_date: string | null
           nome_completo: string
           pdfs_limit: number | null
@@ -55,8 +58,11 @@ export type Database = {
         }
         Insert: {
           automations_used?: number | null
+          automations_used_today?: number | null
+          daily_automations_limit?: number | null
           daily_pdfs_limit?: number | null
           id: string
+          last_automations_reset_date?: string | null
           last_reset_date?: string | null
           nome_completo?: string
           pdfs_limit?: number | null
@@ -66,8 +72,11 @@ export type Database = {
         }
         Update: {
           automations_used?: number | null
+          automations_used_today?: number | null
+          daily_automations_limit?: number | null
           daily_pdfs_limit?: number | null
           id?: string
+          last_automations_reset_date?: string | null
           last_reset_date?: string | null
           nome_completo?: string
           pdfs_limit?: number | null
