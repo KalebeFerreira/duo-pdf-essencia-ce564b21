@@ -13,52 +13,50 @@ serve(async (req) => {
 
   try {
     const { prompt, topic } = await req.json();
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
-    if (!geminiApiKey) {
-      throw new Error('GEMINI_API_KEY not configured');
+    if (!lovableApiKey) {
+      throw new Error('LOVABLE_API_KEY not configured');
     }
 
     console.log('Generating PDF content for topic:', topic);
 
-    // Call Gemini API
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt || `Gere um conteúdo profissional e detalhado sobre: ${topic}. 
-              
-              O conteúdo deve incluir:
-              - Uma introdução clara e envolvente
-              - Pontos principais bem estruturados
-              - Exemplos práticos quando aplicável
-              - Uma conclusão resumindo os pontos chave
-              
-              Formato: Estruture o conteúdo de forma que possa ser facilmente convertido em PDF.`
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 2048,
-          }
-        }),
-      }
-    );
+    const systemPrompt = `Você é um assistente especializado em gerar conteúdo profissional e detalhado.
+    
+O conteúdo deve incluir:
+- Uma introdução clara e envolvente
+- Pontos principais bem estruturados
+- Exemplos práticos quando aplicável
+- Uma conclusão resumindo os pontos chave
+
+Formato: Estruture o conteúdo de forma que possa ser facilmente convertido em PDF.`;
+
+    const userPrompt = prompt || `Gere um conteúdo profissional e detalhado sobre: ${topic}`;
+
+    // Call Lovable AI Gateway
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+      }),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Gemini API error:', response.status, errorText);
-      throw new Error(`Gemini API error: ${response.status}`);
+      console.error('AI Gateway error:', response.status, errorText);
+      throw new Error(`AI Gateway error: ${response.status}`);
     }
 
     const data = await response.json();
-    const generatedContent = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const generatedContent = data.choices?.[0]?.message?.content || '';
 
     console.log('Content generated successfully');
 
