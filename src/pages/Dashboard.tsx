@@ -1,21 +1,44 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Upload, FileText, Zap, LogOut, Settings, Download, Eye, MoreVertical } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Upload, FileText, Zap, LogOut, Settings, Download, Eye, MoreVertical, Edit, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useDocuments } from "@/hooks/useDocuments";
 import { toast } from "@/hooks/use-toast";
 import PdfGenerator from "@/components/PdfGenerator";
+import PdfViewModal from "@/components/PdfViewModal";
+import PdfEditDialog from "@/components/PdfEditDialog";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
   const { profile, isLoading: profileLoading } = useUserProfile();
-  const { documents, isLoading: documentsLoading } = useDocuments();
+  const { documents, isLoading: documentsLoading, deleteDocument, updateDocument } = useDocuments();
+  
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<any>(null);
 
   const handlePdfGenerated = () => {
     // Refresh profile data after PDF generation
@@ -32,7 +55,6 @@ const Dashboard = () => {
     await signOut();
   };
 
-  // FUNÇÕES ADICIONADAS PARA RESTAURAR A INTERATIVIDADE
   const handleQuickAction = (action: string) => {
     toast({
       title: `Ação "${action}" Clicada!`,
@@ -40,14 +62,32 @@ const Dashboard = () => {
     });
   };
 
-  const handlePdfAction = (action: string, pdfName: string) => {
-    toast({
-      title: `${action} PDF: ${pdfName}`,
-      description: `Ação de ${action} em ${pdfName} executada com sucesso (Mock).`,
-      duration: 3000,
-    });
+  const handleViewDocument = (doc: any) => {
+    setSelectedDocument(doc);
+    setViewModalOpen(true);
   };
-  // FIM DAS FUNÇÕES MOCK
+
+  const handleEditDocument = (doc: any) => {
+    setSelectedDocument(doc);
+    setEditDialogOpen(true);
+  };
+
+  const handleDeleteDocument = (doc: any) => {
+    setSelectedDocument(doc);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (selectedDocument) {
+      await deleteDocument(selectedDocument.id);
+      setDeleteDialogOpen(false);
+      setSelectedDocument(null);
+    }
+  };
+
+  const handleSaveEdit = async (id: string, title: string, content: string) => {
+    await updateDocument({ id, title, content });
+  };
 
   if (authLoading || profileLoading) {
     return (
@@ -82,7 +122,7 @@ const Dashboard = () => {
 
   // Get recent PDFs from database
   const recentPDFs = documents?.slice(0, 4).map(doc => ({
-    id: doc.id,
+    ...doc,
     name: doc.title || 'Documento sem título',
     type: 'PDF',
     date: new Date(doc.created_at || '').toLocaleDateString('pt-BR', { 
@@ -92,6 +132,7 @@ const Dashboard = () => {
     }),
     size: doc.file_size ? `${(doc.file_size / 1024).toFixed(0)} KB` : '-',
     pages: '-',
+    content: doc.file_url || '',
   })) || [];
 
   return (
@@ -246,15 +287,34 @@ const Dashboard = () => {
                       <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
                         <FileText className="w-5 h-5 text-primary-foreground" />
                       </div>
-                      {/* ADICIONADO onClick */}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => handlePdfAction("Mais Ações", pdf.name)}
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewDocument(pdf)}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            Ver Documento
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditDocument(pdf)}>
+                            <Edit className="w-4 h-4 mr-2" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteDocument(pdf)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                     <CardTitle className="text-sm font-medium line-clamp-2 min-h-[2.5rem]">{pdf.name}</CardTitle>
                   </CardHeader>
@@ -278,25 +338,23 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <div className="flex gap-2 pt-2">
-                      {/* ADICIONADO onClick */}
                       <Button
                         size="sm"
                         variant="outline"
                         className="flex-1 h-8"
-                        onClick={() => handlePdfAction("Ver", pdf.name)}
+                        onClick={() => handleViewDocument(pdf)}
                       >
                         <Eye className="w-3 h-3 mr-1" />
                         Ver
                       </Button>
-                      {/* ADICIONADO onClick */}
                       <Button
                         size="sm"
                         variant="outline"
                         className="flex-1 h-8"
-                        onClick={() => handlePdfAction("Baixar", pdf.name)}
+                        onClick={() => handleEditDocument(pdf)}
                       >
-                        <Download className="w-3 h-3 mr-1" />
-                        Baixar
+                        <Edit className="w-3 h-3 mr-1" />
+                        Editar
                       </Button>
                     </div>
                   </CardContent>
@@ -307,6 +365,38 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </main>
+
+      {/* Modals and Dialogs */}
+      <PdfViewModal
+        isOpen={viewModalOpen}
+        onClose={() => setViewModalOpen(false)}
+        document={selectedDocument}
+      />
+
+      <PdfEditDialog
+        isOpen={editDialogOpen}
+        onClose={() => setEditDialogOpen(false)}
+        onSave={handleSaveEdit}
+        document={selectedDocument}
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o documento "{selectedDocument?.name}"? 
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -40,10 +40,31 @@ export const useDocuments = () => {
     },
   });
 
+  const updateDocument = useMutation({
+    mutationFn: async ({ id, title, content }: { id: string; title: string; content: string }) => {
+      if (!user?.id) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('documents')
+        .update({ 
+          title, 
+          file_url: content 
+        })
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents', user?.id] });
+    },
+  });
+
   return {
     documents,
     isLoading,
     error,
     deleteDocument: deleteDocument.mutate,
+    updateDocument: updateDocument.mutateAsync,
   };
 };
