@@ -28,6 +28,7 @@ import { toast } from "@/hooks/use-toast";
 import PdfGenerator from "@/components/PdfGenerator";
 import PdfViewModal from "@/components/PdfViewModal";
 import PdfEditDialog from "@/components/PdfEditDialog";
+import PdfDownloadButton from "@/components/PdfDownloadButton";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -215,10 +216,9 @@ const Dashboard = () => {
 
         {/* Quick Actions */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">
-          {/* ADICIONADO onClick */}
           <Card
             className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group"
-            onClick={() => handleQuickAction("Criar PDF")}
+            onClick={() => navigate("/create-pdf")}
           >
             <CardHeader>
               <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-smooth">
@@ -302,6 +302,18 @@ const Dashboard = () => {
                             <Eye className="w-4 h-4 mr-2" />
                             Ver Documento
                           </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <div>
+                              <Download className="w-4 h-4 mr-2" />
+                              <PdfDownloadButton
+                                content={pdf.content}
+                                title={pdf.name}
+                                variant="ghost"
+                                size="sm"
+                                className="p-0 h-auto hover:bg-transparent"
+                              />
+                            </div>
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEditDocument(pdf)}>
                             <Edit className="w-4 h-4 mr-2" />
                             Editar
@@ -347,15 +359,12 @@ const Dashboard = () => {
                         <Eye className="w-3 h-3 mr-1" />
                         Ver
                       </Button>
-                      <Button
+                      <PdfDownloadButton
+                        content={pdf.content}
+                        title={pdf.name}
                         size="sm"
-                        variant="outline"
                         className="flex-1 h-8"
-                        onClick={() => handleEditDocument(pdf)}
-                      >
-                        <Edit className="w-3 h-3 mr-1" />
-                        Editar
-                      </Button>
+                      />
                     </div>
                   </CardContent>
                 </Card>
