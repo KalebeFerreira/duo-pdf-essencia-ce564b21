@@ -40,12 +40,13 @@ const PdfGenerator = ({ onPdfGenerated }: PdfGeneratorProps) => {
 
       setGeneratedContent(data.content);
 
-      // Save document to database
+      // Save document to database with content
       const { error: insertError } = await supabase
         .from('documents')
         .insert({
           title: topic,
           user_id: (await supabase.auth.getUser()).data.user?.id,
+          file_url: data.content, // Store content in file_url field
         });
 
       if (insertError) throw insertError;
