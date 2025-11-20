@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Upload, FileText, Zap, LogOut, Settings, Download, Eye, MoreVertical } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useDocuments } from "@/hooks/useDocuments";
 import { toast } from "@/hooks/use-toast";
 import PdfGenerator from "@/components/PdfGenerator";
 
@@ -14,6 +15,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
   const { profile, isLoading: profileLoading } = useUserProfile();
+  const { documents, isLoading: documentsLoading } = useDocuments();
 
   const handlePdfGenerated = () => {
     // Refresh profile data after PDF generation
@@ -78,41 +80,19 @@ const Dashboard = () => {
   const pdfsLimit = profile.pdfs_limit || 5;
   const automationsUsed = profile.automations_used || 0;
 
-  // Mock data for PDF library
-  const recentPDFs = [
-    {
-      id: 1,
-      name: "Catálogo de Produtos 2024",
-      type: "Catálogo",
-      date: "15 Nov 2024",
-      size: "2.4 MB",
-      pages: 12,
-    },
-    {
-      id: 2,
-      name: "Orçamento - Cliente ABC",
-      type: "Orçamento",
-      date: "14 Nov 2024",
-      size: "856 KB",
-      pages: 3,
-    },
-    {
-      id: 3,
-      name: "Cardápio Restaurante",
-      type: "Cardápio",
-      date: "10 Nov 2024",
-      size: "1.8 MB",
-      pages: 8,
-    },
-    {
-      id: 4,
-      name: "Portfólio Profissional",
-      type: "Portfólio",
-      date: "05 Nov 2024",
-      size: "5.2 MB",
-      pages: 24,
-    },
-  ];
+  // Get recent PDFs from database
+  const recentPDFs = documents?.slice(0, 4).map(doc => ({
+    id: doc.id,
+    name: doc.title || 'Documento sem título',
+    type: 'PDF',
+    date: new Date(doc.created_at || '').toLocaleDateString('pt-BR', { 
+      day: '2-digit', 
+      month: 'short', 
+      year: 'numeric' 
+    }),
+    size: doc.file_size ? `${(doc.file_size / 1024).toFixed(0)} KB` : '-',
+    pages: '-',
+  })) || [];
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -243,8 +223,23 @@ const Dashboard = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {recentPDFs.map((pdf) => (
+            {documentsLoading ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-48" />
+                ))}
+              </div>
+            ) : recentPDFs.length === 0 ? (
+              <div className="text-center py-12">
+                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Nenhum documento gerado ainda</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Use o gerador de PDFs acima para criar seu primeiro documento
+                </p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {recentPDFs.map((pdf) => (
                 <Card key={pdf.id} className="group hover:shadow-md transition-all hover:border-primary/50">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between mb-2">
@@ -307,7 +302,8 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               ))}
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </main>
