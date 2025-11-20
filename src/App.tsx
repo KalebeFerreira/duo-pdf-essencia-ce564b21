@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import CreatePdf from "./pages/CreatePdf";
 import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
+import Automations from "./pages/Automations";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/create-pdf" element={<CreatePdf />} />
+          <Route path="/automations" element={<Automations />} />
           <Route path="/pricing" element={<Pricing />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

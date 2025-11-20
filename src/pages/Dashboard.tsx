@@ -235,17 +235,16 @@ const Dashboard = () => {
             </CardHeader>
           </Card>
 
-          {/* ADICIONADO onClick */}
           <Card
             className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group"
-            onClick={() => handleQuickAction("Automação com IA")}
+            onClick={() => navigate("/automations")}
           >
             <CardHeader>
               <div className="w-12 h-12 bg-gradient-secondary rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-smooth">
                 <Zap className="w-6 h-6 text-secondary-foreground" />
               </div>
               <CardTitle>Automação com IA</CardTitle>
-              <CardDescription>Crie catálogos, cardápios ou orçamentos automaticamente</CardDescription>
+              <CardDescription>Use a IA Gemini para qualquer tarefa que precisar</CardDescription>
             </CardHeader>
           </Card>
         </div>

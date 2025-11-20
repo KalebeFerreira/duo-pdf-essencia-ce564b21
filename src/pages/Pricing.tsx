@@ -36,11 +36,10 @@ const Pricing = () => {
               description="Perfeito para experimentar"
               features={[
                 "10 PDFs por dia",
-                "1 automação IA por dia",
-                "Conversão básica de fotos",
-                "Download de PDFs",
-                "Acesso à comunidade",
-                "Anúncios"
+                "1 automação por dia",
+                "Conversão de imagens",
+                "Armazenamento básico",
+                "Suporte por email",
               ]}
             />
 
@@ -51,11 +50,12 @@ const Pricing = () => {
               description="Para uso regular"
               features={[
                 "25 PDFs por dia",
-                "5 automações IA por dia",
-                "Edição avançada",
-                "Envio via WhatsApp",
-                "Armazenamento expandido",
-                "Sem anúncios"
+                "Automações ilimitadas",
+                "IA para geração de conteúdo",
+                "Conversão de imagens",
+                "Armazenamento ampliado",
+                "Suporte prioritário",
+                "Sem marca d'água",
               ]}
               highlighted
             />
@@ -68,10 +68,12 @@ const Pricing = () => {
               features={[
                 "PDFs ilimitados",
                 "Automações ilimitadas",
-                "IA para layout e cores",
-                "IA para otimização de texto",
-                "Suporte prioritário",
-                "Recursos exclusivos"
+                "IA avançada para conteúdo",
+                "Conversão de imagens ilimitada",
+                "Armazenamento ilimitado",
+                "Suporte premium 24/7",
+                "API para integrações",
+                "Personalização total",
               ]}
             />
           </div>
@@ -105,9 +107,9 @@ const Pricing = () => {
                       <td className="py-4 px-6 text-center text-foreground">Ilimitado</td>
                     </tr>
                     <tr className="border-b border-border hover:bg-muted/50 transition-colors">
-                      <td className="py-4 px-6 text-muted-foreground">Automações IA por dia</td>
+                      <td className="py-4 px-6 text-muted-foreground">Automações por dia</td>
                       <td className="py-4 px-6 text-center text-foreground">1</td>
-                      <td className="py-4 px-6 text-center text-foreground bg-primary/5">5</td>
+                      <td className="py-4 px-6 text-center text-foreground bg-primary/5">Ilimitado</td>
                       <td className="py-4 px-6 text-center text-foreground">Ilimitado</td>
                     </tr>
                     <tr className="border-b border-border hover:bg-muted/50 transition-colors">
