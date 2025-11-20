@@ -29,6 +29,7 @@ import PdfGenerator from "@/components/PdfGenerator";
 import PdfViewModal from "@/components/PdfViewModal";
 import PdfEditDialog from "@/components/PdfEditDialog";
 import PdfDownloadButton from "@/components/PdfDownloadButton";
+import PdfLimitIndicator from "@/components/PdfLimitIndicator";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -212,6 +213,11 @@ const Dashboard = () => {
               </Button>
             </CardContent>
           </Card>
+        </div>
+
+        {/* PDF Limit Indicator */}
+        <div className="mb-8">
+          <PdfLimitIndicator />
         </div>
 
         {/* Quick Actions */}

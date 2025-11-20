@@ -44,26 +44,35 @@ export type Database = {
       profiles: {
         Row: {
           automations_used: number | null
+          daily_pdfs_limit: number | null
           id: string
+          last_reset_date: string | null
           nome_completo: string
           pdfs_limit: number | null
           pdfs_used: number | null
+          pdfs_used_today: number | null
           plan: string | null
         }
         Insert: {
           automations_used?: number | null
+          daily_pdfs_limit?: number | null
           id: string
+          last_reset_date?: string | null
           nome_completo?: string
           pdfs_limit?: number | null
           pdfs_used?: number | null
+          pdfs_used_today?: number | null
           plan?: string | null
         }
         Update: {
           automations_used?: number | null
+          daily_pdfs_limit?: number | null
           id?: string
+          last_reset_date?: string | null
           nome_completo?: string
           pdfs_limit?: number | null
           pdfs_used?: number | null
+          pdfs_used_today?: number | null
           plan?: string | null
         }
         Relationships: []

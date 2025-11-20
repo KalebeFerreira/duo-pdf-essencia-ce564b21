@@ -7,12 +7,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, FileText } from "lucide-react";
+import { usePdfLimit } from "@/hooks/usePdfLimit";
 
 interface PdfGeneratorProps {
   onPdfGenerated: () => void;
 }
 
 const PdfGenerator = ({ onPdfGenerated }: PdfGeneratorProps) => {
+  const { checkLimit } = usePdfLimit();
   const [topic, setTopic] = useState("");
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -25,6 +27,11 @@ const PdfGenerator = ({ onPdfGenerated }: PdfGeneratorProps) => {
         description: "Por favor, insira um tópico para o PDF.",
         variant: "destructive",
       });
+      return;
+    }
+
+    // Check limit before generating
+    if (!checkLimit()) {
       return;
     }
 
@@ -51,19 +58,22 @@ const PdfGenerator = ({ onPdfGenerated }: PdfGeneratorProps) => {
 
       if (insertError) throw insertError;
 
-      // Update profile PDFs used count
+      // Update profile PDFs used count (both monthly and daily)
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('pdfs_used')
+          .select('pdfs_used, pdfs_used_today')
           .eq('id', user.id)
           .single();
 
         if (profile) {
           await supabase
             .from('profiles')
-            .update({ pdfs_used: (profile.pdfs_used || 0) + 1 })
+            .update({ 
+              pdfs_used: (profile.pdfs_used || 0) + 1,
+              pdfs_used_today: (profile.pdfs_used_today || 0) + 1
+            })
             .eq('id', user.id);
         }
       }
