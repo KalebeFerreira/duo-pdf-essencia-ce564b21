@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -19,12 +20,13 @@ const Settings = () => {
   const { user, signOut } = useAuth();
   const { profile, updateProfile } = useUserProfile();
   
+  const { theme, setTheme } = useTheme();
+  
   const [nomeCompleto, setNomeCompleto] = useState(profile?.nome_completo || '');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [whatsappIntegration, setWhatsappIntegration] = useState(false);
-  const [theme, setTheme] = useState('system');
   const [language, setLanguage] = useState('pt-BR');
 
   const handleSaveProfile = () => {
@@ -105,18 +107,18 @@ const Settings = () => {
       {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-2xl font-bold">Configurações</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">Configurações</h1>
           </div>
         </div>
       </header>
 
       {/* Content */}
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="space-y-6">
+      <main className="container mx-auto px-4 py-4 sm:py-8 max-w-4xl">
+        <div className="space-y-4 sm:space-y-6">
           
           {/* Seção 1: Gerenciamento de Perfil e Conta */}
           <Card>
@@ -238,12 +240,12 @@ const Settings = () => {
                 </div>
 
                 {/* Ações */}
-                <div className="flex gap-3">
-                  <Button asChild>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button asChild className="w-full sm:w-auto">
                     <Link to="/pricing">Fazer Upgrade</Link>
                   </Button>
                   {profile?.plan !== 'free' && (
-                    <Button variant="outline" onClick={handleCancelSubscription}>
+                    <Button variant="outline" onClick={handleCancelSubscription} className="w-full sm:w-auto">
                       Cancelar Assinatura
                     </Button>
                   )}
@@ -275,7 +277,7 @@ const Settings = () => {
                 <Label>Tema</Label>
                 <Select value={theme} onValueChange={setTheme}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Selecione um tema" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="light">Claro</SelectItem>
@@ -353,7 +355,7 @@ const Settings = () => {
               {/* Compartilhar App */}
               <div className="space-y-3">
                 <h3 className="font-semibold">Compartilhar App</h3>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   <Button 
                     variant="outline" 
                     size="icon"
