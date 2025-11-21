@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import PlanSelectionDialog from "@/components/PlanSelectionDialog";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -17,6 +19,8 @@ const Auth = () => {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirm, setSignupConfirm] = useState("");
+  const [showPlanDialog, setShowPlanDialog] = useState(false);
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
@@ -43,8 +47,30 @@ const Auth = () => {
     }
 
     setIsLoading(true);
-    await signUp(signupEmail, signupPassword, signupName);
+    const result = await signUp(signupEmail, signupPassword, signupName);
     setIsLoading(false);
+
+    if (result.data?.user) {
+      setPendingUserId(result.data.user.id);
+      setShowPlanDialog(true);
+    }
+  };
+
+  const handlePlanSelection = async (plan: "free" | "basic" | "complete") => {
+    if (!pendingUserId) return;
+
+    try {
+      // Update the user's plan
+      await supabase
+        .from('profiles')
+        .update({ plan })
+        .eq('id', pendingUserId);
+
+      setShowPlanDialog(false);
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error updating plan:', error);
+    }
   };
 
   return (
@@ -190,6 +216,11 @@ const Auth = () => {
           </Link>
         </div>
       </div>
+
+      <PlanSelectionDialog 
+        open={showPlanDialog}
+        onSelectPlan={handlePlanSelection}
+      />
     </div>
   );
 };
