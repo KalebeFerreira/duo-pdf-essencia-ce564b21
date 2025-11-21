@@ -151,9 +151,10 @@ const Dashboard = () => {
             </div>
 
             <div className="flex items-center gap-4">
-              {/* ADICIONADO onClick */}
-              <Button variant="ghost" size="icon" onClick={() => handleQuickAction("Configurações")}>
-                <Settings className="w-5 h-5" />
+              <Button variant="ghost" size="icon" asChild>
+                <Link to="/settings">
+                  <Settings className="w-5 h-5" />
+                </Link>
               </Button>
               <Button variant="ghost" size="icon" onClick={handleLogout}>
                 <LogOut className="w-5 h-5" />

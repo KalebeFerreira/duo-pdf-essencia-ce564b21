@@ -10,6 +10,7 @@ import CreatePdf from "./pages/CreatePdf";
 import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 import Automations from "./pages/Automations";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/create-pdf" element={<CreatePdf />} />
           <Route path="/automations" element={<Automations />} />
           <Route path="/pricing" element={<Pricing />} />
+          <Route path="/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
