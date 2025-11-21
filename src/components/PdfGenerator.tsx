@@ -39,27 +39,62 @@ const PdfGenerator = ({ onPdfGenerated }: PdfGeneratorProps) => {
     setGeneratedContent("");
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-pdf-content', {
-        body: { topic, prompt: prompt || undefined }
-      });
+      let contentToSave = "";
+      let isMockMode = false;
 
-      if (error) throw error;
+      // Try to generate with AI
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-pdf-content', {
+          body: { topic, prompt: prompt || undefined }
+        });
 
-      setGeneratedContent(data.content);
+        if (error) throw error;
+        contentToSave = data.content;
+        setGeneratedContent(data.content);
+      } catch (aiError) {
+        // Activate Mock Mode if AI fails
+        console.log('AI generation failed, activating Mock Mode:', aiError);
+        isMockMode = true;
+        
+        // Simulate 2 seconds loading
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Generate mock content
+        const mockContent = `# ${topic}
 
-      // Save document to database with content
+## Documento Gerado em Modo Simulação
+
+Este é um documento de exemplo criado automaticamente.
+
+### Sobre este Tópico
+${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integração com IA está sendo configurada.'}
+
+### Principais Pontos
+- Este é um documento de exemplo
+- Conteúdo gerado em modo simulação
+- Você pode editar este documento a qualquer momento
+- Configure a API Key do Gemini para gerar conteúdo com IA real
+
+---
+*Documento criado com Essência Duo PDF - Modo Simulação*`;
+
+        contentToSave = mockContent;
+        setGeneratedContent(mockContent);
+      }
+
+      // Save document to database with content (real or mock)
+      const { data: { user } } = await supabase.auth.getUser();
       const { error: insertError } = await supabase
         .from('documents')
         .insert({
           title: topic,
-          user_id: (await supabase.auth.getUser()).data.user?.id,
-          file_url: data.content, // Store content in file_url field
+          user_id: user?.id,
+          file_url: contentToSave,
         });
 
       if (insertError) throw insertError;
 
       // Update profile PDFs used count (both monthly and daily)
-      const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -79,8 +114,10 @@ const PdfGenerator = ({ onPdfGenerated }: PdfGeneratorProps) => {
       }
 
       toast({
-        title: "PDF Gerado!",
-        description: "Seu conteúdo foi gerado com sucesso.",
+        title: isMockMode ? "PDF Gerado (Modo Simulação)!" : "PDF Gerado!",
+        description: isMockMode 
+          ? "Conteúdo de exemplo criado com sucesso. Configure a API Key do Gemini para gerar conteúdo com IA." 
+          : "Seu conteúdo foi gerado com sucesso.",
       });
 
       onPdfGenerated();
