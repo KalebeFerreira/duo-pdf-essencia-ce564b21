@@ -49,7 +49,13 @@ const PdfGenerator = ({ onPdfGenerated }: PdfGeneratorProps) => {
         });
 
         if (error) throw error;
-        contentToSave = data.content;
+        
+        // Incluir imagens no conteúdo se foram geradas
+        const imagesSection = data.images && data.images.length > 0 
+          ? `\n\n### Imagens Geradas\n${data.images.map((img: string, i: number) => `![Imagem ${i + 1}](${img})`).join('\n')}\n`
+          : '';
+        
+        contentToSave = data.content + imagesSection;
         setGeneratedContent(data.content);
       } catch (aiError) {
         // Activate Mock Mode if AI fails
@@ -95,7 +101,8 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
           user_id: user?.id,
           file_url: `data:text/plain;base64,${base64Content}`,
           file_size: contentToSave.length,
-        });
+          template: 'modern',
+        } as any);
 
       if (insertError) throw insertError;
 

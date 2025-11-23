@@ -145,10 +145,22 @@ function applySingleColumnLayout(
   y = 50;
   pdf.setTextColor(config.colors.text);
 
-  // Conteúdo
+  // Conteúdo com suporte a imagens
   pdf.setFontSize(config.fonts.body);
   pdf.setFont("helvetica", "normal");
-  const lines = pdf.splitTextToSize(content, pageWidth - 2 * margin);
+  
+  // Processar conteúdo e extrair imagens
+  const imageRegex = /!\[.*?\]\((data:image\/[^)]+)\)/g;
+  let processedContent = content;
+  const extractedImages: string[] = [];
+  let match;
+  
+  while ((match = imageRegex.exec(content)) !== null) {
+    extractedImages.push(match[1]);
+    processedContent = processedContent.replace(match[0], '');
+  }
+  
+  const lines = pdf.splitTextToSize(processedContent, pageWidth - 2 * margin);
   
   lines.forEach((line: string) => {
     if (y > pdf.internal.pageSize.getHeight() - margin - 40) {
@@ -158,6 +170,26 @@ function applySingleColumnLayout(
     pdf.text(line, margin, y);
     y += 6;
   });
+  
+  // Adicionar imagens extraídas
+  if (extractedImages.length > 0) {
+    y += 10;
+    extractedImages.forEach((imgData, index) => {
+      if (y > pdf.internal.pageSize.getHeight() - margin - 80) {
+        pdf.addPage();
+        y = margin;
+      }
+      
+      try {
+        const imgWidth = pageWidth - 2 * margin;
+        const imgHeight = 60;
+        pdf.addImage(imgData, "PNG", margin, y, imgWidth, imgHeight);
+        y += imgHeight + 10;
+      } catch (e) {
+        console.error("Error adding image:", e);
+      }
+    });
+  }
 
   // Adicionar assinatura no final
   if (signatureUrl) {
@@ -221,13 +253,24 @@ function applyTwoColumnLayout(
     y += 7;
   });
 
-  // Conteúdo na coluna direita
+  // Conteúdo na coluna direita com suporte a imagens
   y = margin;
   pdf.setTextColor(config.colors.text);
   pdf.setFontSize(config.fonts.body);
   pdf.setFont("helvetica", "normal");
   
-  const lines = pdf.splitTextToSize(content, rightColumnWidth - 10);
+  // Processar conteúdo e extrair imagens
+  const imageRegex = /!\[.*?\]\((data:image\/[^)]+)\)/g;
+  let processedContent = content;
+  const extractedImages: string[] = [];
+  let match;
+  
+  while ((match = imageRegex.exec(content)) !== null) {
+    extractedImages.push(match[1]);
+    processedContent = processedContent.replace(match[0], '');
+  }
+  
+  const lines = pdf.splitTextToSize(processedContent, rightColumnWidth - 10);
   lines.forEach((line: string) => {
     if (y > pdf.internal.pageSize.getHeight() - margin - 40) {
       pdf.addPage();
@@ -238,6 +281,28 @@ function applyTwoColumnLayout(
     pdf.text(line, leftColumnWidth + 10, y);
     y += 6;
   });
+  
+  // Adicionar imagens extraídas
+  if (extractedImages.length > 0) {
+    y += 10;
+    extractedImages.forEach((imgData, index) => {
+      if (y > pdf.internal.pageSize.getHeight() - margin - 80) {
+        pdf.addPage();
+        pdf.setFillColor(config.colors.secondary);
+        pdf.rect(0, 0, leftColumnWidth, pdf.internal.pageSize.getHeight(), "F");
+        y = margin;
+      }
+      
+      try {
+        const imgWidth = rightColumnWidth - 20;
+        const imgHeight = 50;
+        pdf.addImage(imgData, "PNG", leftColumnWidth + 10, y, imgWidth, imgHeight);
+        y += imgHeight + 10;
+      } catch (e) {
+        console.error("Error adding image:", e);
+      }
+    });
+  }
 
   // Adicionar assinatura no final
   if (signatureUrl) {
@@ -308,10 +373,22 @@ function applyHeaderSidebarLayout(
   pdf.line(margin, y, pageWidth - margin, y);
   y += 10;
 
-  // Conteúdo
+  // Conteúdo com suporte a imagens
   pdf.setFontSize(config.fonts.body);
   pdf.setFont("helvetica", "normal");
-  const lines = pdf.splitTextToSize(content, pageWidth - 2 * margin);
+  
+  // Processar conteúdo e extrair imagens
+  const imageRegex = /!\[.*?\]\((data:image\/[^)]+)\)/g;
+  let processedContent = content;
+  const extractedImages: string[] = [];
+  let match;
+  
+  while ((match = imageRegex.exec(content)) !== null) {
+    extractedImages.push(match[1]);
+    processedContent = processedContent.replace(match[0], '');
+  }
+  
+  const lines = pdf.splitTextToSize(processedContent, pageWidth - 2 * margin);
   
   lines.forEach((line: string) => {
     if (y > pdf.internal.pageSize.getHeight() - margin - 40) {
@@ -321,6 +398,26 @@ function applyHeaderSidebarLayout(
     pdf.text(line, margin, y);
     y += 6;
   });
+  
+  // Adicionar imagens extraídas
+  if (extractedImages.length > 0) {
+    y += 10;
+    extractedImages.forEach((imgData, index) => {
+      if (y > pdf.internal.pageSize.getHeight() - margin - 80) {
+        pdf.addPage();
+        y = margin;
+      }
+      
+      try {
+        const imgWidth = pageWidth - 2 * margin;
+        const imgHeight = 60;
+        pdf.addImage(imgData, "PNG", margin, y, imgWidth, imgHeight);
+        y += imgHeight + 10;
+      } catch (e) {
+        console.error("Error adding image:", e);
+      }
+    });
+  }
 
   // Adicionar assinatura no final
   if (signatureUrl) {

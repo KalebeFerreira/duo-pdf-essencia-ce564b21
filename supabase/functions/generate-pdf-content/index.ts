@@ -60,10 +60,62 @@ Formato: Estruture o conteúdo de forma que possa ser facilmente convertido em P
 
     console.log('Content generated successfully');
 
+    // Gerar imagens relevantes com IA
+    let images: string[] = [];
+    try {
+      console.log('Generating AI images for the content...');
+      
+      // Gerar prompts de imagens baseado no tópico
+      const imagePrompts = [
+        `Professional stock photo related to ${topic}, high quality, corporate style, bright lighting`,
+        `Modern business illustration about ${topic}, professional, clean design, vibrant colors`,
+        `Professional workspace or people working on ${topic}, realistic photo, natural lighting`
+      ];
+
+      // Gerar até 3 imagens
+      for (const imagePrompt of imagePrompts.slice(0, 2)) {
+        try {
+          const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${lovableApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-flash-image-preview',
+              messages: [
+                {
+                  role: 'user',
+                  content: imagePrompt
+                }
+              ],
+              modalities: ['image', 'text']
+            }),
+          });
+
+          if (imageResponse.ok) {
+            const imageData = await imageResponse.json();
+            const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+            if (imageUrl) {
+              images.push(imageUrl);
+              console.log('Image generated successfully');
+            }
+          }
+        } catch (imgError) {
+          console.error('Error generating image:', imgError);
+          // Continue mesmo se uma imagem falhar
+        }
+      }
+    } catch (error) {
+      console.error('Error in image generation process:', error);
+      // Continue sem imagens se houver erro
+    }
+
     return new Response(
       JSON.stringify({ 
         content: generatedContent,
         topic: topic,
+        images: images,
         timestamp: new Date().toISOString()
       }),
       {
