@@ -61,37 +61,30 @@ export default function CreateResume() {
     setIsGenerating(true);
 
     try {
-      // Simular geração com IA (Mock Mode)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Gerar currículo com Lovable AI
+      const { data: aiData, error: aiError } = await supabase.functions.invoke('generate-resume', {
+        body: { 
+          formData,
+          template 
+        }
+      });
 
-      const mockResumeContent = `
-        CURRÍCULO PROFISSIONAL - ${template.toUpperCase()}
-        
-        ${formData.fullName}
-        ${formData.profession}
-        ${formData.email} | ${formData.phone}
-        
-        RESUMO PROFISSIONAL
-        ${formData.summary || "Profissional qualificado com experiência comprovada na área."}
-        
-        EXPERIÊNCIA
-        ${formData.experience || "Experiência relevante na área de atuação."}
-        
-        FORMAÇÃO
-        ${formData.education || "Formação acadêmica completa."}
-        
-        HABILIDADES
-        ${formData.skills || "Habilidades técnicas e comportamentais."}
-      `;
+      if (aiError) {
+        console.error('AI generation error:', aiError);
+        throw aiError;
+      }
+
+      const resumeContent = aiData?.content || 'Erro ao gerar conteúdo';
+      const selectedTemplate = templates.find(t => t.id === template);
 
       // Salvar no banco de dados
       const { error: insertError } = await supabase
         .from("documents")
         .insert({
           user_id: user?.id,
-          title: `Currículo - ${formData.fullName}`,
-          file_url: `data:text/plain;base64,${btoa(mockResumeContent)}`,
-          file_size: mockResumeContent.length,
+          title: `Currículo ${selectedTemplate?.name} - ${formData.fullName}`,
+          file_url: `data:text/plain;base64,${btoa(resumeContent)}`,
+          file_size: resumeContent.length,
         });
 
       if (insertError) throw insertError;
@@ -114,16 +107,25 @@ export default function CreateResume() {
       }
 
       toast({
-        title: "Currículo gerado com sucesso!",
-        description: "Seu currículo foi criado e salvo no dashboard.",
+        title: "✨ Currículo gerado com IA!",
+        description: "Seu currículo profissional foi criado com sugestões inteligentes e otimização de palavras-chave.",
       });
 
       navigate("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao gerar currículo:", error);
+      
+      // Tratamento específico de erros
+      let errorMessage = "Tente novamente mais tarde.";
+      if (error.message?.includes('Rate limit')) {
+        errorMessage = "Limite de uso atingido. Aguarde alguns instantes.";
+      } else if (error.message?.includes('credits')) {
+        errorMessage = "Créditos de IA esgotados. Adicione créditos para continuar.";
+      }
+      
       toast({
         title: "Erro ao gerar currículo",
-        description: "Tente novamente mais tarde.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
