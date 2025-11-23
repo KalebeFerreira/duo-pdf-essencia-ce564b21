@@ -12,13 +12,7 @@ import { Loader2, FileText, Sparkles, Upload, X, Edit } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PhotoEditor } from "@/components/PhotoEditor";
-
-const templates = [
-  { id: "modern", name: "Moderno", description: "Design limpo e contemporâneo" },
-  { id: "classic", name: "Clássico", description: "Formato tradicional e profissional" },
-  { id: "creative", name: "Criativo", description: "Visual inovador e chamativo" },
-  { id: "minimal", name: "Minimalista", description: "Simples e direto ao ponto" },
-];
+import { TemplateGallery, templates } from "@/components/TemplateGallery";
 
 export default function CreateResume() {
   const navigate = useNavigate();
@@ -172,7 +166,7 @@ export default function CreateResume() {
       // Converter texto UTF-8 para Base64 corretamente
       const base64Content = btoa(unescape(encodeURIComponent(resumeContent)));
 
-      // Salvar no banco de dados com a URL da foto
+      // Salvar no banco de dados com a URL da foto e template
       const { error: insertError } = await supabase
         .from("documents")
         .insert({
@@ -181,6 +175,7 @@ export default function CreateResume() {
           file_url: `data:text/plain;base64,${base64Content}`,
           file_size: resumeContent.length,
           photo_url: photoUrl || null,
+          template: template,
         });
 
       if (insertError) throw insertError;
@@ -247,26 +242,13 @@ export default function CreateResume() {
                   <Sparkles className="h-5 w-5 text-primary" />
                   Escolha seu Template
                 </CardTitle>
-                <CardDescription>Selecione o estilo que melhor representa você</CardDescription>
+                <CardDescription>Selecione o estilo visual do seu currículo</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {templates.map((t) => (
-                    <Card
-                      key={t.id}
-                      className={`cursor-pointer transition-all hover:border-primary ${
-                        template === t.id ? "border-primary border-2 bg-accent" : ""
-                      }`}
-                      onClick={() => setTemplate(t.id)}
-                    >
-                      <CardContent className="p-4 text-center">
-                        <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                        <h3 className="font-semibold text-sm">{t.name}</h3>
-                        <p className="text-xs text-muted-foreground mt-1">{t.description}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                <TemplateGallery 
+                  selectedTemplate={template} 
+                  onSelectTemplate={setTemplate} 
+                />
               </CardContent>
             </Card>
 
