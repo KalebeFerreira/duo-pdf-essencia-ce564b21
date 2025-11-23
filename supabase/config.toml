@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.generate-automation]
 verify_jwt = true
+
+[functions.generate-resume]
+verify_jwt = true
