@@ -52,20 +52,43 @@ export default function CreateEbook() {
         body: { prompt }
       });
 
-      if (error) throw error;
+      // Verificar erro ANTES de lançar exceção
+      if (error) {
+        console.error('Edge function error:', error);
+        
+        // Extrair informações do erro
+        const errorBody = (error as any)?.context?.body;
+        const errorCode = errorBody?.code;
+        const errorMessage = errorBody?.message || errorBody?.error;
+        
+        // Tratar erro de créditos especificamente
+        if (errorCode === 'NO_CREDITS' || errorMessage?.includes('créditos') || errorMessage?.includes('credits')) {
+          toast({
+            title: "💳 Créditos Esgotados",
+            description: "Seus créditos do Lovable AI acabaram. Acesse Settings → Workspace → Usage para adicionar créditos.",
+            variant: "destructive",
+          });
+          setIsGenerating(false);
+          return;
+        }
+        
+        // Tratar rate limit
+        if (errorCode === 'RATE_LIMIT' || errorMessage?.includes('Rate limit')) {
+          toast({
+            title: "⏱️ Muitas Requisições",
+            description: "Limite temporário atingido. Aguarde alguns instantes e tente novamente.",
+            variant: "destructive",
+          });
+          setIsGenerating(false);
+          return;
+        }
+        
+        // Outros erros
+        throw error;
+      }
 
-      // Verificar erro de créditos
-      const errorData = error?.context?.body || error;
-      const errorCode = errorData?.code;
-
-      if (errorCode === 'NO_CREDITS' || error?.message?.includes('credits') || error?.message?.includes('402')) {
-        toast({
-          title: "💳 Créditos Esgotados",
-          description: "Seus créditos do Lovable AI acabaram. Acesse Settings → Workspace → Usage para adicionar créditos.",
-          variant: "destructive",
-        });
-        setIsGenerating(false);
-        return;
+      if (!data) {
+        throw new Error('Nenhum dado retornado');
       }
 
       setGeneratedEbook(data);
