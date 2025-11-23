@@ -22,6 +22,9 @@ const Navbar = () => {
             <Link to="/#features" className="text-foreground hover:text-primary transition-smooth">
               Recursos
             </Link>
+            <Link to="/create-resume" className="text-foreground hover:text-primary transition-smooth">
+              Criar Currículo
+            </Link>
             <Link to="/pricing" className="text-foreground hover:text-primary transition-smooth">
               Planos
             </Link>
@@ -51,6 +54,13 @@ const Navbar = () => {
               onClick={() => setIsMenuOpen(false)}
             >
               Recursos
+            </Link>
+            <Link
+              to="/create-resume"
+              className="block py-2 text-foreground hover:text-primary transition-smooth"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Criar Currículo
             </Link>
             <Link
               to="/pricing"
