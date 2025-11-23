@@ -8,9 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, FileText, Sparkles, Upload, X } from "lucide-react";
+import { Loader2, FileText, Sparkles, Upload, X, Edit } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PhotoEditor } from "@/components/PhotoEditor";
 
 const templates = [
   { id: "modern", name: "Moderno", description: "Design limpo e contemporâneo" },
@@ -27,6 +28,8 @@ export default function CreateResume() {
   const [template, setTemplate] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [tempPhotoFile, setTempPhotoFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -42,7 +45,7 @@ export default function CreateResume() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
@@ -65,17 +68,27 @@ export default function CreateResume() {
       return;
     }
 
+    // Abrir editor com a imagem
+    setTempPhotoFile(file);
+    setIsEditorOpen(true);
+  };
+
+  const handlePhotoEdited = async (editedBlob: Blob) => {
+    if (!user) return;
+    
     setIsUploadingPhoto(true);
-    setPhotoFile(file);
 
     try {
+      // Converter blob para file
+      const editedFile = new File([editedBlob], "edited-photo.jpg", { type: "image/jpeg" });
+      
       // Upload para o storage
-      const fileExt = file.name.split('.').pop();
+      const fileExt = "jpg";
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from('resume-photos')
-        .upload(fileName, file);
+        .upload(fileName, editedFile);
 
       if (uploadError) throw uploadError;
 
@@ -85,15 +98,16 @@ export default function CreateResume() {
         .getPublicUrl(fileName);
 
       setPhotoUrl(publicUrl);
+      setPhotoFile(editedFile);
       
       toast({
-        title: "Foto carregada!",
-        description: "Sua foto foi adicionada ao currículo.",
+        title: "Foto editada e salva!",
+        description: "Suas alterações foram aplicadas com sucesso.",
       });
     } catch (error: any) {
-      console.error("Erro ao fazer upload da foto:", error);
+      console.error("Erro ao salvar foto editada:", error);
       toast({
-        title: "Erro ao carregar foto",
+        title: "Erro ao salvar foto",
         description: error.message || "Tente novamente.",
         variant: "destructive",
       });
@@ -105,6 +119,13 @@ export default function CreateResume() {
   const handleRemovePhoto = () => {
     setPhotoUrl("");
     setPhotoFile(null);
+  };
+
+  const handleEditPhoto = () => {
+    if (photoFile) {
+      setTempPhotoFile(photoFile);
+      setIsEditorOpen(true);
+    }
   };
 
   const handleGenerate = async () => {
@@ -271,7 +292,7 @@ export default function CreateResume() {
                           <Input
                             type="file"
                             accept="image/*"
-                            onChange={handlePhotoUpload}
+                            onChange={handlePhotoSelect}
                             disabled={isUploadingPhoto}
                             className="cursor-pointer"
                           />
@@ -280,20 +301,31 @@ export default function CreateResume() {
                           </p>
                         </div>
                       ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleRemovePhoto}
-                          disabled={isUploadingPhoto}
-                        >
-                          <X className="w-4 h-4 mr-2" />
-                          Remover Foto
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleEditPhoto}
+                            disabled={isUploadingPhoto}
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Editar Foto
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleRemovePhoto}
+                            disabled={isUploadingPhoto}
+                          >
+                            <X className="w-4 h-4 mr-2" />
+                            Remover
+                          </Button>
+                        </div>
                       )}
                       {isUploadingPhoto && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          Carregando...
+                          Processando...
                         </div>
                       )}
                     </div>
@@ -424,6 +456,14 @@ export default function CreateResume() {
           </div>
         </div>
       </div>
+
+      {/* Photo Editor Modal */}
+      <PhotoEditor
+        isOpen={isEditorOpen}
+        onClose={() => setIsEditorOpen(false)}
+        imageFile={tempPhotoFile}
+        onSave={handlePhotoEdited}
+      />
     </div>
   );
 }
