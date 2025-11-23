@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.generate-ebook-chapter]
 verify_jwt = true
+
+[functions.generate-complete-ebook]
+verify_jwt = true

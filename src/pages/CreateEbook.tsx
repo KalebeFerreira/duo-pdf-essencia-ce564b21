@@ -101,6 +101,8 @@ export default function CreateEbook() {
   const [chapters, setChapters] = useState<Chapter[]>([
     { id: "1", title: "", content: "" }
   ]);
+  const [autoPrompt, setAutoPrompt] = useState("");
+  const [isAutoGenerating, setIsAutoGenerating] = useState(false);
 
   const applyTemplate = (templateId: string) => {
     const template = ebookTemplates.find(t => t.id === templateId);
@@ -266,6 +268,92 @@ export default function CreateEbook() {
     });
   };
 
+  const generateCompleteEbook = async () => {
+    if (!autoPrompt.trim()) {
+      toast({
+        title: "Prompt necessário",
+        description: "Digite o que você quer no ebook.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAutoGenerating(true);
+    setGenerationProgress(0);
+
+    try {
+      toast({
+        title: "Gerando ebook completo...",
+        description: "Isso pode levar alguns minutos. Aguarde.",
+      });
+
+      const { data, error } = await supabase.functions.invoke('generate-complete-ebook', {
+        body: { prompt: autoPrompt }
+      });
+
+      if (error) throw error;
+
+      // Extrair informação do erro se houver
+      const errorData = error?.context?.body || error;
+      const errorCode = errorData?.code;
+
+      if (errorCode === 'NO_CREDITS' || error?.message?.includes('credits') || error?.message?.includes('402')) {
+        toast({
+          title: "💳 Créditos Esgotados",
+          description: "Seus créditos do Lovable AI acabaram. Acesse Settings → Workspace → Usage para adicionar mais créditos.",
+          variant: "destructive",
+        });
+        setIsAutoGenerating(false);
+        return;
+      }
+
+      // Atualizar o estado com os dados gerados
+      setEbookTitle(data.title);
+      setDescription(data.description);
+      
+      const generatedChapters = data.chapters.map((ch: any, index: number) => ({
+        id: `${Date.now()}-${index}`,
+        title: ch.title,
+        content: ch.content,
+        imageUrl: ch.imageUrl
+      }));
+      
+      setChapters(generatedChapters);
+
+      toast({
+        title: "✨ Ebook gerado com sucesso!",
+        description: `${data.chapters.length} capítulos criados automaticamente com IA.`,
+      });
+
+    } catch (error: any) {
+      console.error("Erro ao gerar ebook completo:", error);
+      
+      const errorData = error?.context?.body || error;
+      const errorCode = errorData?.code;
+      const errorMessage = errorData?.message || errorData?.error;
+      
+      let title = "Erro ao gerar ebook";
+      let description = errorMessage || "Tente novamente.";
+      
+      if (errorCode === 'NO_CREDITS' || error.message?.includes('credits') || error.message?.includes('402')) {
+        title = "💳 Créditos Esgotados";
+        description = "Seus créditos do Lovable AI acabaram. Acesse Settings → Workspace → Usage para adicionar mais créditos.";
+      } else if (errorCode === 'RATE_LIMIT' || error.message?.includes('Rate limit') || error.message?.includes('429')) {
+        title = "⏱️ Muitas Requisições";
+        description = "Limite temporário atingido. Aguarde alguns instantes.";
+      }
+      
+      toast({
+        title,
+        description,
+        variant: "destructive",
+      });
+    } finally {
+      setIsAutoGenerating(false);
+      setGenerationProgress(0);
+    }
+  };
+
   const downloadEbook = async () => {
     if (!ebookTitle.trim()) {
       toast({
@@ -379,6 +467,82 @@ export default function CreateEbook() {
           <div className="flex items-center gap-2 mb-6">
             <BookOpen className="h-8 w-8 text-primary" />
             <h1 className="text-3xl font-bold text-foreground">Criar Ebook Profissional</h1>
+          </div>
+
+          {/* Geração Automática Completa */}
+          <Card className="mb-6 border-2 border-primary/50 bg-gradient-to-br from-primary/5 to-primary/10">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+                Geração Automática Completa com IA
+              </CardTitle>
+              <CardDescription className="text-base">
+                Digite apenas o que você quer e a IA cria o ebook completo: título, descrição, capítulos, conteúdo e imagens!
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="auto-prompt" className="text-base">
+                  O que você quer no seu ebook?
+                </Label>
+                <Textarea
+                  id="auto-prompt"
+                  placeholder="Exemplo: Um ebook sobre marketing digital para iniciantes, com dicas práticas de redes sociais, SEO e anúncios pagos..."
+                  value={autoPrompt}
+                  onChange={(e) => setAutoPrompt(e.target.value)}
+                  className="mt-2 min-h-[100px] text-base"
+                  disabled={isAutoGenerating}
+                />
+              </div>
+              <Button
+                onClick={generateCompleteEbook}
+                disabled={isAutoGenerating || !autoPrompt.trim()}
+                size="lg"
+                className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+              >
+                {isAutoGenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Gerando ebook completo... (isso pode levar alguns minutos)
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-5 w-5" />
+                    Gerar Ebook Completo Automaticamente
+                  </>
+                )}
+              </Button>
+              {isAutoGenerating && (
+                <div className="space-y-2">
+                  <Progress value={generationProgress} className="h-2" />
+                  <p className="text-xs text-center text-muted-foreground">
+                    Gerando estrutura, capítulos e imagens... Por favor aguarde.
+                  </p>
+                </div>
+              )}
+              <div className="bg-background/50 rounded-lg p-4 space-y-2">
+                <p className="text-sm font-medium">✨ O que será gerado:</p>
+                <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                  <li>• Título profissional e cativante</li>
+                  <li>• Descrição envolvente do ebook</li>
+                  <li>• 5-8 capítulos com títulos otimizados</li>
+                  <li>• Conteúdo completo para cada capítulo (500-800 palavras)</li>
+                  <li>• Imagens realistas profissionais para cada capítulo</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Divider */}
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Ou crie manualmente
+              </span>
+            </div>
           </div>
 
           {/* Templates */}
