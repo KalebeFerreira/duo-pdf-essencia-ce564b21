@@ -219,17 +219,26 @@ export default function CreateResume() {
     } catch (error: any) {
       console.error("Erro ao gerar currículo:", error);
       
+      // Extrair informação do erro da edge function
+      const errorData = error?.context?.body || error;
+      const errorCode = errorData?.code;
+      const errorMessage = errorData?.message || errorData?.error;
+      
+      let title = "Erro ao gerar currículo";
+      let description = errorMessage || "Tente novamente mais tarde.";
+      
       // Tratamento específico de erros
-      let errorMessage = "Tente novamente mais tarde.";
-      if (error.message?.includes('Rate limit')) {
-        errorMessage = "Limite de uso atingido. Aguarde alguns instantes.";
-      } else if (error.message?.includes('credits')) {
-        errorMessage = "Créditos de IA esgotados. Adicione créditos para continuar.";
+      if (errorCode === 'NO_CREDITS' || error.message?.includes('credits') || error.message?.includes('402')) {
+        title = "💳 Créditos Esgotados";
+        description = "Seus créditos do Lovable AI acabaram. Acesse Settings → Workspace → Usage para adicionar mais créditos e continuar gerando conteúdo.";
+      } else if (errorCode === 'RATE_LIMIT' || error.message?.includes('Rate limit') || error.message?.includes('429')) {
+        title = "⏱️ Muitas Requisições";
+        description = "Limite temporário atingido. Aguarde alguns instantes e tente novamente.";
       }
       
       toast({
-        title: "Erro ao gerar currículo",
-        description: errorMessage,
+        title,
+        description,
         variant: "destructive",
       });
     } finally {

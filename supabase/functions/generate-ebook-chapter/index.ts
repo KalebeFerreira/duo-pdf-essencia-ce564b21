@@ -59,6 +59,36 @@ Crie um conteúdo rico, informativo e profissional para este capítulo.`;
     if (!contentResponse.ok) {
       const errorText = await contentResponse.text();
       console.error('AI Gateway error:', contentResponse.status, errorText);
+      
+      if (contentResponse.status === 429) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Limite de requisições excedido',
+            message: 'Muitas requisições. Aguarde um momento e tente novamente.',
+            code: 'RATE_LIMIT'
+          }),
+          { 
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      
+      if (contentResponse.status === 402) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Créditos de IA esgotados',
+            message: 'Seus créditos do Lovable AI acabaram. Adicione créditos em Settings → Workspace → Usage para continuar.',
+            code: 'NO_CREDITS',
+            actionUrl: 'https://lovable.dev/workspace/settings/usage'
+          }),
+          { 
+            status: 402,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      
       throw new Error(`AI Gateway error: ${contentResponse.status}`);
     }
 

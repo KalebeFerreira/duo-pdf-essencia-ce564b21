@@ -110,10 +110,32 @@ INFORMAÇÕES ADICIONAIS (se relevante)
       console.error('AI Gateway error:', response.status, errorText);
       
       if (response.status === 429) {
-        throw new Error('Rate limit exceeded. Please try again in a moment.');
+        return new Response(
+          JSON.stringify({ 
+            error: 'Limite de requisições excedido',
+            message: 'Muitas requisições. Aguarde um momento e tente novamente.',
+            code: 'RATE_LIMIT'
+          }),
+          { 
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       }
+      
       if (response.status === 402) {
-        throw new Error('AI credits depleted. Please add credits to continue.');
+        return new Response(
+          JSON.stringify({ 
+            error: 'Créditos de IA esgotados',
+            message: 'Seus créditos do Lovable AI acabaram. Adicione créditos em Settings → Workspace → Usage para continuar.',
+            code: 'NO_CREDITS',
+            actionUrl: 'https://lovable.dev/workspace/settings/usage'
+          }),
+          { 
+            status: 402,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       }
       
       throw new Error('Failed to generate resume with AI');
