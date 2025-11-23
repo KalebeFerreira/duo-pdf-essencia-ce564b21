@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.generate-resume]
 verify_jwt = true
+
+[functions.generate-ebook-chapter]
+verify_jwt = true

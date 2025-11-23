@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Upload, FileText, Zap, LogOut, Settings, Download, Eye, MoreVertical, Edit, Trash2, User } from "lucide-react";
+import { Upload, FileText, Zap, LogOut, Settings, Download, Eye, MoreVertical, Edit, Trash2, User, BookOpen } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useDocuments } from "@/hooks/useDocuments";
@@ -229,7 +229,7 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-4 gap-6 mb-8">
           <Card
             className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group"
             onClick={() => navigate("/create-pdf")}
@@ -253,6 +253,19 @@ const Dashboard = () => {
               </div>
               <CardTitle>Criar Currículo</CardTitle>
               <CardDescription>Gere currículos profissionais com templates e IA</CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card
+            className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group"
+            onClick={() => navigate("/create-ebook")}
+          >
+            <CardHeader>
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-smooth">
+                <BookOpen className="w-6 h-6 text-white" />
+              </div>
+              <CardTitle>Criar Ebook</CardTitle>
+              <CardDescription>Crie ebooks completos com imagens IA para cada capítulo</CardDescription>
             </CardHeader>
           </Card>
 
