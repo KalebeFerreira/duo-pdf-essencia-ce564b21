@@ -21,6 +21,7 @@ export type Database = {
           file_url: string | null
           id: string
           photo_url: string | null
+          signature_url: string | null
           title: string | null
           user_id: string | null
         }
@@ -30,6 +31,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           photo_url?: string | null
+          signature_url?: string | null
           title?: string | null
           user_id?: string | null
         }
@@ -39,6 +41,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           photo_url?: string | null
+          signature_url?: string | null
           title?: string | null
           user_id?: string | null
         }
