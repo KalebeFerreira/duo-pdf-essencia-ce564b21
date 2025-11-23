@@ -198,11 +198,30 @@ export default function CreateEbook() {
       });
     } catch (error: any) {
       console.error("Erro ao gerar capítulo:", error);
+      
+      // Extrair informação do erro da edge function
+      const errorData = error?.context?.body || error;
+      const errorCode = errorData?.code;
+      const errorMessage = errorData?.message || errorData?.error;
+      
+      let title = "Erro ao gerar capítulo";
+      let description = errorMessage || "Tente novamente.";
+      
+      // Tratamento específico de erros
+      if (errorCode === 'NO_CREDITS' || error.message?.includes('credits') || error.message?.includes('402')) {
+        title = "💳 Créditos Esgotados";
+        description = "Seus créditos do Lovable AI acabaram. Acesse Settings → Workspace → Usage para adicionar mais créditos.";
+      } else if (errorCode === 'RATE_LIMIT' || error.message?.includes('Rate limit') || error.message?.includes('429')) {
+        title = "⏱️ Muitas Requisições";
+        description = "Limite temporário atingido. Aguarde alguns instantes.";
+      }
+      
       toast({
-        title: "Erro ao gerar capítulo",
-        description: error.message || "Tente novamente.",
+        title,
+        description,
         variant: "destructive",
       });
+      
       setChapters(chapters.map(ch => 
         ch.id === chapterId ? { ...ch, isGenerating: false } : ch
       ));
