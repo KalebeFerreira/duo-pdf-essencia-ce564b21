@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import CreatePdf from "./pages/CreatePdf";
+import CreateResume from "./pages/CreateResume";
 import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 import Automations from "./pages/Automations";
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/create-pdf" element={<CreatePdf />} />
+          <Route path="/create-resume" element={<CreateResume />} />
           <Route path="/automations" element={<Automations />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/settings" element={<Settings />} />
