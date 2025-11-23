@@ -5,12 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, FileText, Sparkles } from "lucide-react";
+import { Loader2, FileText, Sparkles, Upload, X } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const templates = [
   { id: "modern", name: "Moderno", description: "Design limpo e contemporâneo" },
@@ -23,7 +23,10 @@ export default function CreateResume() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [template, setTemplate] = useState("");
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -37,6 +40,71 @@ export default function CreateResume() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validar tipo e tamanho
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Arquivo inválido",
+        description: "Por favor, selecione uma imagem.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Arquivo muito grande",
+        description: "A foto deve ter no máximo 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    setPhotoFile(file);
+
+    try {
+      // Upload para o storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('resume-photos')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Obter URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('resume-photos')
+        .getPublicUrl(fileName);
+
+      setPhotoUrl(publicUrl);
+      
+      toast({
+        title: "Foto carregada!",
+        description: "Sua foto foi adicionada ao currículo.",
+      });
+    } catch (error: any) {
+      console.error("Erro ao fazer upload da foto:", error);
+      toast({
+        title: "Erro ao carregar foto",
+        description: error.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoUrl("");
+    setPhotoFile(null);
   };
 
   const handleGenerate = async () => {
@@ -64,7 +132,10 @@ export default function CreateResume() {
       // Gerar currículo com Lovable AI
       const { data: aiData, error: aiError } = await supabase.functions.invoke('generate-resume', {
         body: { 
-          formData,
+          formData: {
+            ...formData,
+            photoUrl: photoUrl || undefined
+          },
           template 
         }
       });
@@ -77,13 +148,16 @@ export default function CreateResume() {
       const resumeContent = aiData?.content || 'Erro ao gerar conteúdo';
       const selectedTemplate = templates.find(t => t.id === template);
 
+      // Converter texto UTF-8 para Base64 corretamente
+      const base64Content = btoa(unescape(encodeURIComponent(resumeContent)));
+
       // Salvar no banco de dados
       const { error: insertError } = await supabase
         .from("documents")
         .insert({
           user_id: user?.id,
           title: `Currículo ${selectedTemplate?.name} - ${formData.fullName}`,
-          file_url: `data:text/plain;base64,${btoa(resumeContent)}`,
+          file_url: `data:text/plain;base64,${base64Content}`,
           file_size: resumeContent.length,
         });
 
@@ -107,8 +181,8 @@ export default function CreateResume() {
       }
 
       toast({
-        title: "✨ Currículo gerado com IA!",
-        description: "Seu currículo profissional foi criado com sugestões inteligentes e otimização de palavras-chave.",
+        title: "✨ Currículo profissional criado!",
+        description: "Seu currículo foi gerado com IA e está disponível no dashboard.",
       });
 
       navigate("/dashboard");
@@ -180,6 +254,51 @@ export default function CreateResume() {
                 <CardTitle>Dados Pessoais</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Upload de Foto */}
+                <div>
+                  <Label>Foto Profissional (Opcional)</Label>
+                  <div className="flex items-center gap-4 mt-2">
+                    <Avatar className="w-24 h-24">
+                      <AvatarImage src={photoUrl} alt={formData.fullName} />
+                      <AvatarFallback className="text-2xl">
+                        {formData.fullName ? formData.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'FT'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 space-y-2">
+                      {!photoUrl ? (
+                        <div>
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePhotoUpload}
+                            disabled={isUploadingPhoto}
+                            className="cursor-pointer"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            PNG, JPG ou WEBP. Máximo 5MB.
+                          </p>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleRemovePhoto}
+                          disabled={isUploadingPhoto}
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Remover Foto
+                        </Button>
+                      )}
+                      {isUploadingPhoto && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Carregando...
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <Label htmlFor="fullName">Nome Completo *</Label>
                   <Input

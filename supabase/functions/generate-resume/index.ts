@@ -32,7 +32,11 @@ IMPORTANTE:
 - Mantenha tom profissional e objetivo
 - Adapte o estilo ao template escolhido: ${template}`;
 
-    const userPrompt = `Gere um currículo profissional completo baseado nas seguintes informações:
+    const photoSection = formData.photoUrl 
+      ? `\n\n[FOTO PROFISSIONAL: ${formData.photoUrl}]\n` 
+      : '';
+
+    const userPrompt = `Gere um currículo profissional completo baseado nas seguintes informações:${photoSection}
 
 Nome: ${formData.fullName}
 Profissão: ${formData.profession}
@@ -97,8 +101,7 @@ INFORMAÇÕES ADICIONAIS (se relevante)
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.7,
-        max_tokens: 2000,
+        max_completion_tokens: 2000,
       }),
     });
 
@@ -125,6 +128,7 @@ INFORMAÇÕES ADICIONAIS (se relevante)
       JSON.stringify({ 
         content: generatedContent,
         template: template,
+        photoUrl: formData.photoUrl || null,
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
