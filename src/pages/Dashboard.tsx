@@ -137,6 +137,8 @@ const Dashboard = () => {
     pages: '-',
     content: doc.file_url || '',
     photo_url: doc.photo_url || undefined,
+    signature_url: (doc as any).signature_url || undefined,
+    template: (doc as any).template || 'modern',
   })) || [];
 
   return (
@@ -333,6 +335,8 @@ const Dashboard = () => {
                                 content={pdf.content}
                                 title={pdf.name}
                                 photoUrl={pdf.photo_url}
+                                signatureUrl={pdf.signature_url}
+                                template={pdf.template}
                                 variant="ghost"
                                 size="sm"
                                 className="p-0 h-auto hover:bg-transparent"
@@ -388,6 +392,8 @@ const Dashboard = () => {
                         content={pdf.content}
                         title={pdf.name}
                         photoUrl={pdf.photo_url}
+                        signatureUrl={pdf.signature_url}
+                        template={pdf.template}
                         size="sm"
                         className="flex-1 h-8"
                       />

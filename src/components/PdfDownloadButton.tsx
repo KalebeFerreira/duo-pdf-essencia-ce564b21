@@ -8,13 +8,14 @@ interface PdfDownloadButtonProps {
   content: string;
   title: string;
   photoUrl?: string;
+  signatureUrl?: string;
   template?: string;
   variant?: "default" | "outline" | "ghost";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
 }
 
-const PdfDownloadButton = ({ content, title, photoUrl, template = "modern", variant = "outline", size = "sm", className = "" }: PdfDownloadButtonProps) => {
+const PdfDownloadButton = ({ content, title, photoUrl, signatureUrl, template = "modern", variant = "outline", size = "sm", className = "" }: PdfDownloadButtonProps) => {
   const handleDownload = async () => {
     try {
       // Decodificar conteúdo se estiver em base64
@@ -71,7 +72,7 @@ const PdfDownloadButton = ({ content, title, photoUrl, template = "modern", vari
         const pdf = new jsPDF();
         
         // Aplicar template visual ao PDF
-        const styledPdf = applyTemplate(pdf, template, decodedContent, title, photoUrl);
+        const styledPdf = applyTemplate(pdf, template, decodedContent, title, photoUrl, signatureUrl);
         
         styledPdf.save(`${title}.pdf`);
       }
