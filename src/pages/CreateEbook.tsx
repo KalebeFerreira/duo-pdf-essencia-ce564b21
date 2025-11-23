@@ -8,11 +8,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, BookOpen, Plus, Trash2, Image as ImageIcon, Sparkles, Download } from "lucide-react";
+import { Loader2, BookOpen, Plus, Trash2, Image as ImageIcon, Sparkles, Download, Code, Briefcase, GraduationCap, CheckCircle2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import jsPDF from "jspdf";
+
+interface EbookTemplate {
+  id: string;
+  name: string;
+  description: string;
+  icon: any;
+  color: string;
+  chapters: string[];
+  suggestedDescription: string;
+}
 
 interface Chapter {
   id: string;
@@ -22,17 +32,102 @@ interface Chapter {
   isGenerating?: boolean;
 }
 
+const ebookTemplates: EbookTemplate[] = [
+  {
+    id: "technical",
+    name: "Técnico",
+    description: "Para guias técnicos, tutoriais e documentação",
+    icon: Code,
+    color: "from-blue-500 to-cyan-500",
+    suggestedDescription: "Um guia técnico completo e detalhado para profissionais e entusiastas da área.",
+    chapters: [
+      "Introdução e Conceitos Fundamentais",
+      "Configuração do Ambiente",
+      "Primeiros Passos",
+      "Conceitos Avançados",
+      "Boas Práticas e Padrões",
+      "Resolução de Problemas Comuns",
+      "Estudos de Caso Práticos",
+      "Recursos Adicionais e Próximos Passos"
+    ]
+  },
+  {
+    id: "business",
+    name: "Negócios",
+    description: "Para estratégias empresariais e gestão",
+    icon: Briefcase,
+    color: "from-purple-500 to-pink-500",
+    suggestedDescription: "Um guia estratégico para empreendedores e gestores alcançarem excelência nos negócios.",
+    chapters: [
+      "Visão Geral e Oportunidades de Mercado",
+      "Planejamento Estratégico",
+      "Gestão Financeira e Investimentos",
+      "Marketing e Vendas",
+      "Gestão de Equipes e Liderança",
+      "Operações e Processos",
+      "Casos de Sucesso",
+      "Tendências e Futuro do Setor"
+    ]
+  },
+  {
+    id: "educational",
+    name: "Educacional",
+    description: "Para conteúdo didático e materiais de ensino",
+    icon: GraduationCap,
+    color: "from-green-500 to-emerald-500",
+    suggestedDescription: "Material educacional estruturado para facilitar o aprendizado e retenção de conhecimento.",
+    chapters: [
+      "Introdução ao Tema",
+      "Fundamentos Teóricos",
+      "Conceitos Principais - Parte 1",
+      "Conceitos Principais - Parte 2",
+      "Exercícios Práticos",
+      "Aplicações no Mundo Real",
+      "Avaliação de Conhecimento",
+      "Conclusão e Recursos Complementares"
+    ]
+  }
+];
+
 export default function CreateEbook() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [ebookTitle, setEbookTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [description, setDescription] = useState("");
   const [chapters, setChapters] = useState<Chapter[]>([
     { id: "1", title: "", content: "" }
   ]);
+
+  const applyTemplate = (templateId: string) => {
+    const template = ebookTemplates.find(t => t.id === templateId);
+    if (!template) return;
+
+    setSelectedTemplate(templateId);
+    setDescription(template.suggestedDescription);
+    
+    const newChapters = template.chapters.map((title, index) => ({
+      id: `${Date.now()}-${index}`,
+      title,
+      content: ""
+    }));
+    
+    setChapters(newChapters);
+    
+    toast({
+      title: "Template aplicado!",
+      description: `${template.chapters.length} capítulos adicionados automaticamente.`,
+    });
+  };
+
+  const clearTemplate = () => {
+    setSelectedTemplate(null);
+    setChapters([{ id: "1", title: "", content: "" }]);
+    setDescription("");
+  };
 
   const addChapter = () => {
     const newChapter: Chapter = {
@@ -266,6 +361,69 @@ export default function CreateEbook() {
             <BookOpen className="h-8 w-8 text-primary" />
             <h1 className="text-3xl font-bold text-foreground">Criar Ebook Profissional</h1>
           </div>
+
+          {/* Templates */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Escolha um Template
+              </CardTitle>
+              <CardDescription>
+                Comece com uma estrutura pré-definida ou crie do zero
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-3 gap-4 mb-4">
+                {ebookTemplates.map((template) => {
+                  const Icon = template.icon;
+                  const isSelected = selectedTemplate === template.id;
+                  
+                  return (
+                    <Card
+                      key={template.id}
+                      className={`cursor-pointer transition-all hover:shadow-lg ${
+                        isSelected ? "ring-2 ring-primary border-primary" : ""
+                      }`}
+                      onClick={() => applyTemplate(template.id)}
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex flex-col items-center text-center space-y-4">
+                          <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${template.color} flex items-center justify-center`}>
+                            <Icon className="w-8 h-8 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-lg mb-1">{template.name}</h3>
+                            <p className="text-sm text-muted-foreground mb-2">
+                              {template.description}
+                            </p>
+                            <Badge variant="secondary" className="text-xs">
+                              {template.chapters.length} capítulos
+                            </Badge>
+                          </div>
+                          {isSelected && (
+                            <div className="flex items-center gap-1 text-primary">
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span className="text-xs font-medium">Selecionado</span>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+              {selectedTemplate && (
+                <Button
+                  variant="outline"
+                  onClick={clearTemplate}
+                  className="w-full"
+                >
+                  Limpar Template e Começar do Zero
+                </Button>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Informações do Ebook */}
           <Card className="mb-6">
