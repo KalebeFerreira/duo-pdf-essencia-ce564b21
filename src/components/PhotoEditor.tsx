@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Crop, Sun, Filter, RotateCw, Check, X } from "lucide-react";
+import { Crop, Sun, Filter, RotateCw, Check, X, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { removeBackground, loadImage } from "@/utils/backgroundRemoval";
+import { Progress } from "@/components/ui/progress";
 
 interface PhotoEditorProps {
   isOpen: boolean;
@@ -33,6 +35,9 @@ export const PhotoEditor = ({ isOpen, onClose, imageFile, onSave }: PhotoEditorP
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
   const [cropMode, setCropMode] = useState(false);
   const [cropArea, setCropArea] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const [isRemovingBg, setIsRemovingBg] = useState(false);
+  const [bgRemovalProgress, setBgRemovalProgress] = useState("");
+  const [bgRemovalPercent, setBgRemovalPercent] = useState(0);
 
   useEffect(() => {
     if (!imageFile || !isOpen) return;
@@ -104,6 +109,50 @@ export const PhotoEditor = ({ isOpen, onClose, imageFile, onSave }: PhotoEditorP
     setRotation((prev) => (prev + 90) % 360);
   };
 
+  const handleRemoveBackground = async () => {
+    if (!imageFile) return;
+
+    setIsRemovingBg(true);
+    setBgRemovalPercent(0);
+
+    try {
+      const img = await loadImage(imageFile);
+      
+      const progressCallback = (status: string) => {
+        setBgRemovalProgress(status);
+        if (status.includes('Iniciando')) setBgRemovalPercent(10);
+        else if (status.includes('Carregando modelo')) setBgRemovalPercent(30);
+        else if (status.includes('Processando')) setBgRemovalPercent(60);
+        else if (status.includes('Aplicando')) setBgRemovalPercent(80);
+        else if (status.includes('Finalizando')) setBgRemovalPercent(95);
+      };
+
+      const resultBlob = await removeBackground(img, progressCallback);
+      
+      // Carregar imagem com fundo removido
+      const newImg = await loadImage(resultBlob);
+      setOriginalImage(newImg);
+      drawImage(newImg);
+      
+      setBgRemovalPercent(100);
+      toast({
+        title: "Fundo removido!",
+        description: "O fundo foi removido com sucesso usando IA.",
+      });
+    } catch (error: any) {
+      console.error("Error removing background:", error);
+      toast({
+        title: "Erro ao remover fundo",
+        description: error.message || "Tente novamente com outra foto.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRemovingBg(false);
+      setBgRemovalProgress("");
+      setBgRemovalPercent(0);
+    }
+  };
+
   const handleReset = () => {
     setBrightness(100);
     setContrast(100);
@@ -160,7 +209,7 @@ export const PhotoEditor = ({ isOpen, onClose, imageFile, onSave }: PhotoEditorP
 
           {/* Editor Controls */}
           <Tabs defaultValue="adjust" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="adjust" className="flex items-center gap-2">
                 <Sun className="w-4 h-4" />
                 Ajustes
@@ -172,6 +221,10 @@ export const PhotoEditor = ({ isOpen, onClose, imageFile, onSave }: PhotoEditorP
               <TabsTrigger value="transform" className="flex items-center gap-2">
                 <Crop className="w-4 h-4" />
                 Transformar
+              </TabsTrigger>
+              <TabsTrigger value="ai" className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                IA
               </TabsTrigger>
             </TabsList>
 
@@ -246,6 +299,53 @@ export const PhotoEditor = ({ isOpen, onClose, imageFile, onSave }: PhotoEditorP
                 <RotateCw className="w-4 h-4" />
                 Girar 90° ({rotation}°)
               </Button>
+            </TabsContent>
+
+            {/* IA - Remoção de Fundo */}
+            <TabsContent value="ai" className="space-y-4 pt-4">
+              <div className="space-y-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                    Remoção Automática de Fundo
+                  </h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Use IA para remover automaticamente o fundo da foto, deixando apenas a pessoa em destaque com fundo transparente.
+                  </p>
+                  
+                  {isRemovingBg && (
+                    <div className="space-y-2 mb-4">
+                      <Progress value={bgRemovalPercent} className="w-full" />
+                      <p className="text-xs text-muted-foreground text-center">
+                        {bgRemovalProgress}
+                      </p>
+                    </div>
+                  )}
+                  
+                  <Button
+                    onClick={handleRemoveBackground}
+                    disabled={isRemovingBg}
+                    className="w-full"
+                  >
+                    {isRemovingBg ? (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2 animate-pulse" />
+                        Removendo Fundo...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Remover Fundo com IA
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                <div className="text-xs text-muted-foreground p-3 bg-accent/50 rounded-lg">
+                  <p className="font-semibold mb-1">💡 Dica:</p>
+                  <p>Funciona melhor com fotos onde a pessoa está em primeiro plano. O processamento pode levar alguns segundos.</p>
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         </div>
