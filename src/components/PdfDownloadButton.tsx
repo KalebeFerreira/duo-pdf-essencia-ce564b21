@@ -14,9 +14,19 @@ interface PdfDownloadButtonProps {
 const PdfDownloadButton = ({ content, title, variant = "outline", size = "sm", className = "" }: PdfDownloadButtonProps) => {
   const handleDownload = async () => {
     try {
-      // Check if content is already a data URI
+      // Decodificar conteúdo se estiver em base64
+      let decodedContent = content;
+      if (content.startsWith("data:text/plain;base64,")) {
+        try {
+          const base64Content = content.replace('data:text/plain;base64,', '');
+          decodedContent = decodeURIComponent(escape(atob(base64Content)));
+        } catch (e) {
+          console.error('Error decoding base64:', e);
+        }
+      }
+
+      // Check if content is already a PDF data URI
       if (content.startsWith("data:application/pdf")) {
-        // It's already a PDF, download directly
         const link = document.createElement("a");
         link.href = content;
         link.download = `${title}.pdf`;
@@ -30,10 +40,10 @@ const PdfDownloadButton = ({ content, title, variant = "outline", size = "sm", c
         const pageHeight = pdf.internal.pageSize.getHeight();
 
         const imgElement = await new Promise<HTMLImageElement>((resolve, reject) => {
-          const image = new Image();
-          image.onload = () => resolve(image);
-          image.onerror = reject;
-          image.src = content;
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = content;
         });
 
         const imgRatio = imgElement.width / imgElement.height;
@@ -54,19 +64,22 @@ const PdfDownloadButton = ({ content, title, variant = "outline", size = "sm", c
         pdf.addImage(content, "JPEG", x, y, width, height);
         pdf.save(`${title}.pdf`);
       } else {
-        // It's text content, create PDF from text
+        // It's text content, create PDF from text with UTF-8 support
         const pdf = new jsPDF();
         const margin = 20;
         const pageWidth = pdf.internal.pageSize.getWidth() - 2 * margin;
         const lineHeight = 7;
         
+        // Configurar fonte para suportar UTF-8
+        pdf.setFont("helvetica");
+        
         // Add title
         pdf.setFontSize(16);
         pdf.text(title, margin, margin);
         
-        // Add content
-        pdf.setFontSize(12);
-        const lines = pdf.splitTextToSize(content, pageWidth);
+        // Add content com suporte UTF-8
+        pdf.setFontSize(11);
+        const lines = pdf.splitTextToSize(decodedContent, pageWidth);
         let y = margin + 15;
         
         lines.forEach((line: string) => {
