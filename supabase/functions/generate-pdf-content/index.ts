@@ -60,62 +60,117 @@ Formato: Estruture o conteúdo de forma que possa ser facilmente convertido em P
 
     console.log('Content generated successfully');
 
-    // Gerar imagens relevantes com IA
-    let images: string[] = [];
+    // Identificar seções do conteúdo para gerar imagens específicas
+    let enrichedContent = generatedContent;
+    
     try {
-      console.log('Generating AI images for the content...');
+      console.log('Analyzing content sections...');
       
-      // Gerar prompts de imagens baseado no tópico
-      const imagePrompts = [
-        `Professional stock photo related to ${topic}, high quality, corporate style, bright lighting`,
-        `Modern business illustration about ${topic}, professional, clean design, vibrant colors`,
-        `Professional workspace or people working on ${topic}, realistic photo, natural lighting`
-      ];
+      // Extrair seções principais do conteúdo (linhas que começam com ## ou ###)
+      const sections = generatedContent.split('\n').filter((line: string) => 
+        line.trim().startsWith('##') && !line.trim().startsWith('###')
+      );
+      
+      console.log(`Found ${sections.length} main sections`);
+      
+      if (sections.length > 0) {
+        // Gerar uma imagem para cada seção (máximo 4)
+        const sectionsToImage = sections.slice(0, 4);
+        
+        for (let i = 0; i < sectionsToImage.length; i++) {
+          const sectionTitle = sectionsToImage[i].replace(/^#+\s*/, '').trim();
+          console.log(`Generating image for section: ${sectionTitle}`);
+          
+          try {
+            // Criar prompt específico para a seção
+            const imagePrompt = `Professional high-quality image about "${sectionTitle}" related to ${topic}. Corporate style, modern, professional people or business environment, bright natural lighting, realistic photo`;
+            
+            const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${lovableApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'google/gemini-2.5-flash-image-preview',
+                messages: [
+                  {
+                    role: 'user',
+                    content: imagePrompt
+                  }
+                ],
+                modalities: ['image', 'text']
+              }),
+            });
 
-      // Gerar até 3 imagens
-      for (const imagePrompt of imagePrompts.slice(0, 2)) {
-        try {
-          const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${lovableApiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'google/gemini-2.5-flash-image-preview',
-              messages: [
-                {
-                  role: 'user',
-                  content: imagePrompt
-                }
-              ],
-              modalities: ['image', 'text']
-            }),
-          });
-
-          if (imageResponse.ok) {
-            const imageData = await imageResponse.json();
-            const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-            if (imageUrl) {
-              images.push(imageUrl);
-              console.log('Image generated successfully');
+            if (imageResponse.ok) {
+              const imageData = await imageResponse.json();
+              const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+              
+              if (imageUrl) {
+                console.log(`Image generated for section: ${sectionTitle}`);
+                
+                // Inserir a imagem logo após o título da seção
+                const sectionHeader = sectionsToImage[i];
+                enrichedContent = enrichedContent.replace(
+                  sectionHeader,
+                  `${sectionHeader}\n\n![${sectionTitle}](${imageUrl})\n`
+                );
+              }
             }
+          } catch (imgError) {
+            console.error(`Error generating image for section ${sectionTitle}:`, imgError);
+            // Continue para a próxima seção
           }
-        } catch (imgError) {
-          console.error('Error generating image:', imgError);
-          // Continue mesmo se uma imagem falhar
+        }
+      } else {
+        // Se não houver seções, gerar 2 imagens gerais
+        console.log('No sections found, generating general images');
+        
+        const generalPrompts = [
+          `Professional stock photo related to ${topic}, high quality, corporate style, bright lighting, business people`,
+          `Modern professional illustration about ${topic}, clean design, vibrant colors, business concept`
+        ];
+
+        for (const imagePrompt of generalPrompts) {
+          try {
+            const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${lovableApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'google/gemini-2.5-flash-image-preview',
+                messages: [{ role: 'user', content: imagePrompt }],
+                modalities: ['image', 'text']
+              }),
+            });
+
+            if (imageResponse.ok) {
+              const imageData = await imageResponse.json();
+              const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+              if (imageUrl) {
+                enrichedContent += `\n\n![Image](${imageUrl})\n`;
+                console.log('General image added');
+              }
+            }
+          } catch (imgError) {
+            console.error('Error generating general image:', imgError);
+          }
         }
       }
     } catch (error) {
       console.error('Error in image generation process:', error);
-      // Continue sem imagens se houver erro
+      // Continue com o conteúdo original se houver erro
     }
+
+    console.log('Content enrichment completed');
 
     return new Response(
       JSON.stringify({ 
-        content: generatedContent,
+        content: enrichedContent,
         topic: topic,
-        images: images,
         timestamp: new Date().toISOString()
       }),
       {
