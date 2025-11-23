@@ -12,18 +12,29 @@ import { Loader2, FileText, Sparkles, Upload, X, Edit } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PhotoEditor } from "@/components/PhotoEditor";
-import { TemplateGallery, templates } from "@/components/TemplateGallery";
+import { SignaturePad } from "@/components/SignaturePad";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const templates = [
+  { id: "modern", name: "Moderno" },
+  { id: "classic", name: "Clássico" },
+  { id: "creative", name: "Criativo" },
+  { id: "minimal", name: "Minimalista" },
+  { id: "executive", name: "Executivo" },
+  { id: "tech", name: "Tech" },
+];
 
 export default function CreateResume() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  const [template, setTemplate] = useState("");
+  const [template, setTemplate] = useState("modern");
   const [photoUrl, setPhotoUrl] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [tempPhotoFile, setTempPhotoFile] = useState<File | null>(null);
+  const [signatureUrl, setSignatureUrl] = useState("");
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -149,7 +160,8 @@ export default function CreateResume() {
         body: { 
           formData: {
             ...formData,
-            photoUrl: photoUrl || undefined
+            photoUrl: photoUrl || undefined,
+            signatureUrl: signatureUrl || undefined
           },
           template 
         }
@@ -166,7 +178,7 @@ export default function CreateResume() {
       // Converter texto UTF-8 para Base64 corretamente
       const base64Content = btoa(unescape(encodeURIComponent(resumeContent)));
 
-      // Salvar no banco de dados com a URL da foto e template
+      // Salvar no banco de dados com a URL da foto, template e assinatura
       const { error: insertError } = await supabase
         .from("documents")
         .insert({
@@ -176,7 +188,8 @@ export default function CreateResume() {
           file_size: resumeContent.length,
           photo_url: photoUrl || null,
           template: template,
-        });
+          signature_url: signatureUrl || null,
+        } as any);
 
       if (insertError) throw insertError;
 
@@ -236,7 +249,7 @@ export default function CreateResume() {
 
           <div className="grid gap-6 md:grid-cols-2">
             {/* Seleção de Template */}
-            <Card className="md:col-span-2">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-primary" />
@@ -245,12 +258,27 @@ export default function CreateResume() {
                 <CardDescription>Selecione o estilo visual do seu currículo</CardDescription>
               </CardHeader>
               <CardContent>
-                <TemplateGallery 
-                  selectedTemplate={template} 
-                  onSelectTemplate={setTemplate} 
-                />
+                <Label htmlFor="template">Template</Label>
+                <Select value={template} onValueChange={setTemplate}>
+                  <SelectTrigger id="template">
+                    <SelectValue placeholder="Selecione um template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </CardContent>
             </Card>
+
+            {/* Assinatura Digital */}
+            <SignaturePad 
+              onSignatureChange={setSignatureUrl}
+              currentSignature={signatureUrl}
+            />
 
             {/* Dados Pessoais */}
             <Card>

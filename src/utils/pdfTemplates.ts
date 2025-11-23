@@ -91,18 +91,19 @@ export function applyTemplate(
   template: string,
   content: string,
   title: string,
-  photoUrl?: string
+  photoUrl?: string,
+  signatureUrl?: string
 ): jsPDF {
   const config = templateConfigs[template] || templateConfigs.modern;
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   
   if (config.layout === "single-column") {
-    return applySingleColumnLayout(pdf, config, content, title, photoUrl);
+    return applySingleColumnLayout(pdf, config, content, title, photoUrl, signatureUrl);
   } else if (config.layout === "two-column") {
-    return applyTwoColumnLayout(pdf, config, content, title, photoUrl);
+    return applyTwoColumnLayout(pdf, config, content, title, photoUrl, signatureUrl);
   } else {
-    return applyHeaderSidebarLayout(pdf, config, content, title, photoUrl);
+    return applyHeaderSidebarLayout(pdf, config, content, title, photoUrl, signatureUrl);
   }
 }
 
@@ -111,7 +112,8 @@ function applySingleColumnLayout(
   config: PdfTemplateConfig,
   content: string,
   title: string,
-  photoUrl?: string
+  photoUrl?: string,
+  signatureUrl?: string
 ): jsPDF {
   const margin = 20;
   const pageWidth = pdf.internal.pageSize.getWidth();
@@ -149,13 +151,30 @@ function applySingleColumnLayout(
   const lines = pdf.splitTextToSize(content, pageWidth - 2 * margin);
   
   lines.forEach((line: string) => {
-    if (y > pdf.internal.pageSize.getHeight() - margin) {
+    if (y > pdf.internal.pageSize.getHeight() - margin - 40) {
       pdf.addPage();
       y = margin;
     }
     pdf.text(line, margin, y);
     y += 6;
   });
+
+  // Adicionar assinatura no final
+  if (signatureUrl) {
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const signatureY = pageHeight - margin - 30;
+    
+    if (y > signatureY - 10) {
+      pdf.addPage();
+      y = margin;
+    }
+    
+    try {
+      pdf.addImage(signatureUrl, "PNG", margin, signatureY, 50, 20);
+    } catch (e) {
+      console.error("Error adding signature:", e);
+    }
+  }
 
   return pdf;
 }
@@ -165,7 +184,8 @@ function applyTwoColumnLayout(
   config: PdfTemplateConfig,
   content: string,
   title: string,
-  photoUrl?: string
+  photoUrl?: string,
+  signatureUrl?: string
 ): jsPDF {
   const margin = 15;
   const pageWidth = pdf.internal.pageSize.getWidth();
@@ -209,7 +229,7 @@ function applyTwoColumnLayout(
   
   const lines = pdf.splitTextToSize(content, rightColumnWidth - 10);
   lines.forEach((line: string) => {
-    if (y > pdf.internal.pageSize.getHeight() - margin) {
+    if (y > pdf.internal.pageSize.getHeight() - margin - 40) {
       pdf.addPage();
       pdf.setFillColor(config.colors.secondary);
       pdf.rect(0, 0, leftColumnWidth, pdf.internal.pageSize.getHeight(), "F");
@@ -219,6 +239,25 @@ function applyTwoColumnLayout(
     y += 6;
   });
 
+  // Adicionar assinatura no final
+  if (signatureUrl) {
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const signatureY = pageHeight - margin - 30;
+    
+    if (y > signatureY - 10) {
+      pdf.addPage();
+      pdf.setFillColor(config.colors.secondary);
+      pdf.rect(0, 0, leftColumnWidth, pdf.internal.pageSize.getHeight(), "F");
+      y = margin;
+    }
+    
+    try {
+      pdf.addImage(signatureUrl, "PNG", leftColumnWidth + 10, signatureY, 50, 20);
+    } catch (e) {
+      console.error("Error adding signature:", e);
+    }
+  }
+
   return pdf;
 }
 
@@ -227,7 +266,8 @@ function applyHeaderSidebarLayout(
   config: PdfTemplateConfig,
   content: string,
   title: string,
-  photoUrl?: string
+  photoUrl?: string,
+  signatureUrl?: string
 ): jsPDF {
   const margin = 20;
   const pageWidth = pdf.internal.pageSize.getWidth();
@@ -274,13 +314,30 @@ function applyHeaderSidebarLayout(
   const lines = pdf.splitTextToSize(content, pageWidth - 2 * margin);
   
   lines.forEach((line: string) => {
-    if (y > pdf.internal.pageSize.getHeight() - margin) {
+    if (y > pdf.internal.pageSize.getHeight() - margin - 40) {
       pdf.addPage();
       y = margin;
     }
     pdf.text(line, margin, y);
     y += 6;
   });
+
+  // Adicionar assinatura no final
+  if (signatureUrl) {
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const signatureY = pageHeight - margin - 30;
+    
+    if (y > signatureY - 10) {
+      pdf.addPage();
+      y = margin;
+    }
+    
+    try {
+      pdf.addImage(signatureUrl, "PNG", margin, signatureY, 50, 20);
+    } catch (e) {
+      console.error("Error adding signature:", e);
+    }
+  }
 
   return pdf;
 }
