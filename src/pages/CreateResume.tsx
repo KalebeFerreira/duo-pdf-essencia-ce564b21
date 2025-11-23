@@ -151,7 +151,7 @@ export default function CreateResume() {
       // Converter texto UTF-8 para Base64 corretamente
       const base64Content = btoa(unescape(encodeURIComponent(resumeContent)));
 
-      // Salvar no banco de dados
+      // Salvar no banco de dados com a URL da foto
       const { error: insertError } = await supabase
         .from("documents")
         .insert({
@@ -159,6 +159,7 @@ export default function CreateResume() {
           title: `Currículo ${selectedTemplate?.name} - ${formData.fullName}`,
           file_url: `data:text/plain;base64,${base64Content}`,
           file_size: resumeContent.length,
+          photo_url: photoUrl || null,
         });
 
       if (insertError) throw insertError;

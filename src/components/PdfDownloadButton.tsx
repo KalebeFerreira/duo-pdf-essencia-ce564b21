@@ -6,12 +6,13 @@ import jsPDF from "jspdf";
 interface PdfDownloadButtonProps {
   content: string;
   title: string;
+  photoUrl?: string;
   variant?: "default" | "outline" | "ghost";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
 }
 
-const PdfDownloadButton = ({ content, title, variant = "outline", size = "sm", className = "" }: PdfDownloadButtonProps) => {
+const PdfDownloadButton = ({ content, title, photoUrl, variant = "outline", size = "sm", className = "" }: PdfDownloadButtonProps) => {
   const handleDownload = async () => {
     try {
       // Decodificar conteúdo se estiver em base64
@@ -69,18 +70,40 @@ const PdfDownloadButton = ({ content, title, variant = "outline", size = "sm", c
         const margin = 20;
         const pageWidth = pdf.internal.pageSize.getWidth() - 2 * margin;
         const lineHeight = 7;
+        let y = margin;
+        
+        // Adicionar foto se disponível
+        if (photoUrl) {
+          try {
+            const imgElement = await new Promise<HTMLImageElement>((resolve, reject) => {
+              const img = new Image();
+              img.crossOrigin = "anonymous";
+              img.onload = () => resolve(img);
+              img.onerror = reject;
+              img.src = photoUrl;
+            });
+
+            // Adicionar foto circular no topo centralizada
+            const photoSize = 30;
+            const photoX = (pdf.internal.pageSize.getWidth() - photoSize) / 2;
+            pdf.addImage(photoUrl, "JPEG", photoX, y, photoSize, photoSize);
+            y += photoSize + 10;
+          } catch (error) {
+            console.error("Error adding photo to PDF:", error);
+          }
+        }
         
         // Configurar fonte para suportar UTF-8
         pdf.setFont("helvetica");
         
         // Add title
         pdf.setFontSize(16);
-        pdf.text(title, margin, margin);
+        pdf.text(title, margin, y);
+        y += 10;
         
         // Add content com suporte UTF-8
         pdf.setFontSize(11);
         const lines = pdf.splitTextToSize(decodedContent, pageWidth);
-        let y = margin + 15;
         
         lines.forEach((line: string) => {
           if (y > pdf.internal.pageSize.getHeight() - margin) {

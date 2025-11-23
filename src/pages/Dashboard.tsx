@@ -136,6 +136,7 @@ const Dashboard = () => {
     size: doc.file_size ? `${(doc.file_size / 1024).toFixed(0)} KB` : '-',
     pages: '-',
     content: doc.file_url || '',
+    photo_url: doc.photo_url || undefined,
   })) || [];
 
   return (
@@ -331,6 +332,7 @@ const Dashboard = () => {
                               <PdfDownloadButton
                                 content={pdf.content}
                                 title={pdf.name}
+                                photoUrl={pdf.photo_url}
                                 variant="ghost"
                                 size="sm"
                                 className="p-0 h-auto hover:bg-transparent"
@@ -385,6 +387,7 @@ const Dashboard = () => {
                       <PdfDownloadButton
                         content={pdf.content}
                         title={pdf.name}
+                        photoUrl={pdf.photo_url}
                         size="sm"
                         className="flex-1 h-8"
                       />

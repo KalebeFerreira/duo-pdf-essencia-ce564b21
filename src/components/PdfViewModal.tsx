@@ -16,6 +16,7 @@ interface PdfViewModalProps {
     title: string;
     content?: string;
     created_at: string;
+    photo_url?: string;
   } | null;
 }
 
@@ -48,8 +49,20 @@ const PdfViewModal = ({ isOpen, onClose, document }: PdfViewModalProps) => {
         <ScrollArea className="h-[60vh] w-full rounded-md border p-6">
           <div className="prose prose-sm max-w-none dark:prose-invert">
             {document.content ? (
-              <div className="whitespace-pre-wrap text-foreground">
-                {document.content}
+              <div>
+                {/* Foto do Currículo */}
+                {document.photo_url && (
+                  <div className="flex justify-center mb-6">
+                    <img 
+                      src={document.photo_url} 
+                      alt="Foto profissional" 
+                      className="w-32 h-32 rounded-full object-cover border-4 border-primary shadow-lg"
+                    />
+                  </div>
+                )}
+                <div className="whitespace-pre-wrap text-foreground">
+                  {document.content}
+                </div>
               </div>
             ) : (
               <div className="text-center text-muted-foreground py-12">
