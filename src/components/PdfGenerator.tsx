@@ -84,12 +84,17 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
 
       // Save document to database with content (real or mock)
       const { data: { user } } = await supabase.auth.getUser();
+      
+      // Codificar conteúdo em base64 UTF-8 para armazenamento correto
+      const base64Content = btoa(unescape(encodeURIComponent(contentToSave)));
+      
       const { error: insertError } = await supabase
         .from('documents')
         .insert({
           title: topic,
           user_id: user?.id,
-          file_url: contentToSave,
+          file_url: `data:text/plain;base64,${base64Content}`,
+          file_size: contentToSave.length,
         });
 
       if (insertError) throw insertError;
