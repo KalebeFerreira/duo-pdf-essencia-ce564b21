@@ -2,17 +2,19 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
+import { applyTemplate } from "@/utils/pdfTemplates";
 
 interface PdfDownloadButtonProps {
   content: string;
   title: string;
   photoUrl?: string;
+  template?: string;
   variant?: "default" | "outline" | "ghost";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
 }
 
-const PdfDownloadButton = ({ content, title, photoUrl, variant = "outline", size = "sm", className = "" }: PdfDownloadButtonProps) => {
+const PdfDownloadButton = ({ content, title, photoUrl, template = "modern", variant = "outline", size = "sm", className = "" }: PdfDownloadButtonProps) => {
   const handleDownload = async () => {
     try {
       // Decodificar conteúdo se estiver em base64
@@ -65,56 +67,13 @@ const PdfDownloadButton = ({ content, title, photoUrl, variant = "outline", size
         pdf.addImage(content, "JPEG", x, y, width, height);
         pdf.save(`${title}.pdf`);
       } else {
-        // It's text content, create PDF from text with UTF-8 support
+        // It's text content, create PDF from text with template
         const pdf = new jsPDF();
-        const margin = 20;
-        const pageWidth = pdf.internal.pageSize.getWidth() - 2 * margin;
-        const lineHeight = 7;
-        let y = margin;
         
-        // Adicionar foto se disponível
-        if (photoUrl) {
-          try {
-            const imgElement = await new Promise<HTMLImageElement>((resolve, reject) => {
-              const img = new Image();
-              img.crossOrigin = "anonymous";
-              img.onload = () => resolve(img);
-              img.onerror = reject;
-              img.src = photoUrl;
-            });
-
-            // Adicionar foto circular no topo centralizada
-            const photoSize = 30;
-            const photoX = (pdf.internal.pageSize.getWidth() - photoSize) / 2;
-            pdf.addImage(photoUrl, "JPEG", photoX, y, photoSize, photoSize);
-            y += photoSize + 10;
-          } catch (error) {
-            console.error("Error adding photo to PDF:", error);
-          }
-        }
+        // Aplicar template visual ao PDF
+        const styledPdf = applyTemplate(pdf, template, decodedContent, title, photoUrl);
         
-        // Configurar fonte para suportar UTF-8
-        pdf.setFont("helvetica");
-        
-        // Add title
-        pdf.setFontSize(16);
-        pdf.text(title, margin, y);
-        y += 10;
-        
-        // Add content com suporte UTF-8
-        pdf.setFontSize(11);
-        const lines = pdf.splitTextToSize(decodedContent, pageWidth);
-        
-        lines.forEach((line: string) => {
-          if (y > pdf.internal.pageSize.getHeight() - margin) {
-            pdf.addPage();
-            y = margin;
-          }
-          pdf.text(line, margin, y);
-          y += lineHeight;
-        });
-        
-        pdf.save(`${title}.pdf`);
+        styledPdf.save(`${title}.pdf`);
       }
 
       toast({
