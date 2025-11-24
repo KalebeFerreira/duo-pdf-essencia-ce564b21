@@ -14,3 +14,6 @@ verify_jwt = true
 
 [functions.generate-complete-ebook]
 verify_jwt = true
+
+[functions.generate-design-ai]
+verify_jwt = false
