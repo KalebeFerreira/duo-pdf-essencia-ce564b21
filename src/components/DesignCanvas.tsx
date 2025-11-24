@@ -138,6 +138,30 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
 
       if (error) throw error;
 
+      // Check for error responses from the edge function
+      if (data?.error) {
+        if (data.code === "NO_CREDITS") {
+          toast({
+            title: "Créditos Esgotados",
+            description: "Adicione créditos em Settings → Workspace → Usage para continuar usando a IA",
+            variant: "destructive",
+          });
+        } else if (data.code === "RATE_LIMIT") {
+          toast({
+            title: "Limite Excedido",
+            description: "Aguarde alguns instantes antes de tentar novamente",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Erro ao gerar arte",
+            description: data.error,
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+
       if (data.imageUrl) {
         FabricImage.fromURL(data.imageUrl).then((img) => {
           if (!fabricCanvas) return;
