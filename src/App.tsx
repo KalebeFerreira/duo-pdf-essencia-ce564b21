@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import CreatePdf from "./pages/CreatePdf";
 import CreateResume from "./pages/CreateResume";
 import CreateEbook from "./pages/CreateEbook";
+import CreateDesign from "./pages/CreateDesign";
 import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 import Automations from "./pages/Automations";
@@ -49,6 +50,7 @@ const App = () => (
           <Route path="/create-pdf" element={<CreatePdf />} />
           <Route path="/create-resume" element={<CreateResume />} />
           <Route path="/create-ebook" element={<CreateEbook />} />
+          <Route path="/create-design" element={<CreateDesign />} />
           <Route path="/automations" element={<Automations />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/settings" element={<Settings />} />
