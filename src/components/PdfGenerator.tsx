@@ -48,7 +48,22 @@ const PdfGenerator = ({ onPdfGenerated }: PdfGeneratorProps) => {
           body: { topic, prompt: prompt || undefined }
         });
 
-        if (error) throw error;
+        // Verificar erro de créditos esgotados (402)
+        if (error) {
+          const errorData = (error as any)?.context?.body;
+          const errorCode = errorData?.code || errorData?.error;
+          
+          if (errorCode === 'NO_CREDITS' || errorData?.message?.includes('créditos')) {
+            toast({
+              title: "💳 Créditos Esgotados",
+              description: "Seus créditos do Lovable AI acabaram. Acesse Settings → Workspace → Usage para adicionar créditos. Gerando em modo simulação...",
+              variant: "destructive",
+            });
+            throw error; // Vai cair no modo mock
+          }
+          
+          throw error;
+        }
         
         // O conteúdo já vem com as imagens inseridas nos locais apropriados
         contentToSave = data.content;
