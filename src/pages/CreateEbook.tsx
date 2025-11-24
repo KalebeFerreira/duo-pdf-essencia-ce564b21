@@ -3,13 +3,32 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, BookOpen, Sparkles, Download, ArrowLeft } from "lucide-react";
+import { Loader2, BookOpen, Sparkles, Download, ArrowLeft, Palette, Globe } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { Progress } from "@/components/ui/progress";
 import jsPDF from "jspdf";
+
+const colorPalettes = {
+  classic: { name: "Clássico", primary: [37, 99, 235], secondary: [243, 244, 246], text: [0, 0, 0] },
+  serene: { name: "Sereno", primary: [34, 197, 94], secondary: [254, 252, 232], text: [22, 101, 52] },
+  elegant: { name: "Elegante", primary: [147, 51, 234], secondary: [250, 245, 255], text: [88, 28, 135] },
+  modern: { name: "Moderno", primary: [100, 116, 139], secondary: [254, 249, 195], text: [30, 41, 59] },
+  professional: { name: "Profissional", primary: [30, 58, 138], secondary: [254, 243, 199], text: [30, 41, 59] },
+};
+
+const languages = {
+  pt: "Português",
+  en: "English",
+  es: "Español",
+  fr: "Français",
+  de: "Deutsch",
+  it: "Italiano",
+};
 
 interface Chapter {
   title: string;
@@ -29,6 +48,8 @@ export default function CreateEbook() {
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedEbook, setGeneratedEbook] = useState<GeneratedEbook | null>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState("pt");
+  const [selectedColorPalette, setSelectedColorPalette] = useState<keyof typeof colorPalettes>("classic");
 
   const generateEbook = async () => {
     if (!prompt.trim()) {
@@ -49,7 +70,11 @@ export default function CreateEbook() {
       });
 
       const { data, error } = await supabase.functions.invoke('generate-complete-ebook', {
-        body: { prompt }
+        body: { 
+          prompt,
+          language: selectedLanguage,
+          colorPalette: selectedColorPalette
+        }
       });
 
       // Verificar erro ANTES de lançar exceção
@@ -134,9 +159,11 @@ export default function CreateEbook() {
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 20;
+      
+      const palette = colorPalettes[selectedColorPalette];
 
       // Capa
-      pdf.setFillColor(37, 99, 235);
+      pdf.setFillColor(palette.primary[0], palette.primary[1], palette.primary[2]);
       pdf.rect(0, 0, pageWidth, pageHeight, "F");
       
       pdf.setTextColor(255, 255, 255);
@@ -167,7 +194,7 @@ export default function CreateEbook() {
         let y = margin;
 
         // Título do capítulo
-        pdf.setTextColor(37, 99, 235);
+        pdf.setTextColor(palette.primary[0], palette.primary[1], palette.primary[2]);
         pdf.setFontSize(20);
         pdf.setFont("helvetica", "bold");
         pdf.text(`Capítulo ${i + 1}`, margin, y);
@@ -193,7 +220,7 @@ export default function CreateEbook() {
         }
 
         // Conteúdo do capítulo
-        pdf.setTextColor(0, 0, 0);
+        pdf.setTextColor(palette.text[0], palette.text[1], palette.text[2]);
         pdf.setFontSize(11);
         pdf.setFont("helvetica", "normal");
         
@@ -265,7 +292,9 @@ export default function CreateEbook() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
+                  <Label htmlFor="prompt">Descreva seu Ebook</Label>
                   <Textarea
+                    id="prompt"
                     placeholder="Exemplo: Um ebook sobre marketing digital para iniciantes, com dicas práticas de redes sociais, SEO, criação de conteúdo e anúncios pagos. Deve ter foco em estratégias que funcionam em 2024 e exemplos reais de sucesso..."
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
@@ -275,6 +304,55 @@ export default function CreateEbook() {
                   <p className="text-xs text-muted-foreground">
                     Seja específico! Quanto mais detalhes, melhor será o resultado.
                   </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="language" className="flex items-center gap-2">
+                      <Globe className="h-4 w-4" />
+                      Idioma do Ebook
+                    </Label>
+                    <Select value={selectedLanguage} onValueChange={setSelectedLanguage} disabled={isGenerating}>
+                      <SelectTrigger id="language">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(languages).map(([code, name]) => (
+                          <SelectItem key={code} value={code}>
+                            {name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="colorPalette" className="flex items-center gap-2">
+                      <Palette className="h-4 w-4" />
+                      Paleta de Cores
+                    </Label>
+                    <Select value={selectedColorPalette} onValueChange={(v) => setSelectedColorPalette(v as keyof typeof colorPalettes)} disabled={isGenerating}>
+                      <SelectTrigger id="colorPalette">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(colorPalettes).map(([key, palette]) => (
+                          <SelectItem key={key} value={key}>
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-4 h-4 rounded-full" 
+                                style={{ backgroundColor: `rgb(${palette.primary.join(',')})` }}
+                              />
+                              {palette.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Cores confortáveis para leitura
+                    </p>
+                  </div>
                 </div>
 
                 {isGenerating && (
