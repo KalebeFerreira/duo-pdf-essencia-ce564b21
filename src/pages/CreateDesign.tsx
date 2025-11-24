@@ -9,6 +9,12 @@ import DesignTemplates from "@/components/DesignTemplates";
 
 const CreateDesign = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("templates");
+
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    setActiveTab("editor");
+  };
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -39,14 +45,14 @@ const CreateDesign = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="templates" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="templates">Templates</TabsTrigger>
                 <TabsTrigger value="editor">Editor</TabsTrigger>
               </TabsList>
 
               <TabsContent value="templates" className="space-y-4">
-                <DesignTemplates onSelectTemplate={setSelectedTemplate} />
+                <DesignTemplates onSelectTemplate={handleTemplateSelect} />
               </TabsContent>
 
               <TabsContent value="editor" className="space-y-4">
