@@ -47,6 +47,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ebooks: {
+        Row: {
+          chapters: Json
+          color_palette: string
+          created_at: string
+          description: string | null
+          id: string
+          language: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chapters?: Json
+          color_palette?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          language?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chapters?: Json
+          color_palette?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          language?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           automations_used: number | null

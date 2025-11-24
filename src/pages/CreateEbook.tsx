@@ -1,16 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, BookOpen, Sparkles, Download, ArrowLeft, Palette, Globe } from "lucide-react";
+import { useEbooks, type Ebook } from "@/hooks/useEbooks";
+import { Loader2, BookOpen, Sparkles, Download, ArrowLeft, Palette, Globe, History, Save, Edit, Trash2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { Progress } from "@/components/ui/progress";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import jsPDF from "jspdf";
 
 const colorPalettes = {
@@ -45,11 +48,14 @@ interface GeneratedEbook {
 export default function CreateEbook() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { ebooks, isLoading: loadingEbooks, saveEbook, updateEbook, deleteEbook } = useEbooks();
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedEbook, setGeneratedEbook] = useState<GeneratedEbook | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState("pt");
   const [selectedColorPalette, setSelectedColorPalette] = useState<keyof typeof colorPalettes>("classic");
+  const [editingEbook, setEditingEbook] = useState<Ebook | null>(null);
+  const [activeTab, setActiveTab] = useState<"create" | "history">("create");
 
   const generateEbook = async () => {
     if (!prompt.trim()) {
@@ -118,9 +124,18 @@ export default function CreateEbook() {
 
       setGeneratedEbook(data);
 
+      // Salvar automaticamente no banco de dados
+      await saveEbook(
+        data.title,
+        data.description,
+        data.chapters,
+        selectedLanguage,
+        selectedColorPalette
+      );
+
       toast({
         title: "✨ Ebook criado com sucesso!",
-        description: `${data.chapters.length} capítulos gerados com conteúdo e imagens.`,
+        description: `${data.chapters.length} capítulos gerados e salvos no histórico.`,
       });
 
     } catch (error: any) {
@@ -253,7 +268,43 @@ export default function CreateEbook() {
 
   const resetForm = () => {
     setGeneratedEbook(null);
+    setEditingEbook(null);
     setPrompt("");
+    setActiveTab("create");
+  };
+
+  const loadEbookForEditing = (ebook: Ebook) => {
+    setEditingEbook(ebook);
+    setGeneratedEbook({
+      title: ebook.title,
+      description: ebook.description || "",
+      chapters: ebook.chapters,
+    });
+    setSelectedLanguage(ebook.language);
+    setSelectedColorPalette(ebook.color_palette as keyof typeof colorPalettes);
+    setActiveTab("create");
+  };
+
+  const handleSaveEdits = async () => {
+    if (!editingEbook || !generatedEbook) return;
+
+    const success = await updateEbook(editingEbook.id, {
+      title: generatedEbook.title,
+      description: generatedEbook.description,
+      chapters: generatedEbook.chapters,
+      language: selectedLanguage,
+      color_palette: selectedColorPalette,
+    });
+
+    if (success) {
+      setEditingEbook(null);
+      setGeneratedEbook(null);
+      setActiveTab("history");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    await deleteEbook(id);
   };
 
   return (
@@ -278,8 +329,21 @@ export default function CreateEbook() {
             </Button>
           </div>
 
-          {!generatedEbook ? (
-            /* Formulário de Geração */
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "create" | "history")} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="create">
+                <Sparkles className="mr-2 h-4 w-4" />
+                Criar Novo
+              </TabsTrigger>
+              <TabsTrigger value="history">
+                <History className="mr-2 h-4 w-4" />
+                Meus Ebooks ({ebooks.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="create" className="mt-6">
+              {!generatedEbook ? (
+                /* Formulário de Geração */
             <Card className="border-2 border-primary/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-2xl">
@@ -480,9 +544,9 @@ export default function CreateEbook() {
                   </ul>
                 </div>
               </CardContent>
-            </Card>
-          ) : (
-            /* Preview do Ebook Gerado */
+                </Card>
+              ) : (
+                /* Preview do Ebook Gerado */
             <div className="space-y-6">
               {/* Informações do Ebook */}
               <Card className="border-2 border-green-500/20 bg-green-500/5">
@@ -505,10 +569,18 @@ export default function CreateEbook() {
                       📄 {generatedEbook.chapters.reduce((acc, ch) => acc + ch.content.split(' ').length, 0).toLocaleString()} palavras
                     </span>
                   </div>
-                  <Button onClick={downloadPDF} size="lg" className="w-full mt-4">
-                    <Download className="mr-2 h-5 w-5" />
-                    Baixar Ebook em PDF
-                  </Button>
+                  <div className="flex gap-2 mt-4">
+                    <Button onClick={downloadPDF} size="lg" className="flex-1">
+                      <Download className="mr-2 h-5 w-5" />
+                      Baixar PDF
+                    </Button>
+                    {editingEbook && (
+                      <Button onClick={handleSaveEdits} size="lg" variant="outline" className="flex-1">
+                        <Save className="mr-2 h-5 w-5" />
+                        Salvar Alterações
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -540,8 +612,106 @@ export default function CreateEbook() {
                   </Card>
                 ))}
               </div>
-            </div>
-          )}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="history" className="mt-6">
+              {loadingEbooks ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : ebooks.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Nenhum ebook salvo</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Crie seu primeiro ebook e ele aparecerá aqui.
+                    </p>
+                    <Button onClick={() => setActiveTab("create")}>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Criar Ebook
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {ebooks.map((ebook) => (
+                    <Card key={ebook.id} className="hover:border-primary/50 transition-colors">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <CardTitle className="text-xl mb-1">{ebook.title}</CardTitle>
+                            <CardDescription className="line-clamp-2">
+                              {ebook.description}
+                            </CardDescription>
+                            <div className="flex items-center gap-3 mt-3 text-sm text-muted-foreground">
+                              <span>📚 {ebook.chapters.length} capítulos</span>
+                              <span>•</span>
+                              <span>🌐 {languages[ebook.language as keyof typeof languages]}</span>
+                              <span>•</span>
+                              <div className="flex items-center gap-1">
+                                <div
+                                  className="w-3 h-3 rounded-full"
+                                  style={{
+                                    backgroundColor: `rgb(${colorPalettes[ebook.color_palette as keyof typeof colorPalettes].primary.join(',')})`,
+                                  }}
+                                />
+                                {colorPalettes[ebook.color_palette as keyof typeof colorPalettes].name}
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Criado em {new Date(ebook.created_at).toLocaleDateString('pt-BR', {
+                                day: '2-digit',
+                                month: 'long',
+                                year: 'numeric',
+                              })}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => loadEbookForEditing(ebook)}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Editar
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Excluir ebook?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Esta ação não pode ser desfeita. O ebook "{ebook.title}" será
+                                    permanentemente excluído.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(ebook.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Excluir
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>
