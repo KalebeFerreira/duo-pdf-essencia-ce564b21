@@ -12,23 +12,34 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt } = await req.json();
+    const { prompt, language = 'pt', colorPalette = 'classic' } = await req.json();
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
     if (!lovableApiKey) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    console.log('Starting complete ebook generation from prompt:', prompt);
+    console.log('Starting complete ebook generation from prompt:', prompt, 'language:', language);
+
+    const languageInstructions: Record<string, string> = {
+      pt: 'em Português do Brasil',
+      en: 'in English',
+      es: 'en Español',
+      fr: 'en Français',
+      de: 'auf Deutsch',
+      it: 'in Italiano',
+    };
+
+    const langInstruction = languageInstructions[language] || languageInstructions['pt'];
 
     // Passo 1: Gerar estrutura do ebook (título, descrição, capítulos)
-    const structurePrompt = `Você é um especialista em criar ebooks de alta qualidade.
+    const structurePrompt = `You are an expert in creating high-quality ebooks.
 
-Com base no seguinte prompt do usuário, crie uma estrutura completa de ebook:
+Based on the user's prompt, create a complete ebook structure ${langInstruction}.
 
-PROMPT DO USUÁRIO: "${prompt}"
+USER PROMPT: "${prompt}"
 
-Retorne APENAS um JSON válido (sem markdown, sem explicações) com a seguinte estrutura:
+Return ONLY a valid JSON (no markdown, no explanations) with this structure:
 {
   "title": "Título cativante do ebook (máximo 60 caracteres)",
   "description": "Descrição profissional e envolvente do ebook (2-3 linhas)",
@@ -41,11 +52,12 @@ Retorne APENAS um JSON válido (sem markdown, sem explicações) com a seguinte 
   ]
 }
 
-IMPORTANTE:
-- Crie entre 5-8 capítulos
-- Títulos devem ser específicos e progressivos
-- A estrutura deve fazer sentido lógico
-- Retorne APENAS o JSON, sem texto adicional`;
+IMPORTANT:
+- Create 5-8 chapters
+- Titles must be specific and progressive
+- Structure must be logically coherent
+- ALL CONTENT must be ${langInstruction}
+- Return ONLY the JSON, no additional text`;
 
     const structureResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -98,19 +110,20 @@ IMPORTANTE:
       const chapterTitle = ebookStructure.chapters[i];
       console.log(`Generating content for chapter ${i + 1}/${ebookStructure.chapters.length}: ${chapterTitle}`);
 
-      const contentPrompt = `Escreva o conteúdo completo para o seguinte capítulo de ebook:
+      const contentPrompt = `Write complete content for this ebook chapter ${langInstruction}:
 
-Título do Ebook: ${ebookStructure.title}
-Descrição: ${ebookStructure.description}
-Capítulo: ${chapterTitle}
+Ebook Title: ${ebookStructure.title}
+Description: ${ebookStructure.description}
+Chapter: ${chapterTitle}
 
-DIRETRIZES:
-- Conteúdo profissional, informativo e bem estruturado
-- Use linguagem clara e envolvente
-- Inclua exemplos práticos quando relevante
-- Estruture com parágrafos bem organizados
-- Entre 500-800 palavras
-- Mantenha tom profissional mas acessível`;
+GUIDELINES:
+- Professional, informative, well-structured content
+- Use clear and engaging language
+- Include practical examples when relevant
+- Structure with well-organized paragraphs
+- 500-800 words
+- Professional yet accessible tone
+- Write ENTIRELY ${langInstruction}`;
 
       const contentResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
