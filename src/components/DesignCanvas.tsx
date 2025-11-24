@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Type, Square, Circle as CircleIcon, Image as ImageIcon, Download, Sparkles, Palette } from "lucide-react";
+import { Type, Square, Circle as CircleIcon, Image as ImageIcon, Download, Sparkles, Palette, Wand2 } from "lucide-react";
+import { PhotoEditor } from "./PhotoEditor";
 import jsPDF from "jspdf";
 
 interface DesignCanvasProps {
@@ -29,6 +30,8 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [bleedMargin, setBleedMargin] = useState(3);
+  const [showPhotoEditor, setShowPhotoEditor] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
 
   const currentTemplate = selectedTemplate ? templates[selectedTemplate as keyof typeof templates] : templates.flyer;
 
@@ -113,15 +116,39 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
       const reader = new FileReader();
       reader.onload = (event) => {
         const imgUrl = event.target?.result as string;
-        FabricImage.fromURL(imgUrl).then((img) => {
-          img.scaleToWidth(300);
-          fabricCanvas.add(img);
-          toast({ title: "Imagem adicionada" });
-        });
+        addImageToCanvas(imgUrl);
       };
       reader.readAsDataURL(file);
     };
     input.click();
+  };
+
+  const addImageToCanvas = (imgUrl: string) => {
+    if (!fabricCanvas) return;
+    FabricImage.fromURL(imgUrl).then((img) => {
+      img.scaleToWidth(300);
+      fabricCanvas.add(img);
+      toast({ title: "Imagem adicionada" });
+    });
+  };
+
+  const openPhotoEditor = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        setPhotoFile(file);
+        setShowPhotoEditor(true);
+      }
+    };
+    input.click();
+  };
+
+  const handlePhotoEditorSave = (blob: Blob) => {
+    const imgUrl = URL.createObjectURL(blob);
+    addImageToCanvas(imgUrl);
   };
 
   const generateWithAI = async () => {
@@ -212,7 +239,18 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
   };
 
   return (
-    <div className="grid lg:grid-cols-[300px_1fr] gap-6 mt-6">
+    <>
+      <PhotoEditor
+        isOpen={showPhotoEditor}
+        onClose={() => {
+          setShowPhotoEditor(false);
+          setPhotoFile(null);
+        }}
+        imageFile={photoFile}
+        onSave={handlePhotoEditorSave}
+      />
+      
+      <div className="grid lg:grid-cols-[300px_1fr] gap-6 mt-6">
       {/* Toolbar */}
       <Card>
         <CardHeader>
@@ -264,6 +302,15 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
                 Imagem
               </Button>
             </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={openPhotoEditor}
+              className="w-full mt-2"
+            >
+              <Wand2 className="w-4 h-4 mr-2" />
+              Editor de Fotos
+            </Button>
           </div>
 
           <Separator />
@@ -327,7 +374,8 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
   );
 };
 
