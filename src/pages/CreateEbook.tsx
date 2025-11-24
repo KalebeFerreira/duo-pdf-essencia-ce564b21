@@ -355,6 +355,85 @@ export default function CreateEbook() {
                   </div>
                 </div>
 
+                {/* Preview das Cores */}
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    Prévia das Cores do Ebook
+                  </Label>
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg border">
+                    {/* Prévia da Capa */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground">Capa</p>
+                      <div 
+                        className="aspect-[3/4] rounded-lg shadow-md flex flex-col items-center justify-center p-4 text-center"
+                        style={{ 
+                          backgroundColor: `rgb(${colorPalettes[selectedColorPalette].primary.join(',')})`,
+                          color: 'white'
+                        }}
+                      >
+                        <div className="text-sm font-bold mb-2">Título do Ebook</div>
+                        <div className="text-xs opacity-90">Descrição curta do conteúdo</div>
+                      </div>
+                    </div>
+
+                    {/* Prévia da Página Interna */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground">Página Interna</p>
+                      <div 
+                        className="aspect-[3/4] rounded-lg shadow-md p-3 space-y-2"
+                        style={{ 
+                          backgroundColor: `rgb(${colorPalettes[selectedColorPalette].secondary.join(',')})`,
+                        }}
+                      >
+                        <div 
+                          className="text-xs font-bold"
+                          style={{ color: `rgb(${colorPalettes[selectedColorPalette].primary.join(',')})` }}
+                        >
+                          Capítulo 1
+                        </div>
+                        <div className="space-y-1">
+                          <div 
+                            className="h-1 rounded"
+                            style={{ 
+                              backgroundColor: `rgb(${colorPalettes[selectedColorPalette].text.join(',')})`,
+                              opacity: 0.7,
+                              width: '100%'
+                            }}
+                          />
+                          <div 
+                            className="h-1 rounded"
+                            style={{ 
+                              backgroundColor: `rgb(${colorPalettes[selectedColorPalette].text.join(',')})`,
+                              opacity: 0.7,
+                              width: '90%'
+                            }}
+                          />
+                          <div 
+                            className="h-1 rounded"
+                            style={{ 
+                              backgroundColor: `rgb(${colorPalettes[selectedColorPalette].text.join(',')})`,
+                              opacity: 0.7,
+                              width: '95%'
+                            }}
+                          />
+                          <div 
+                            className="h-1 rounded"
+                            style={{ 
+                              backgroundColor: `rgb(${colorPalettes[selectedColorPalette].text.join(',')})`,
+                              opacity: 0.7,
+                              width: '85%'
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Esta é uma prévia de como seu ebook ficará com as cores selecionadas
+                  </p>
+                </div>
+
                 {isGenerating && (
                   <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2">
