@@ -52,6 +52,37 @@ Formato: Estruture o conteúdo de forma que possa ser facilmente convertido em P
     if (!response.ok) {
       const errorText = await response.text();
       console.error('AI Gateway error:', response.status, errorText);
+      
+      // Tratar erro 402 (sem créditos) especificamente
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'NO_CREDITS',
+            message: 'Seus créditos do Lovable AI acabaram. Adicione créditos em Settings → Workspace → Usage.',
+            code: 'NO_CREDITS'
+          }),
+          {
+            status: 402,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      
+      // Tratar erro 429 (rate limit)
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'RATE_LIMIT',
+            message: 'Limite de requisições atingido. Aguarde alguns instantes.',
+            code: 'RATE_LIMIT'
+          }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      
       throw new Error(`AI Gateway error: ${response.status}`);
     }
 
