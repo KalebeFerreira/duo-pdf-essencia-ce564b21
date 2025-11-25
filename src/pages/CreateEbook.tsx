@@ -55,7 +55,7 @@ export default function CreateEbook() {
   const [generatedEbook, setGeneratedEbook] = useState<GeneratedEbook | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState("pt");
   const [selectedColorPalette, setSelectedColorPalette] = useState<keyof typeof colorPalettes>("classic");
-  const [numPages, setNumPages] = useState(5);
+  const [numPages, setNumPages] = useState<number | "">(10);
   const [editingEbook, setEditingEbook] = useState<Ebook | null>(null);
   const [activeTab, setActiveTab] = useState<"create" | "history">("create");
 
@@ -82,7 +82,7 @@ export default function CreateEbook() {
           prompt,
           language: selectedLanguage,
           colorPalette: selectedColorPalette,
-          numPages: numPages
+          numPages: numPages || 10
         }
       });
 
@@ -405,11 +405,17 @@ export default function CreateEbook() {
                       max="100"
                       value={numPages}
                       onChange={(e) => {
-                        const value = parseInt(e.target.value);
-                        if (value >= 1 && value <= 100) {
-                          setNumPages(value);
+                        const value = e.target.value;
+                        if (value === "") {
+                          setNumPages("");
+                        } else {
+                          const num = parseInt(value);
+                          if (num >= 1 && num <= 100) {
+                            setNumPages(num);
+                          }
                         }
                       }}
+                      placeholder="Digite de 1 a 100"
                       disabled={isGenerating}
                       className="w-full"
                     />
