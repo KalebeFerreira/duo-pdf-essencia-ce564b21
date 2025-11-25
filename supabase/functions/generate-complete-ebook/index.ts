@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, language = 'pt', colorPalette = 'classic' } = await req.json();
+    const { prompt, language = 'pt', colorPalette = 'classic', numPages = 5 } = await req.json();
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
     if (!lovableApiKey) {
@@ -46,14 +46,12 @@ Return ONLY a valid JSON (no markdown, no explanations) with this structure:
   "chapters": [
     "Título do Capítulo 1",
     "Título do Capítulo 2",
-    "Título do Capítulo 3",
-    "Título do Capítulo 4",
-    "Título do Capítulo 5"
+    "Título do Capítulo 3"
   ]
 }
 
 IMPORTANT:
-- Create 5-8 chapters
+- Create EXACTLY ${numPages} chapters (no more, no less)
 - Titles must be specific and progressive
 - Structure must be logically coherent
 - ALL CONTENT must be ${langInstruction}

@@ -54,6 +54,7 @@ export default function CreateEbook() {
   const [generatedEbook, setGeneratedEbook] = useState<GeneratedEbook | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState("pt");
   const [selectedColorPalette, setSelectedColorPalette] = useState<keyof typeof colorPalettes>("classic");
+  const [numPages, setNumPages] = useState("5");
   const [editingEbook, setEditingEbook] = useState<Ebook | null>(null);
   const [activeTab, setActiveTab] = useState<"create" | "history">("create");
 
@@ -79,7 +80,8 @@ export default function CreateEbook() {
         body: { 
           prompt,
           language: selectedLanguage,
-          colorPalette: selectedColorPalette
+          colorPalette: selectedColorPalette,
+          numPages: parseInt(numPages)
         }
       });
 
@@ -370,7 +372,7 @@ export default function CreateEbook() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="language" className="flex items-center gap-2">
                       <Globe className="h-4 w-4" />
@@ -386,6 +388,26 @@ export default function CreateEbook() {
                             {name}
                           </SelectItem>
                         ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="numPages" className="flex items-center gap-2">
+                      <BookOpen className="h-4 w-4" />
+                      Número de Páginas
+                    </Label>
+                    <Select value={numPages} onValueChange={setNumPages} disabled={isGenerating}>
+                      <SelectTrigger id="numPages">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="3">3 páginas</SelectItem>
+                        <SelectItem value="5">5 páginas</SelectItem>
+                        <SelectItem value="7">7 páginas</SelectItem>
+                        <SelectItem value="10">10 páginas</SelectItem>
+                        <SelectItem value="15">15 páginas</SelectItem>
+                        <SelectItem value="20">20 páginas</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
