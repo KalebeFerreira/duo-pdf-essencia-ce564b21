@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,7 +55,7 @@ export default function CreateEbook() {
   const [generatedEbook, setGeneratedEbook] = useState<GeneratedEbook | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState("pt");
   const [selectedColorPalette, setSelectedColorPalette] = useState<keyof typeof colorPalettes>("classic");
-  const [numPages, setNumPages] = useState("5");
+  const [numPages, setNumPages] = useState(5);
   const [editingEbook, setEditingEbook] = useState<Ebook | null>(null);
   const [activeTab, setActiveTab] = useState<"create" | "history">("create");
 
@@ -81,7 +82,7 @@ export default function CreateEbook() {
           prompt,
           language: selectedLanguage,
           colorPalette: selectedColorPalette,
-          numPages: parseInt(numPages)
+          numPages: numPages
         }
       });
 
@@ -395,21 +396,26 @@ export default function CreateEbook() {
                   <div className="space-y-2">
                     <Label htmlFor="numPages" className="flex items-center gap-2">
                       <BookOpen className="h-4 w-4" />
-                      Número de Páginas
+                      Número de Páginas (1-100)
                     </Label>
-                    <Select value={numPages} onValueChange={setNumPages} disabled={isGenerating}>
-                      <SelectTrigger id="numPages">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="3">3 páginas</SelectItem>
-                        <SelectItem value="5">5 páginas</SelectItem>
-                        <SelectItem value="7">7 páginas</SelectItem>
-                        <SelectItem value="10">10 páginas</SelectItem>
-                        <SelectItem value="15">15 páginas</SelectItem>
-                        <SelectItem value="20">20 páginas</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      id="numPages"
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={numPages}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        if (value >= 1 && value <= 100) {
+                          setNumPages(value);
+                        }
+                      }}
+                      disabled={isGenerating}
+                      className="w-full"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Digite um número entre 1 e 100
+                    </p>
                   </div>
 
                   <div className="space-y-2">
