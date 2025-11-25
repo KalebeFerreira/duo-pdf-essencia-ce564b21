@@ -163,17 +163,17 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
         body: { prompt: aiPrompt, template: selectedTemplate || "flyer" },
       });
 
-      if (error) throw error;
-
-      // Check for error responses from the edge function
-      if (data?.error) {
-        if (data.code === "NO_CREDITS") {
+      // Check for error responses from the edge function (in data or error)
+      const errorData = data?.error ? data : (error && typeof error === 'object' && 'error' in error) ? error : null;
+      
+      if (errorData?.error || errorData?.code) {
+        if (errorData.code === "NO_CREDITS") {
           toast({
             title: "Créditos Esgotados",
-            description: "Adicione créditos em Settings → Workspace → Usage para continuar usando a IA",
+            description: "Você precisa adicionar créditos na sua conta Lovable para usar a IA. Acesse Settings → Workspace → Usage",
             variant: "destructive",
           });
-        } else if (data.code === "RATE_LIMIT") {
+        } else if (errorData.code === "RATE_LIMIT") {
           toast({
             title: "Limite Excedido",
             description: "Aguarde alguns instantes antes de tentar novamente",
@@ -182,14 +182,18 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
         } else {
           toast({
             title: "Erro ao gerar arte",
-            description: data.error,
+            description: errorData.error || errorData.message || "Ocorreu um erro. Tente novamente",
             variant: "destructive",
           });
         }
         return;
       }
 
-      if (data.imageUrl) {
+      if (error && !errorData) {
+        throw error;
+      }
+
+      if (data?.imageUrl) {
         FabricImage.fromURL(data.imageUrl).then((img) => {
           if (!fabricCanvas) return;
           img.scaleToWidth(fabricCanvas.width! - 40);
@@ -200,11 +204,28 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
       }
     } catch (error: any) {
       console.error("Erro ao gerar arte:", error);
-      toast({
-        title: "Erro ao gerar arte",
-        description: error.message || "Tente novamente",
-        variant: "destructive",
-      });
+      
+      // Parse error message for specific codes
+      const errorMessage = error.message || String(error);
+      if (errorMessage.includes("NO_CREDITS") || errorMessage.includes("Créditos")) {
+        toast({
+          title: "Créditos Esgotados",
+          description: "Você precisa adicionar créditos na sua conta Lovable. Acesse Settings → Workspace → Usage",
+          variant: "destructive",
+        });
+      } else if (errorMessage.includes("RATE_LIMIT")) {
+        toast({
+          title: "Limite Excedido",
+          description: "Aguarde alguns instantes antes de tentar novamente",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erro ao gerar arte",
+          description: "Ocorreu um erro inesperado. Tente novamente",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsGenerating(false);
     }
