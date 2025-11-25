@@ -1,40 +1,39 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, CreditCard, ImageIcon } from "lucide-react";
+import { FileText, CreditCard, ImageIcon, Sparkles, Calendar, UtensilsCrossed } from "lucide-react";
+import { predefinedTemplates } from "@/utils/designTemplates";
 
 interface DesignTemplatesProps {
   onSelectTemplate: (template: string) => void;
 }
 
-const templates = [
-  {
-    id: "flyer",
-    name: "Flyer A5",
-    description: "148x210mm com margem de 3mm",
-    icon: FileText,
-    dimensions: { width: 148, height: 210 },
-    bleed: 3,
-    color: "from-blue-500 to-cyan-500"
-  },
-  {
-    id: "business-card",
-    name: "Cartão de Visita",
-    description: "90x50mm com margem de 2mm",
-    icon: CreditCard,
-    dimensions: { width: 90, height: 50 },
-    bleed: 2,
-    color: "from-purple-500 to-pink-500"
-  },
-  {
-    id: "pamphlet",
-    name: "Panfleto A4",
-    description: "210x297mm com margem de 3mm",
-    icon: ImageIcon,
-    dimensions: { width: 210, height: 297 },
-    bleed: 3,
-    color: "from-orange-500 to-red-500"
-  },
-];
+const templateIcons: Record<string, any> = {
+  "flyer-modern": Sparkles,
+  "business-card-elegant": CreditCard,
+  "pamphlet-promo": ImageIcon,
+  "flyer-event": Calendar,
+  "business-card-minimal": CreditCard,
+  "pamphlet-restaurant": UtensilsCrossed,
+};
+
+const templateColors: Record<string, string> = {
+  "flyer-modern": "from-indigo-500 to-purple-500",
+  "business-card-elegant": "from-slate-700 to-slate-900",
+  "pamphlet-promo": "from-pink-500 to-purple-500",
+  "flyer-event": "from-purple-600 to-violet-700",
+  "business-card-minimal": "from-cyan-500 to-blue-500",
+  "pamphlet-restaurant": "from-red-600 to-orange-500",
+};
+
+const templates = predefinedTemplates.map((template) => ({
+  id: template.id,
+  name: template.name,
+  description: template.description,
+  icon: templateIcons[template.id] || FileText,
+  dimensions: template.dimensions,
+  bleed: template.bleed,
+  color: templateColors[template.id] || "from-blue-500 to-cyan-500",
+}));
 
 const DesignTemplates = ({ onSelectTemplate }: DesignTemplatesProps) => {
   return (
@@ -54,9 +53,11 @@ const DesignTemplates = ({ onSelectTemplate }: DesignTemplatesProps) => {
               <CardDescription>{template.description}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2 text-sm text-muted-foreground mb-4">
-                <p>Dimensões: {template.dimensions.width}x{template.dimensions.height}mm</p>
-                <p>Sangria: {template.bleed}mm</p>
+              <div className="space-y-1 text-sm text-muted-foreground mb-4">
+                <p className="flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" />
+                  Design pronto para editar
+                </p>
               </div>
               <Button
                 className="w-full"

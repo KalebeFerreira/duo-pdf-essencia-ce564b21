@@ -12,16 +12,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Type, Square, Circle as CircleIcon, Image as ImageIcon, Download, Sparkles, Palette, Wand2 } from "lucide-react";
 import { PhotoEditor } from "./PhotoEditor";
 import jsPDF from "jspdf";
+import { predefinedTemplates } from "@/utils/designTemplates";
 
 interface DesignCanvasProps {
   selectedTemplate: string | null;
 }
-
-const templates = {
-  flyer: { width: 1748, height: 2480, bleed: 35, name: "Flyer A5" },
-  "business-card": { width: 1063, height: 591, bleed: 24, name: "Cartão de Visita" },
-  pamphlet: { width: 2480, height: 3508, bleed: 35, name: "Panfleto A4" },
-};
 
 const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -33,23 +28,27 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
   const [showPhotoEditor, setShowPhotoEditor] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
 
-  const currentTemplate = selectedTemplate ? templates[selectedTemplate as keyof typeof templates] : templates.flyer;
+  const currentTemplate = predefinedTemplates.find(t => t.id === selectedTemplate) || predefinedTemplates[0];
 
   useEffect(() => {
     if (!canvasRef.current) return;
 
+    const scaleFactor = Math.min(800 / currentTemplate.dimensions.width, 600 / currentTemplate.dimensions.height);
+    const canvasWidth = currentTemplate.dimensions.width * scaleFactor;
+    const canvasHeight = currentTemplate.dimensions.height * scaleFactor;
+
     const canvas = new FabricCanvas(canvasRef.current, {
-      width: Math.min(800, currentTemplate.width / 2),
-      height: Math.min(600, currentTemplate.height / 2),
+      width: canvasWidth,
+      height: canvasHeight,
       backgroundColor: "#ffffff",
     });
 
     // Add bleed guides
     const bleedRect = new Rect({
-      left: bleedMargin * 10,
-      top: bleedMargin * 10,
-      width: canvas.width! - bleedMargin * 20,
-      height: canvas.height! - bleedMargin * 20,
+      left: bleedMargin * 10 * scaleFactor,
+      top: bleedMargin * 10 * scaleFactor,
+      width: canvasWidth - bleedMargin * 20 * scaleFactor,
+      height: canvasHeight - bleedMargin * 20 * scaleFactor,
       fill: "transparent",
       stroke: "#ff0000",
       strokeWidth: 2,
@@ -59,6 +58,17 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
     });
     canvas.add(bleedRect);
 
+    // Load predefined template objects
+    const templateObjects = currentTemplate.objects();
+    templateObjects.forEach((obj) => {
+      obj.scaleX = scaleFactor;
+      obj.scaleY = scaleFactor;
+      obj.left = (obj.left || 0) * scaleFactor;
+      obj.top = (obj.top || 0) * scaleFactor;
+      canvas.add(obj);
+    });
+
+    canvas.renderAll();
     setFabricCanvas(canvas);
 
     return () => {
@@ -235,9 +245,9 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
     if (!fabricCanvas) return;
 
     const pdf = new jsPDF({
-      orientation: currentTemplate.width > currentTemplate.height ? "landscape" : "portrait",
+      orientation: currentTemplate.dimensions.width > currentTemplate.dimensions.height ? "landscape" : "portrait",
       unit: "mm",
-      format: [currentTemplate.width / 10, currentTemplate.height / 10],
+      format: [currentTemplate.dimensions.width / 10, currentTemplate.dimensions.height / 10],
     });
 
     const dataUrl = fabricCanvas.toDataURL({
@@ -251,11 +261,11 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
       "PNG",
       0,
       0,
-      currentTemplate.width / 10,
-      currentTemplate.height / 10
+      currentTemplate.dimensions.width / 10,
+      currentTemplate.dimensions.height / 10
     );
 
-    pdf.save(`design-${selectedTemplate || "flyer"}.pdf`);
+    pdf.save(`design-${selectedTemplate || "template"}.pdf`);
     toast({ title: "PDF exportado com sucesso!" });
   };
 
@@ -386,7 +396,7 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
         <CardHeader>
           <CardTitle className="text-lg">Área de Trabalho</CardTitle>
           <CardDescription>
-            Dimensões: {currentTemplate.width / 10}x{currentTemplate.height / 10}mm
+            {currentTemplate.name} - {currentTemplate.dimensions.width / 10}x{currentTemplate.dimensions.height / 10}mm
           </CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-center">
