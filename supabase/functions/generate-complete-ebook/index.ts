@@ -150,48 +150,10 @@ GUIDELINES:
       const contentData = await contentResponse.json();
       const chapterContent = contentData.choices?.[0]?.message?.content || '';
 
-      // Passo 3: Gerar imagem para o capítulo
-      console.log(`Generating image for chapter ${i + 1}`);
-      let imageUrl = '';
-      
-      try {
-        const imagePrompt = `High-quality realistic professional photograph for a book chapter about "${chapterTitle}" in the context of "${ebookStructure.title}". 
-
-Style requirements:
-- Photorealistic, professional stock photo quality
-- Professional business or educational setting
-- Natural lighting, high resolution
-- Modern and clean aesthetic
-- Corporate or educational environment
-- No text or watermarks`;
-
-        const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${lovableApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash-image-preview',
-            messages: [
-              { role: 'user', content: imagePrompt }
-            ],
-            modalities: ['image', 'text']
-          }),
-        });
-
-        if (imageResponse.ok) {
-          const imageData = await imageResponse.json();
-          imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url || '';
-        }
-      } catch (imgError) {
-        console.error(`Error generating image for chapter ${i + 1}:`, imgError);
-      }
-
       chaptersWithContent.push({
         title: chapterTitle,
         content: chapterContent,
-        imageUrl: imageUrl
+        imageUrl: ''
       });
     }
 

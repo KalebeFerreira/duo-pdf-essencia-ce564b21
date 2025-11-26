@@ -74,7 +74,7 @@ export default function CreateEbook() {
     try {
       toast({
         title: "Gerando seu ebook...",
-        description: "A IA está criando título, capítulos, conteúdo e imagens. Isso pode levar alguns minutos.",
+        description: "A IA está criando título, capítulos e conteúdo. Isso leva cerca de 1-2 minutos.",
       });
 
       const { data, error } = await supabase.functions.invoke('generate-complete-ebook', {
@@ -83,7 +83,8 @@ export default function CreateEbook() {
           language: selectedLanguage,
           colorPalette: selectedColorPalette,
           numPages: numPages || 10
-        }
+        },
+        timeout: 300000 // 5 minutos
       });
 
       // Verificar erro ANTES de lançar exceção
@@ -93,7 +94,7 @@ export default function CreateEbook() {
         // Extrair informações do erro
         const errorBody = (error as any)?.context?.body;
         const errorCode = errorBody?.code;
-        const errorMessage = errorBody?.message || errorBody?.error;
+        const errorMessage = errorBody?.message || errorBody?.error || error.message || '';
         
         // Tratar erro de créditos especificamente
         if (errorCode === 'NO_CREDITS' || errorMessage?.includes('créditos') || errorMessage?.includes('credits')) {
@@ -107,10 +108,21 @@ export default function CreateEbook() {
         }
         
         // Tratar rate limit
-        if (errorCode === 'RATE_LIMIT' || errorMessage?.includes('Rate limit')) {
+        if (errorCode === 'RATE_LIMIT' || errorMessage?.includes('Rate limit') || errorMessage?.includes('429')) {
           toast({
             title: "⏱️ Muitas Requisições",
             description: "Limite temporário atingido. Aguarde alguns instantes e tente novamente.",
+            variant: "destructive",
+          });
+          setIsGenerating(false);
+          return;
+        }
+        
+        // Tratar timeout
+        if (errorMessage?.includes('timeout') || errorMessage?.includes('fetch') || errorMessage?.includes('FunctionsFetchError')) {
+          toast({
+            title: "⏰ Tempo Esgotado",
+            description: "A geração está demorando muito. Tente com menos páginas ou aguarde e tente novamente.",
             variant: "destructive",
           });
           setIsGenerating(false);
