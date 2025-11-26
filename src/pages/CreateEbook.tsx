@@ -64,6 +64,7 @@ export default function CreateEbook() {
   const [improvingChapterIndex, setImprovingChapterIndex] = useState<number | null>(null);
   const [improvedContent, setImprovedContent] = useState<string>("");
   const [showImprovedDialog, setShowImprovedDialog] = useState(false);
+  const [currentImprovingIndex, setCurrentImprovingIndex] = useState<number | null>(null);
 
   const generateEbook = async () => {
     if (!prompt.trim()) {
@@ -469,6 +470,7 @@ export default function CreateEbook() {
 
     const chapter = generatedEbook.chapters[chapterIndex];
     setImprovingChapterIndex(chapterIndex);
+    setCurrentImprovingIndex(chapterIndex);
 
     try {
       toast({
@@ -487,6 +489,18 @@ export default function CreateEbook() {
 
       if (error) {
         console.error('Improvement error:', error);
+        const errorBody = (error as any)?.context?.body;
+        const errorCode = errorBody?.code;
+        
+        if (errorCode === 'NO_CREDITS') {
+          toast({
+            title: "💳 Créditos Esgotados",
+            description: "Seus créditos do Lovable AI acabaram. Acesse Settings → Workspace → Usage.",
+            variant: "destructive",
+          });
+          setImprovingChapterIndex(null);
+          return;
+        }
         throw error;
       }
 
@@ -504,22 +518,24 @@ export default function CreateEbook() {
         description: error.message || "Tente novamente.",
         variant: "destructive",
       });
+      setCurrentImprovingIndex(null);
     } finally {
       setImprovingChapterIndex(null);
     }
   };
 
   const applyImprovement = () => {
-    if (!generatedEbook || improvingChapterIndex === null) return;
+    if (!generatedEbook || currentImprovingIndex === null) return;
 
     const updatedChapters = [...generatedEbook.chapters];
-    updatedChapters[improvingChapterIndex] = { 
-      ...updatedChapters[improvingChapterIndex], 
+    updatedChapters[currentImprovingIndex] = { 
+      ...updatedChapters[currentImprovingIndex], 
       content: improvedContent 
     };
     setGeneratedEbook({ ...generatedEbook, chapters: updatedChapters });
     setShowImprovedDialog(false);
     setImprovedContent("");
+    setCurrentImprovingIndex(null);
 
     toast({
       title: "✨ Capítulo melhorado!",
@@ -887,7 +903,7 @@ export default function CreateEbook() {
                 </Label>
                 <div className="p-4 bg-muted/50 rounded-lg border">
                   <p className="text-sm whitespace-pre-wrap">
-                    {improvingChapterIndex !== null && generatedEbook?.chapters[improvingChapterIndex]?.content}
+                    {currentImprovingIndex !== null && generatedEbook?.chapters[currentImprovingIndex]?.content}
                   </p>
                 </div>
               </div>
@@ -910,6 +926,7 @@ export default function CreateEbook() {
                 onClick={() => {
                   setShowImprovedDialog(false);
                   setImprovedContent("");
+                  setCurrentImprovingIndex(null);
                 }}
               >
                 Cancelar
