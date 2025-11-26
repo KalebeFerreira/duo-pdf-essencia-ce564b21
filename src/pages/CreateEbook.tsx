@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,12 +13,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEbooks, type Ebook } from "@/hooks/useEbooks";
 import { Loader2, BookOpen, Sparkles, Download, ArrowLeft, Palette, Globe, History, Save, Edit, Trash2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
-import { Progress } from "@/components/ui/progress";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import jsPDF from "jspdf";
-import pptxgen from "pptxgenjs";
-import html2canvas from "html2canvas";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const colorPalettes = {
   classic: { name: "Clássico", primary: [37, 99, 235], secondary: [243, 244, 246], text: [0, 0, 0] },
@@ -77,7 +73,7 @@ export default function CreateEbook() {
     try {
       toast({
         title: "Gerando seu ebook...",
-        description: "A IA está criando título, capítulos, conteúdo e imagem da capa. Isso leva cerca de 30-60 segundos.",
+        description: "A IA está criando conteúdo conciso com múltiplas imagens. Isso leva cerca de 40-70 segundos.",
       });
 
       const { data, error } = await supabase.functions.invoke('generate-complete-ebook', {
@@ -87,19 +83,16 @@ export default function CreateEbook() {
           colorPalette: selectedColorPalette,
           numPages: numPages || 10
         },
-        timeout: 300000 // 5 minutos
+        timeout: 300000
       });
 
-      // Verificar erro ANTES de lançar exceção
       if (error) {
         console.error('Edge function error:', error);
         
-        // Extrair informações do erro
         const errorBody = (error as any)?.context?.body;
         const errorCode = errorBody?.code;
         const errorMessage = errorBody?.message || errorBody?.error || error.message || '';
         
-        // Tratar erro de créditos especificamente
         if (errorCode === 'NO_CREDITS' || errorMessage?.includes('créditos') || errorMessage?.includes('credits')) {
           toast({
             title: "💳 Créditos Esgotados",
@@ -110,7 +103,6 @@ export default function CreateEbook() {
           return;
         }
         
-        // Tratar rate limit
         if (errorCode === 'RATE_LIMIT' || errorMessage?.includes('Rate limit') || errorMessage?.includes('429')) {
           toast({
             title: "⏱️ Muitas Requisições",
@@ -121,7 +113,6 @@ export default function CreateEbook() {
           return;
         }
         
-        // Tratar timeout
         if (errorMessage?.includes('timeout') || errorMessage?.includes('fetch') || errorMessage?.includes('FunctionsFetchError')) {
           toast({
             title: "⏰ Tempo Esgotado",
@@ -132,7 +123,6 @@ export default function CreateEbook() {
           return;
         }
         
-        // Outros erros
         throw error;
       }
 
@@ -142,7 +132,6 @@ export default function CreateEbook() {
 
       setGeneratedEbook(data);
 
-      // Salvar automaticamente no banco de dados
       await saveEbook(
         data.title,
         data.description,
@@ -151,9 +140,10 @@ export default function CreateEbook() {
         selectedColorPalette
       );
 
+      const imageCount = data.chapters.filter((ch: Chapter) => ch.imageUrl).length;
       toast({
         title: "✨ Ebook criado com sucesso!",
-        description: `${data.chapters.length} capítulos gerados e salvos no histórico.`,
+        description: `${data.chapters.length} capítulos gerados com ${imageCount} imagens realistas e salvos no histórico.`,
       });
 
     } catch (error: any) {
@@ -192,266 +182,75 @@ export default function CreateEbook() {
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 20;
-      
-      const palette = colorPalettes[selectedColorPalette];
+      const maxWidth = pageWidth - (margin * 2);
 
       // Capa
-      pdf.setFillColor(palette.primary[0], palette.primary[1], palette.primary[2]);
-      pdf.rect(0, 0, pageWidth, pageHeight, "F");
-      
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(32);
-      pdf.setFont("helvetica", "bold");
-      
-      const titleLines = pdf.splitTextToSize(generatedEbook.title, pageWidth - 2 * margin);
-      const titleY = pageHeight / 2 - 20;
-      titleLines.forEach((line: string, index: number) => {
-        const textWidth = pdf.getTextWidth(line);
-        pdf.text(line, (pageWidth - textWidth) / 2, titleY + (index * 12));
-      });
+      pdf.setFontSize(24);
+      pdf.setFont(undefined, 'bold');
+      const titleLines = pdf.splitTextToSize(generatedEbook.title, maxWidth);
+      pdf.text(titleLines, pageWidth / 2, 40, { align: 'center' });
 
-      // Descrição na capa
       pdf.setFontSize(12);
-      pdf.setFont("helvetica", "normal");
-      const descLines = pdf.splitTextToSize(generatedEbook.description, pageWidth - 2 * margin);
-      let descY = titleY + (titleLines.length * 12) + 20;
-      descLines.forEach((line: string, index: number) => {
-        const textWidth = pdf.getTextWidth(line);
-        pdf.text(line, (pageWidth - textWidth) / 2, descY + (index * 6));
-      });
+      pdf.setFont(undefined, 'normal');
+      if (generatedEbook.description) {
+        const descLines = pdf.splitTextToSize(generatedEbook.description, maxWidth);
+        pdf.text(descLines, pageWidth / 2, 60, { align: 'center' });
+      }
 
-      // Capítulos
-      for (let i = 0; i < generatedEbook.chapters.length; i++) {
-        const chapter = generatedEbook.chapters[i];
+      // Capítulos com imagens
+      for (const chapter of generatedEbook.chapters) {
         pdf.addPage();
-        let y = margin;
+        let yPos = margin;
 
-        // Título do capítulo
-        pdf.setTextColor(palette.primary[0], palette.primary[1], palette.primary[2]);
-        pdf.setFontSize(20);
-        pdf.setFont("helvetica", "bold");
-        pdf.text(`Capítulo ${i + 1}`, margin, y);
-        y += 10;
-        
-        const chapterTitleLines = pdf.splitTextToSize(chapter.title, pageWidth - 2 * margin);
-        chapterTitleLines.forEach((line: string) => {
-          pdf.text(line, margin, y);
-          y += 8;
-        });
-        y += 5;
+        pdf.setFontSize(18);
+        pdf.setFont(undefined, 'bold');
+        const chapterTitle = pdf.splitTextToSize(chapter.title, maxWidth);
+        pdf.text(chapterTitle, margin, yPos);
+        yPos += (chapterTitle.length * 10) + 10;
 
-        // Imagem do capítulo
+        // Adicionar imagem se existir
         if (chapter.imageUrl) {
           try {
-            const imgWidth = pageWidth - 2 * margin;
+            const imgWidth = maxWidth;
             const imgHeight = 80;
-            pdf.addImage(chapter.imageUrl, "PNG", margin, y, imgWidth, imgHeight);
-            y += imgHeight + 10;
-          } catch (e) {
-            console.error("Erro ao adicionar imagem:", e);
+            if (yPos + imgHeight > pageHeight - margin) {
+              pdf.addPage();
+              yPos = margin;
+            }
+            pdf.addImage(chapter.imageUrl, 'JPEG', margin, yPos, imgWidth, imgHeight);
+            yPos += imgHeight + 10;
+          } catch (err) {
+            console.log('Erro ao adicionar imagem:', err);
           }
         }
 
-        // Conteúdo do capítulo
-        pdf.setTextColor(palette.text[0], palette.text[1], palette.text[2]);
         pdf.setFontSize(11);
-        pdf.setFont("helvetica", "normal");
+        pdf.setFont(undefined, 'normal');
+        const contentLines = pdf.splitTextToSize(chapter.content, maxWidth);
         
-        const contentLines = pdf.splitTextToSize(chapter.content, pageWidth - 2 * margin);
-        contentLines.forEach((line: string) => {
-          if (y > pageHeight - margin - 10) {
+        for (const line of contentLines) {
+          if (yPos > pageHeight - margin) {
             pdf.addPage();
-            y = margin;
+            yPos = margin;
           }
-          pdf.text(line, margin, y);
-          y += 6;
-        });
+          pdf.text(line, margin, yPos);
+          yPos += 7;
+        }
       }
 
       pdf.save(`${generatedEbook.title}.pdf`);
-      
       toast({
-        title: "PDF baixado!",
-        description: "Seu ebook foi baixado com sucesso.",
+        title: "PDF baixado com sucesso!",
+        description: "Seu ebook com imagens foi salvo.",
       });
     } catch (error) {
-      console.error("Erro ao gerar PDF:", error);
+      console.error('Error generating PDF:', error);
       toast({
-        title: "Erro ao baixar PDF",
+        title: "Erro ao gerar PDF",
         description: "Tente novamente.",
         variant: "destructive",
       });
     }
-  };
-
-  const downloadPowerPoint = async () => {
-    if (!generatedEbook) return;
-
-    try {
-      const pptx = new pptxgen();
-      const palette = colorPalettes[selectedColorPalette];
-
-      // Slide da capa
-      const coverSlide = pptx.addSlide();
-      coverSlide.background = { 
-        color: `${palette.primary[0].toString(16).padStart(2, '0')}${palette.primary[1].toString(16).padStart(2, '0')}${palette.primary[2].toString(16).padStart(2, '0')}` 
-      };
-      coverSlide.addText(generatedEbook.title, {
-        x: 0.5,
-        y: 2,
-        w: 9,
-        h: 1.5,
-        fontSize: 44,
-        bold: true,
-        color: 'FFFFFF',
-        align: 'center',
-        valign: 'middle'
-      });
-      coverSlide.addText(generatedEbook.description, {
-        x: 1,
-        y: 4,
-        w: 8,
-        h: 1,
-        fontSize: 18,
-        color: 'FFFFFF',
-        align: 'center'
-      });
-
-      // Slides dos capítulos
-      for (let i = 0; i < generatedEbook.chapters.length; i++) {
-        const chapter = generatedEbook.chapters[i];
-        const slide = pptx.addSlide();
-        
-        slide.addText(`Capítulo ${i + 1}: ${chapter.title}`, {
-          x: 0.5,
-          y: 0.5,
-          w: 9,
-          h: 1,
-          fontSize: 32,
-          bold: true,
-          color: `${palette.primary[0].toString(16).padStart(2, '0')}${palette.primary[1].toString(16).padStart(2, '0')}${palette.primary[2].toString(16).padStart(2, '0')}`
-        });
-
-        if (chapter.imageUrl) {
-          try {
-            slide.addImage({
-              data: chapter.imageUrl,
-              x: 0.5,
-              y: 1.8,
-              w: 9,
-              h: 3
-            });
-          } catch (e) {
-            console.error("Erro ao adicionar imagem:", e);
-          }
-        }
-
-        slide.addText(chapter.content.substring(0, 500) + '...', {
-          x: 0.5,
-          y: chapter.imageUrl ? 5 : 1.8,
-          w: 9,
-          h: chapter.imageUrl ? 2 : 4.5,
-          fontSize: 14,
-          color: `${palette.text[0].toString(16).padStart(2, '0')}${palette.text[1].toString(16).padStart(2, '0')}${palette.text[2].toString(16).padStart(2, '0')}`
-        });
-      }
-
-      await pptx.writeFile({ fileName: `${generatedEbook.title}.pptx` });
-      
-      toast({
-        title: "PowerPoint baixado!",
-        description: "Seu ebook foi exportado para PowerPoint.",
-      });
-    } catch (error) {
-      console.error("Erro ao gerar PowerPoint:", error);
-      toast({
-        title: "Erro ao exportar",
-        description: "Tente novamente.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const downloadPNGs = async () => {
-    if (!generatedEbook) return;
-
-    try {
-      toast({
-        title: "Gerando imagens...",
-        description: "Criando PNGs de cada capítulo.",
-      });
-
-      for (let i = 0; i < generatedEbook.chapters.length; i++) {
-        const chapter = generatedEbook.chapters[i];
-        const palette = colorPalettes[selectedColorPalette];
-        
-        // Criar elemento HTML temporário
-        const tempDiv = document.createElement('div');
-        tempDiv.style.width = '1200px';
-        tempDiv.style.padding = '60px';
-        tempDiv.style.backgroundColor = `rgb(${palette.secondary.join(',')})`;
-        tempDiv.style.fontFamily = 'Arial, sans-serif';
-        
-        const title = document.createElement('h1');
-        title.textContent = `Capítulo ${i + 1}: ${chapter.title}`;
-        title.style.color = `rgb(${palette.primary.join(',')})`;
-        title.style.marginBottom = '20px';
-        title.style.fontSize = '32px';
-        tempDiv.appendChild(title);
-
-        if (chapter.imageUrl && i === 0) {
-          const img = document.createElement('img');
-          img.src = chapter.imageUrl;
-          img.style.width = '100%';
-          img.style.maxHeight = '400px';
-          img.style.objectFit = 'cover';
-          img.style.marginBottom = '20px';
-          img.style.borderRadius = '8px';
-          tempDiv.appendChild(img);
-        }
-
-        const content = document.createElement('p');
-        content.textContent = chapter.content.substring(0, 800) + '...';
-        content.style.color = `rgb(${palette.text.join(',')})`;
-        content.style.fontSize = '16px';
-        content.style.lineHeight = '1.6';
-        tempDiv.appendChild(content);
-
-        document.body.appendChild(tempDiv);
-
-        const canvas = await html2canvas(tempDiv, {
-          backgroundColor: `rgb(${palette.secondary.join(',')})`,
-          scale: 2
-        });
-
-        const link = document.createElement('a');
-        link.download = `${generatedEbook.title}-capitulo-${i + 1}.png`;
-        link.href = canvas.toDataURL();
-        link.click();
-
-        document.body.removeChild(tempDiv);
-      }
-
-      toast({
-        title: "PNGs baixados!",
-        description: `${generatedEbook.chapters.length} imagens foram geradas.`,
-      });
-    } catch (error) {
-      console.error("Erro ao gerar PNGs:", error);
-      toast({
-        title: "Erro ao exportar",
-        description: "Tente novamente.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const openGoogleSlides = () => {
-    window.open('https://docs.google.com/presentation/u/0/?tgif=d', '_blank');
-    toast({
-      title: "Google Slides aberto",
-      description: "Copie o conteúdo do ebook e cole no Google Slides.",
-    });
   };
 
   const resetForm = () => {
@@ -498,462 +297,261 @@ export default function CreateEbook() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-                <BookOpen className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">Criar Ebook com IA</h1>
-                <p className="text-muted-foreground">Descreva sua ideia e a IA cria tudo automaticamente</p>
-              </div>
-            </div>
-            <Button variant="outline" onClick={() => navigate("/dashboard")}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Voltar
-            </Button>
-          </div>
+      
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/")}
+          className="mb-6"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Voltar
+        </Button>
 
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "create" | "history")} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="create">
-                <Sparkles className="mr-2 h-4 w-4" />
-                Criar Novo
-              </TabsTrigger>
-              <TabsTrigger value="history">
-                <History className="mr-2 h-4 w-4" />
-                Meus Ebooks ({ebooks.length})
-              </TabsTrigger>
-            </TabsList>
+        <div className="flex items-center justify-center mb-8">
+          <BookOpen className="w-8 h-8 mr-3 text-primary" />
+          <h1 className="text-4xl font-bold">Criar Ebook com IA</h1>
+        </div>
 
-            <TabsContent value="create" className="mt-6">
-              {!generatedEbook ? (
-                /* Formulário de Geração */
-            <Card className="border-2 border-primary/20">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "create" | "history")} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-8">
+            <TabsTrigger value="create" className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Criar Novo
+            </TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center gap-2">
+              <History className="w-4 h-4" />
+              Histórico ({ebooks.length})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="create" className="space-y-6">
+            <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-2xl">
-                  <Sparkles className="h-6 w-6 text-primary" />
-                  Descreva seu Ebook
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5" />
+                  Configure seu Ebook
                 </CardTitle>
-                <CardDescription className="text-base">
-                  A IA vai gerar automaticamente: título, descrição, capítulos, conteúdo completo e imagem realista da capa
+                <CardDescription>
+                  A IA vai gerar conteúdo conciso e múltiplas imagens realistas para seu ebook
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="prompt">Descreva seu Ebook</Label>
-                  <Textarea
-                    id="prompt"
-                    placeholder="Exemplo: Um ebook sobre marketing digital para iniciantes, com dicas práticas de redes sociais, SEO, criação de conteúdo e anúncios pagos. Deve ter foco em estratégias que funcionam em 2024 e exemplos reais de sucesso..."
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    className="min-h-[200px] text-base resize-none"
-                    disabled={isGenerating}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Seja específico! Quanto mais detalhes, melhor será o resultado.
-                  </p>
-                </div>
+                {!generatedEbook ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="prompt">Descreva o ebook que deseja criar</Label>
+                      <Textarea
+                        id="prompt"
+                        placeholder="Ex: Um guia completo sobre marketing digital para iniciantes..."
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        rows={4}
+                        className="resize-none"
+                      />
+                    </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="language" className="flex items-center gap-2">
-                      <Globe className="h-4 w-4" />
-                      Idioma do Ebook
-                    </Label>
-                    <Select value={selectedLanguage} onValueChange={setSelectedLanguage} disabled={isGenerating}>
-                      <SelectTrigger id="language">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(languages).map(([code, name]) => (
-                          <SelectItem key={code} value={code}>
-                            {name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="language" className="flex items-center gap-2">
+                          <Globe className="w-4 h-4" />
+                          Idioma
+                        </Label>
+                        <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                          <SelectTrigger id="language">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(languages).map(([code, name]) => (
+                              <SelectItem key={code} value={code}>
+                                {name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="numPages" className="flex items-center gap-2">
-                      <BookOpen className="h-4 w-4" />
-                      Número de Páginas (1-100)
-                    </Label>
-                    <Input
-                      id="numPages"
-                      type="number"
-                      min="1"
-                      max="100"
-                      value={numPages}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === "") {
-                          setNumPages("");
-                        } else {
-                          const num = parseInt(value);
-                          if (num >= 1 && num <= 100) {
-                            setNumPages(num);
-                          }
-                        }
-                      }}
-                      placeholder="Digite de 1 a 100"
-                      disabled={isGenerating}
+                      <div className="space-y-2">
+                        <Label htmlFor="palette" className="flex items-center gap-2">
+                          <Palette className="w-4 h-4" />
+                          Paleta de Cores
+                        </Label>
+                        <Select value={selectedColorPalette} onValueChange={(v) => setSelectedColorPalette(v as keyof typeof colorPalettes)}>
+                          <SelectTrigger id="palette">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(colorPalettes).map(([key, { name }]) => (
+                              <SelectItem key={key} value={key}>
+                                {name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="numPages">Número de Capítulos</Label>
+                        <Input
+                          id="numPages"
+                          type="number"
+                          min="2"
+                          max="15"
+                          value={numPages}
+                          onChange={(e) => setNumPages(e.target.value === "" ? "" : parseInt(e.target.value))}
+                        />
+                      </div>
+                    </div>
+
+                    <Button 
+                      onClick={generateEbook}
+                      disabled={isGenerating || !prompt.trim()}
                       className="w-full"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Digite um número entre 1 e 100
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="colorPalette" className="flex items-center gap-2">
-                      <Palette className="h-4 w-4" />
-                      Paleta de Cores
-                    </Label>
-                    <Select value={selectedColorPalette} onValueChange={(v) => setSelectedColorPalette(v as keyof typeof colorPalettes)} disabled={isGenerating}>
-                      <SelectTrigger id="colorPalette">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(colorPalettes).map(([key, palette]) => (
-                          <SelectItem key={key} value={key}>
-                            <div className="flex items-center gap-2">
-                              <div 
-                                className="w-4 h-4 rounded-full" 
-                                style={{ backgroundColor: `rgb(${palette.primary.join(',')})` }}
-                              />
-                              {palette.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Cores confortáveis para leitura
-                    </p>
-                  </div>
-                </div>
-
-                {/* Preview das Cores */}
-                <div className="space-y-3">
-                  <Label className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    Prévia das Cores do Ebook
-                  </Label>
-                  <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg border">
-                    {/* Prévia da Capa */}
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground">Capa</p>
-                      <div 
-                        className="aspect-[3/4] rounded-lg shadow-md flex flex-col items-center justify-center p-4 text-center"
-                        style={{ 
-                          backgroundColor: `rgb(${colorPalettes[selectedColorPalette].primary.join(',')})`,
-                          color: 'white'
-                        }}
-                      >
-                        <div className="text-sm font-bold mb-2">Título do Ebook</div>
-                        <div className="text-xs opacity-90">Descrição curta do conteúdo</div>
+                      size="lg"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Gerando Ebook...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Gerar Ebook com IA
+                        </>
+                      )}
+                    </Button>
+                  </>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl font-bold">{generatedEbook.title}</h2>
+                      <div className="flex gap-2">
+                        {editingEbook && (
+                          <Button onClick={handleSaveEdits} size="sm">
+                            <Save className="w-4 h-4 mr-2" />
+                            Salvar Alterações
+                          </Button>
+                        )}
+                        <Button onClick={downloadPDF} size="sm">
+                          <Download className="w-4 h-4 mr-2" />
+                          Baixar PDF
+                        </Button>
+                        <Button onClick={resetForm} variant="outline" size="sm">
+                          Criar Novo
+                        </Button>
                       </div>
                     </div>
 
-                    {/* Prévia da Página Interna */}
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground">Página Interna</p>
-                      <div 
-                        className="aspect-[3/4] rounded-lg shadow-md p-3 space-y-2"
-                        style={{ 
-                          backgroundColor: `rgb(${colorPalettes[selectedColorPalette].secondary.join(',')})`,
-                        }}
-                      >
-                        <div 
-                          className="text-xs font-bold"
-                          style={{ color: `rgb(${colorPalettes[selectedColorPalette].primary.join(',')})` }}
-                        >
-                          Capítulo 1
-                        </div>
-                        <div className="space-y-1">
-                          <div 
-                            className="h-1 rounded"
-                            style={{ 
-                              backgroundColor: `rgb(${colorPalettes[selectedColorPalette].text.join(',')})`,
-                              opacity: 0.7,
-                              width: '100%'
-                            }}
-                          />
-                          <div 
-                            className="h-1 rounded"
-                            style={{ 
-                              backgroundColor: `rgb(${colorPalettes[selectedColorPalette].text.join(',')})`,
-                              opacity: 0.7,
-                              width: '90%'
-                            }}
-                          />
-                          <div 
-                            className="h-1 rounded"
-                            style={{ 
-                              backgroundColor: `rgb(${colorPalettes[selectedColorPalette].text.join(',')})`,
-                              opacity: 0.7,
-                              width: '95%'
-                            }}
-                          />
-                          <div 
-                            className="h-1 rounded"
-                            style={{ 
-                              backgroundColor: `rgb(${colorPalettes[selectedColorPalette].text.join(',')})`,
-                              opacity: 0.7,
-                              width: '85%'
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Esta é uma prévia de como seu ebook ficará com as cores selecionadas
-                  </p>
-                </div>
+                    <p className="text-muted-foreground">{generatedEbook.description}</p>
 
-                {isGenerating && (
-                  <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                      <span className="text-sm font-medium">Gerando seu ebook...</span>
+                    <div className="space-y-4">
+                      {generatedEbook.chapters.map((chapter, index) => (
+                        <Card key={index}>
+                          <CardHeader>
+                            <CardTitle className="text-lg">
+                              Capítulo {index + 1}: {chapter.title}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            {chapter.imageUrl && (
+                              <div className="mb-4">
+                                <img 
+                                  src={chapter.imageUrl} 
+                                  alt={chapter.title}
+                                  className="w-full h-48 object-cover rounded-lg"
+                                />
+                              </div>
+                            )}
+                            <p className="whitespace-pre-wrap text-sm">{chapter.content}</p>
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
-                    <Progress value={33} className="h-2" />
-                    <p className="text-xs text-muted-foreground">
-                      Criando estrutura, capítulos e imagens. Isso pode levar alguns minutos.
-                    </p>
                   </div>
                 )}
-
-                <Button
-                  onClick={generateEbook}
-                  disabled={isGenerating || !prompt.trim()}
-                  size="lg"
-                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Gerando... (aguarde alguns minutos)
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-2 h-5 w-5" />
-                      Gerar Ebook Completo com IA
-                    </>
-                  )}
-                </Button>
-
-                <div className="bg-primary/5 rounded-lg p-4 space-y-2 border border-primary/10">
-                  <p className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                    O que será gerado automaticamente:
-                  </p>
-                  <ul className="text-sm text-muted-foreground space-y-1 ml-6">
-                    <li>✨ Título profissional e otimizado</li>
-                    <li>📝 Descrição completa e envolvente</li>
-                    <li>📚 5-8 capítulos estruturados</li>
-                    <li>📄 Conteúdo de 500-800 palavras por capítulo</li>
-                    <li>🖼️ Imagens realistas para cada capítulo</li>
-                  </ul>
-                </div>
               </CardContent>
-                </Card>
-              ) : (
-                /* Preview do Ebook Gerado */
-            <div className="space-y-6">
-              {/* Informações do Ebook */}
-              <Card className="border-2 border-green-500/20 bg-green-500/5">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-2xl mb-2">{generatedEbook.title}</CardTitle>
-                      <CardDescription className="text-base">{generatedEbook.description}</CardDescription>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={resetForm}>
-                      Criar Novo
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>📚 {generatedEbook.chapters.length} capítulos</span>
-                    <span>•</span>
-                    <span>
-                      📄 {generatedEbook.chapters.reduce((acc, ch) => acc + ch.content.split(' ').length, 0).toLocaleString()} palavras
-                    </span>
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button size="lg" className="flex-1">
-                          <Download className="mr-2 h-5 w-5" />
-                          Exportar Ebook
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuItem onClick={downloadPDF}>
-                          <Download className="mr-2 h-4 w-4" />
-                          Baixar como PDF
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={downloadPowerPoint}>
-                          <Download className="mr-2 h-4 w-4" />
-                          Baixar como PowerPoint
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={openGoogleSlides}>
-                          <Globe className="mr-2 h-4 w-4" />
-                          Abrir Google Slides
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={downloadPNGs}>
-                          <Download className="mr-2 h-4 w-4" />
-                          Baixar como PNGs
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    {editingEbook && (
-                      <Button onClick={handleSaveEdits} size="lg" variant="outline" className="flex-1">
-                        <Save className="mr-2 h-5 w-5" />
-                        Salvar Alterações
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+            </Card>
+          </TabsContent>
 
-              {/* Capítulos */}
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold">Capítulos Gerados</h2>
-                {generatedEbook.chapters.map((chapter, index) => (
-                  <Card key={index}>
-                    <CardHeader>
-                      <CardTitle className="text-lg">
-                        Capítulo {index + 1}: {chapter.title}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {chapter.imageUrl && (
-                        <img
-                          src={chapter.imageUrl}
-                          alt={chapter.title}
-                          className="w-full h-48 object-cover rounded-lg"
-                        />
-                      )}
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-6">
-                        {chapter.content}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {chapter.content.split(' ').length} palavras
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="history" className="mt-6">
-              {loadingEbooks ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : ebooks.length === 0 ? (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Nenhum ebook salvo</h3>
-                    <p className="text-muted-foreground mb-6">
-                      Crie seu primeiro ebook e ele aparecerá aqui.
-                    </p>
-                    <Button onClick={() => setActiveTab("create")}>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Criar Ebook
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {ebooks.map((ebook) => (
-                    <Card key={ebook.id} className="hover:border-primary/50 transition-colors">
-                      <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <CardTitle className="text-xl mb-1">{ebook.title}</CardTitle>
-                            <CardDescription className="line-clamp-2">
-                              {ebook.description}
-                            </CardDescription>
-                            <div className="flex items-center gap-3 mt-3 text-sm text-muted-foreground">
-                              <span>📚 {ebook.chapters.length} capítulos</span>
-                              <span>•</span>
-                              <span>🌐 {languages[ebook.language as keyof typeof languages]}</span>
-                              <span>•</span>
-                              <div className="flex items-center gap-1">
-                                <div
-                                  className="w-3 h-3 rounded-full"
-                                  style={{
-                                    backgroundColor: `rgb(${colorPalettes[ebook.color_palette as keyof typeof colorPalettes].primary.join(',')})`,
-                                  }}
-                                />
-                                {colorPalettes[ebook.color_palette as keyof typeof colorPalettes].name}
+          <TabsContent value="history">
+            <Card>
+              <CardHeader>
+                <CardTitle>Seus Ebooks</CardTitle>
+                <CardDescription>
+                  Ebooks salvos e prontos para download
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingEbooks ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : ebooks.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhum ebook criado ainda
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {ebooks.map((ebook) => (
+                      <Card key={ebook.id} className="hover:shadow-md transition-shadow">
+                        <CardHeader>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <CardTitle className="text-lg mb-2">{ebook.title}</CardTitle>
+                              {ebook.description && (
+                                <CardDescription className="line-clamp-2">
+                                  {ebook.description}
+                                </CardDescription>
+                              )}
+                              <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
+                                <span>{ebook.chapters.length} capítulos</span>
+                                <span>•</span>
+                                <span>{languages[ebook.language as keyof typeof languages]}</span>
+                                <span>•</span>
+                                <span>{new Date(ebook.created_at).toLocaleDateString('pt-BR')}</span>
                               </div>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-2">
-                              Criado em {new Date(ebook.created_at).toLocaleDateString('pt-BR', {
-                                day: '2-digit',
-                                month: 'long',
-                                year: 'numeric',
-                              })}
-                            </p>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => loadEbookForEditing(ebook)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="sm" variant="outline">
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tem certeza que deseja excluir este ebook? Esta ação não pode ser desfeita.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDelete(ebook.id)}>
+                                      Excluir
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => loadEbookForEditing(ebook)}
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Editar
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Excluir ebook?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Esta ação não pode ser desfeita. O ebook "{ebook.title}" será
-                                    permanentemente excluído.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDelete(ebook.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  >
-                                    Excluir
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </div>
-                      </CardHeader>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </div>
+                        </CardHeader>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
