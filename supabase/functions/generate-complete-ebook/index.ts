@@ -101,12 +101,12 @@ IMPORTANT:
     
     console.log('Ebook structure generated:', ebookStructure);
 
-    // Passo 2: Gerar múltiplas imagens para capítulos principais
-    console.log('Generating images for key chapters');
+    // Passo 2: Gerar múltiplas imagens para todos os capítulos
+    console.log('Generating images for all chapters');
     const chapterImages: string[] = [];
     
-    // Gerar imagem para capa e capítulos principais (a cada 2 capítulos)
-    const imagesToGenerate = Math.min(Math.ceil(ebookStructure.chapters.length / 2) + 1, 4);
+    // Gerar imagem para CADA capítulo (capa + todos os capítulos)
+    const totalImages = ebookStructure.chapters.length + 1; // +1 para capa
     
     try {
       const imagePromises = [];
@@ -135,34 +135,31 @@ Requirements: Clean, elegant, vibrant colors, impressive visual`
         })
       );
 
-      // Imagens para capítulos principais
-      for (let i = 0; i < imagesToGenerate - 1; i++) {
-        const chapterIndex = i * 2;
-        if (chapterIndex < ebookStructure.chapters.length) {
-          const chapterTitle = ebookStructure.chapters[chapterIndex];
-          imagePromises.push(
-            fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${lovableApiKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                model: 'google/gemini-2.5-flash-image-preview',
-                messages: [
-                  { 
-                    role: 'user', 
-                    content: `Create a professional, realistic image demonstrating: "${chapterTitle}". 
+      // Imagem para CADA capítulo
+      for (let i = 0; i < ebookStructure.chapters.length; i++) {
+        const chapterTitle = ebookStructure.chapters[i];
+        imagePromises.push(
+          fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${lovableApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-flash-image-preview',
+              messages: [
+                { 
+                  role: 'user', 
+                  content: `Create a professional, realistic image demonstrating: "${chapterTitle}". 
 Theme: ${ebookStructure.description}
 Style: Modern, photorealistic, high-quality, educational, clear visual demonstration
 Requirements: Professional, vibrant, illustrative, relevant to the topic` 
-                  }
-                ],
-                modalities: ['image', 'text']
-              }),
-            })
-          );
-        }
+                }
+              ],
+              modalities: ['image', 'text']
+            }),
+          })
+        );
       }
 
       const imageResponses = await Promise.all(imagePromises);
@@ -177,7 +174,7 @@ Requirements: Professional, vibrant, illustrative, relevant to the topic`
         }
       }
       
-      console.log(`Successfully generated ${chapterImages.length} images`);
+      console.log(`Successfully generated ${chapterImages.length} images out of ${totalImages} requested`);
     } catch (imgError) {
       console.error('Error generating images:', imgError);
     }
@@ -230,12 +227,12 @@ CRITICAL GUIDELINES:
         const contentData = await contentResponse.json();
         const chapterContent = contentData.choices?.[0]?.message?.content || '';
 
-        // Distribuir imagens: capa no primeiro, depois a cada 2 capítulos
+        // Distribuir imagens: capa no primeiro capítulo, depois uma imagem por capítulo
         let chapterImageUrl = '';
         if (i === 0 && chapterImages.length > 0) {
           chapterImageUrl = chapterImages[0]; // Capa
-        } else if (i % 2 === 0 && chapterImages.length > Math.floor(i / 2)) {
-          chapterImageUrl = chapterImages[Math.floor(i / 2) + 1]; // Imagens dos capítulos
+        } else if (chapterImages.length > i) {
+          chapterImageUrl = chapterImages[i + 1]; // Imagem do capítulo (i+1 porque índice 0 é a capa)
         }
 
         return {

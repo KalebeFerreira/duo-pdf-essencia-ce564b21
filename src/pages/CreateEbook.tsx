@@ -449,11 +449,26 @@ export default function CreateEbook() {
                       {generatedEbook.chapters.map((chapter, index) => (
                         <Card key={index}>
                           <CardHeader>
-                            <CardTitle className="text-lg">
-                              Capítulo {index + 1}: {chapter.title}
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              <Edit className="w-4 h-4" />
+                              Capítulo {index + 1}
                             </CardTitle>
                           </CardHeader>
-                          <CardContent>
+                          <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor={`title-${index}`}>Título do Capítulo</Label>
+                              <Input
+                                id={`title-${index}`}
+                                value={chapter.title}
+                                onChange={(e) => {
+                                  const updatedChapters = [...generatedEbook.chapters];
+                                  updatedChapters[index] = { ...updatedChapters[index], title: e.target.value };
+                                  setGeneratedEbook({ ...generatedEbook, chapters: updatedChapters });
+                                }}
+                                className="font-semibold"
+                              />
+                            </div>
+                            
                             {chapter.imageUrl && (
                               <div className="mb-4">
                                 <img 
@@ -463,7 +478,21 @@ export default function CreateEbook() {
                                 />
                               </div>
                             )}
-                            <p className="whitespace-pre-wrap text-sm">{chapter.content}</p>
+                            
+                            <div className="space-y-2">
+                              <Label htmlFor={`content-${index}`}>Conteúdo do Capítulo</Label>
+                              <Textarea
+                                id={`content-${index}`}
+                                value={chapter.content}
+                                onChange={(e) => {
+                                  const updatedChapters = [...generatedEbook.chapters];
+                                  updatedChapters[index] = { ...updatedChapters[index], content: e.target.value };
+                                  setGeneratedEbook({ ...generatedEbook, chapters: updatedChapters });
+                                }}
+                                rows={8}
+                                className="resize-y"
+                              />
+                            </div>
                           </CardContent>
                         </Card>
                       ))}
