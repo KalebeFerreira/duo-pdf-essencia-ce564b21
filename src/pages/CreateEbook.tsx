@@ -14,6 +14,7 @@ import { useEbooks, type Ebook } from "@/hooks/useEbooks";
 import { Loader2, BookOpen, Sparkles, Download, ArrowLeft, Palette, Globe, History, Save, Edit, Trash2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import jsPDF from "jspdf";
 
 const colorPalettes = {
@@ -57,6 +58,9 @@ export default function CreateEbook() {
   const [numPages, setNumPages] = useState<number | "">(10);
   const [editingEbook, setEditingEbook] = useState<Ebook | null>(null);
   const [activeTab, setActiveTab] = useState<"create" | "history">("create");
+  const [improvingChapterIndex, setImprovingChapterIndex] = useState<number | null>(null);
+  const [improvedContent, setImprovedContent] = useState<string>("");
+  const [showImprovedDialog, setShowImprovedDialog] = useState(false);
 
   const generateEbook = async () => {
     if (!prompt.trim()) {
@@ -294,6 +298,69 @@ export default function CreateEbook() {
     await deleteEbook(id);
   };
 
+  const improveChapter = async (chapterIndex: number) => {
+    if (!generatedEbook) return;
+
+    const chapter = generatedEbook.chapters[chapterIndex];
+    setImprovingChapterIndex(chapterIndex);
+
+    try {
+      toast({
+        title: "Melhorando capítulo...",
+        description: "A IA está analisando e aprimorando o texto.",
+      });
+
+      const { data, error } = await supabase.functions.invoke('improve-chapter', {
+        body: { 
+          title: chapter.title,
+          content: chapter.content,
+          language: selectedLanguage,
+          ebookTheme: generatedEbook.description || generatedEbook.title
+        }
+      });
+
+      if (error) {
+        console.error('Improvement error:', error);
+        throw error;
+      }
+
+      if (!data?.improvedContent) {
+        throw new Error('Nenhum conteúdo melhorado retornado');
+      }
+
+      setImprovedContent(data.improvedContent);
+      setShowImprovedDialog(true);
+
+    } catch (error: any) {
+      console.error("Erro ao melhorar capítulo:", error);
+      toast({
+        title: "Erro ao melhorar capítulo",
+        description: error.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setImprovingChapterIndex(null);
+    }
+  };
+
+  const applyImprovement = () => {
+    if (!generatedEbook || improvingChapterIndex === null) return;
+
+    const updatedChapters = [...generatedEbook.chapters];
+    updatedChapters[improvingChapterIndex] = { 
+      ...updatedChapters[improvingChapterIndex], 
+      content: improvedContent 
+    };
+    setGeneratedEbook({ ...generatedEbook, chapters: updatedChapters });
+    setShowImprovedDialog(false);
+    setImprovedContent("");
+
+    toast({
+      title: "✨ Capítulo melhorado!",
+      description: "As melhorias foram aplicadas com sucesso.",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -449,9 +516,29 @@ export default function CreateEbook() {
                       {generatedEbook.chapters.map((chapter, index) => (
                         <Card key={index}>
                           <CardHeader>
-                            <CardTitle className="text-lg flex items-center gap-2">
-                              <Edit className="w-4 h-4" />
-                              Capítulo {index + 1}
+                            <CardTitle className="text-lg flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Edit className="w-4 h-4" />
+                                Capítulo {index + 1}
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => improveChapter(index)}
+                                disabled={improvingChapterIndex === index}
+                              >
+                                {improvingChapterIndex === index ? (
+                                  <>
+                                    <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                                    Melhorando...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles className="w-3 h-3 mr-2" />
+                                    Melhorar com IA
+                                  </>
+                                )}
+                              </Button>
                             </CardTitle>
                           </CardHeader>
                           <CardContent className="space-y-4">
@@ -581,6 +668,57 @@ export default function CreateEbook() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <Dialog open={showImprovedDialog} onOpenChange={setShowImprovedDialog}>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>✨ Texto Melhorado pela IA</DialogTitle>
+              <DialogDescription>
+                Compare e decida se deseja aplicar as melhorias sugeridas
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-muted-foreground">
+                  Texto Original:
+                </Label>
+                <div className="p-4 bg-muted/50 rounded-lg border">
+                  <p className="text-sm whitespace-pre-wrap">
+                    {improvingChapterIndex !== null && generatedEbook?.chapters[improvingChapterIndex]?.content}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-primary">
+                  Texto Melhorado:
+                </Label>
+                <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                  <p className="text-sm whitespace-pre-wrap">
+                    {improvedContent}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowImprovedDialog(false);
+                  setImprovedContent("");
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={applyImprovement}>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Aplicar Melhorias
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

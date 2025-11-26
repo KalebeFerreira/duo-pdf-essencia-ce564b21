@@ -17,3 +17,6 @@ verify_jwt = true
 
 [functions.generate-design-ai]
 verify_jwt = false
+
+[functions.improve-chapter]
+verify_jwt = true
