@@ -101,13 +101,44 @@ IMPORTANT:
     
     console.log('Ebook structure generated:', ebookStructure);
 
-    // Passo 2: Gerar conteúdo para cada capítulo
-    const chaptersWithContent = [];
+    // Passo 2: Gerar imagem realista da capa
+    console.log('Generating cover image for ebook');
+    let coverImageUrl = '';
     
-    for (let i = 0; i < ebookStructure.chapters.length; i++) {
-      const chapterTitle = ebookStructure.chapters[i];
-      console.log(`Generating content for chapter ${i + 1}/${ebookStructure.chapters.length}: ${chapterTitle}`);
+    try {
+      const imagePrompt = `Create a professional, realistic ebook cover image for "${ebookStructure.title}". 
+Style: Modern, high-quality, photorealistic professional design. 
+Theme: ${ebookStructure.description}
+Requirements: Clean, elegant, professional look with vibrant colors`;
 
+      const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash-image-preview',
+          messages: [
+            { role: 'user', content: imagePrompt }
+          ],
+          modalities: ['image', 'text']
+        }),
+      });
+
+      if (imageResponse.ok) {
+        const imageData = await imageResponse.json();
+        coverImageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url || '';
+        console.log('Cover image generated successfully');
+      }
+    } catch (imgError) {
+      console.error('Error generating cover image:', imgError);
+    }
+
+    // Passo 3: Gerar conteúdo para cada capítulo em paralelo (mais rápido)
+    console.log('Generating content for all chapters in parallel...');
+    
+    const chapterPromises = ebookStructure.chapters.map(async (chapterTitle: string, i: number) => {
       const contentPrompt = `Write complete content for this ebook chapter ${langInstruction}:
 
 Ebook Title: ${ebookStructure.title}
@@ -123,39 +154,49 @@ GUIDELINES:
 - Professional yet accessible tone
 - Write ENTIRELY ${langInstruction}`;
 
-      const contentResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${lovableApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            { role: 'user', content: contentPrompt }
-          ],
-        }),
-      });
+      try {
+        const contentResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'user', content: contentPrompt }
+            ],
+          }),
+        });
 
-      if (!contentResponse.ok) {
-        console.error(`Failed to generate content for chapter ${i + 1}`);
-        chaptersWithContent.push({
+        if (!contentResponse.ok) {
+          console.error(`Failed to generate content for chapter ${i + 1}`);
+          return {
+            title: chapterTitle,
+            content: 'Erro ao gerar conteúdo para este capítulo.',
+            imageUrl: i === 0 ? coverImageUrl : ''
+          };
+        }
+
+        const contentData = await contentResponse.json();
+        const chapterContent = contentData.choices?.[0]?.message?.content || '';
+
+        return {
+          title: chapterTitle,
+          content: chapterContent,
+          imageUrl: i === 0 ? coverImageUrl : '' // Apenas primeiro capítulo tem a imagem da capa
+        };
+      } catch (error) {
+        console.error(`Error generating chapter ${i + 1}:`, error);
+        return {
           title: chapterTitle,
           content: 'Erro ao gerar conteúdo para este capítulo.',
-          imageUrl: ''
-        });
-        continue;
+          imageUrl: i === 0 ? coverImageUrl : ''
+        };
       }
+    });
 
-      const contentData = await contentResponse.json();
-      const chapterContent = contentData.choices?.[0]?.message?.content || '';
-
-      chaptersWithContent.push({
-        title: chapterTitle,
-        content: chapterContent,
-        imageUrl: ''
-      });
-    }
+    const chaptersWithContent = await Promise.all(chapterPromises);
 
     console.log('Complete ebook generation finished');
 
