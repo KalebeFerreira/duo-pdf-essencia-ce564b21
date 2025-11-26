@@ -101,58 +101,107 @@ IMPORTANT:
     
     console.log('Ebook structure generated:', ebookStructure);
 
-    // Passo 2: Gerar imagem realista da capa
-    console.log('Generating cover image for ebook');
-    let coverImageUrl = '';
+    // Passo 2: Gerar múltiplas imagens para capítulos principais
+    console.log('Generating images for key chapters');
+    const chapterImages: string[] = [];
+    
+    // Gerar imagem para capa e capítulos principais (a cada 2 capítulos)
+    const imagesToGenerate = Math.min(Math.ceil(ebookStructure.chapters.length / 2) + 1, 4);
     
     try {
-      const imagePrompt = `Create a professional, realistic ebook cover image for "${ebookStructure.title}". 
-Style: Modern, high-quality, photorealistic professional design. 
+      const imagePromises = [];
+      
+      // Imagem da capa
+      imagePromises.push(
+        fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash-image-preview',
+            messages: [
+              { 
+                role: 'user', 
+                content: `Create a professional, realistic cover image for "${ebookStructure.title}". 
+Style: Modern, photorealistic, high-quality professional design. 
 Theme: ${ebookStructure.description}
-Requirements: Clean, elegant, professional look with vibrant colors`;
+Requirements: Clean, elegant, vibrant colors, impressive visual` 
+              }
+            ],
+            modalities: ['image', 'text']
+          }),
+        })
+      );
 
-      const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${lovableApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash-image-preview',
-          messages: [
-            { role: 'user', content: imagePrompt }
-          ],
-          modalities: ['image', 'text']
-        }),
-      });
-
-      if (imageResponse.ok) {
-        const imageData = await imageResponse.json();
-        coverImageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url || '';
-        console.log('Cover image generated successfully');
+      // Imagens para capítulos principais
+      for (let i = 0; i < imagesToGenerate - 1; i++) {
+        const chapterIndex = i * 2;
+        if (chapterIndex < ebookStructure.chapters.length) {
+          const chapterTitle = ebookStructure.chapters[chapterIndex];
+          imagePromises.push(
+            fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${lovableApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'google/gemini-2.5-flash-image-preview',
+                messages: [
+                  { 
+                    role: 'user', 
+                    content: `Create a professional, realistic image demonstrating: "${chapterTitle}". 
+Theme: ${ebookStructure.description}
+Style: Modern, photorealistic, high-quality, educational, clear visual demonstration
+Requirements: Professional, vibrant, illustrative, relevant to the topic` 
+                  }
+                ],
+                modalities: ['image', 'text']
+              }),
+            })
+          );
+        }
       }
+
+      const imageResponses = await Promise.all(imagePromises);
+      
+      for (const response of imageResponses) {
+        if (response.ok) {
+          const imageData = await response.json();
+          const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url || '';
+          if (imageUrl) {
+            chapterImages.push(imageUrl);
+          }
+        }
+      }
+      
+      console.log(`Successfully generated ${chapterImages.length} images`);
     } catch (imgError) {
-      console.error('Error generating cover image:', imgError);
+      console.error('Error generating images:', imgError);
     }
 
-    // Passo 3: Gerar conteúdo para cada capítulo em paralelo (mais rápido)
-    console.log('Generating content for all chapters in parallel...');
+    // Passo 3: Gerar conteúdo REDUZIDO para cada capítulo em paralelo
+    console.log('Generating concise content for all chapters in parallel...');
     
     const chapterPromises = ebookStructure.chapters.map(async (chapterTitle: string, i: number) => {
-      const contentPrompt = `Write complete content for this ebook chapter ${langInstruction}:
+      const contentPrompt = `Write CONCISE, visual-focused content for this ebook chapter ${langInstruction}:
 
 Ebook Title: ${ebookStructure.title}
 Description: ${ebookStructure.description}
 Chapter: ${chapterTitle}
 
-GUIDELINES:
-- Professional, informative, well-structured content
-- Use clear and engaging language
-- Include practical examples when relevant
-- Structure with well-organized paragraphs
-- 500-800 words
+CRITICAL GUIDELINES:
+- MAXIMUM 300-400 words (shorter is better)
+- Focus on key points and actionable insights
+- Use bullet points and short paragraphs
+- Write for visual learning (text complements images)
+- Clear, direct language
+- Practical examples in brief format
 - Professional yet accessible tone
-- Write ENTIRELY ${langInstruction}`;
+- Write ENTIRELY ${langInstruction}
+- AVOID long explanations - be concise and impactful`;
 
       try {
         const contentResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -174,24 +223,32 @@ GUIDELINES:
           return {
             title: chapterTitle,
             content: 'Erro ao gerar conteúdo para este capítulo.',
-            imageUrl: i === 0 ? coverImageUrl : ''
+            imageUrl: ''
           };
         }
 
         const contentData = await contentResponse.json();
         const chapterContent = contentData.choices?.[0]?.message?.content || '';
 
+        // Distribuir imagens: capa no primeiro, depois a cada 2 capítulos
+        let chapterImageUrl = '';
+        if (i === 0 && chapterImages.length > 0) {
+          chapterImageUrl = chapterImages[0]; // Capa
+        } else if (i % 2 === 0 && chapterImages.length > Math.floor(i / 2)) {
+          chapterImageUrl = chapterImages[Math.floor(i / 2) + 1]; // Imagens dos capítulos
+        }
+
         return {
           title: chapterTitle,
           content: chapterContent,
-          imageUrl: i === 0 ? coverImageUrl : '' // Apenas primeiro capítulo tem a imagem da capa
+          imageUrl: chapterImageUrl
         };
       } catch (error) {
         console.error(`Error generating chapter ${i + 1}:`, error);
         return {
           title: chapterTitle,
           content: 'Erro ao gerar conteúdo para este capítulo.',
-          imageUrl: i === 0 ? coverImageUrl : ''
+          imageUrl: ''
         };
       }
     });
