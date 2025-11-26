@@ -16,6 +16,9 @@ import Navbar from "@/components/Navbar";
 import { Progress } from "@/components/ui/progress";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import jsPDF from "jspdf";
+import pptxgen from "pptxgenjs";
+import html2canvas from "html2canvas";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const colorPalettes = {
   classic: { name: "Clássico", primary: [37, 99, 235], secondary: [243, 244, 246], text: [0, 0, 0] },
@@ -74,7 +77,7 @@ export default function CreateEbook() {
     try {
       toast({
         title: "Gerando seu ebook...",
-        description: "A IA está criando título, capítulos e conteúdo. Isso leva cerca de 1-2 minutos.",
+        description: "A IA está criando título, capítulos, conteúdo e imagem da capa. Isso leva cerca de 30-60 segundos.",
       });
 
       const { data, error } = await supabase.functions.invoke('generate-complete-ebook', {
@@ -281,6 +284,176 @@ export default function CreateEbook() {
     }
   };
 
+  const downloadPowerPoint = async () => {
+    if (!generatedEbook) return;
+
+    try {
+      const pptx = new pptxgen();
+      const palette = colorPalettes[selectedColorPalette];
+
+      // Slide da capa
+      const coverSlide = pptx.addSlide();
+      coverSlide.background = { 
+        color: `${palette.primary[0].toString(16).padStart(2, '0')}${palette.primary[1].toString(16).padStart(2, '0')}${palette.primary[2].toString(16).padStart(2, '0')}` 
+      };
+      coverSlide.addText(generatedEbook.title, {
+        x: 0.5,
+        y: 2,
+        w: 9,
+        h: 1.5,
+        fontSize: 44,
+        bold: true,
+        color: 'FFFFFF',
+        align: 'center',
+        valign: 'middle'
+      });
+      coverSlide.addText(generatedEbook.description, {
+        x: 1,
+        y: 4,
+        w: 8,
+        h: 1,
+        fontSize: 18,
+        color: 'FFFFFF',
+        align: 'center'
+      });
+
+      // Slides dos capítulos
+      for (let i = 0; i < generatedEbook.chapters.length; i++) {
+        const chapter = generatedEbook.chapters[i];
+        const slide = pptx.addSlide();
+        
+        slide.addText(`Capítulo ${i + 1}: ${chapter.title}`, {
+          x: 0.5,
+          y: 0.5,
+          w: 9,
+          h: 1,
+          fontSize: 32,
+          bold: true,
+          color: `${palette.primary[0].toString(16).padStart(2, '0')}${palette.primary[1].toString(16).padStart(2, '0')}${palette.primary[2].toString(16).padStart(2, '0')}`
+        });
+
+        if (chapter.imageUrl) {
+          try {
+            slide.addImage({
+              data: chapter.imageUrl,
+              x: 0.5,
+              y: 1.8,
+              w: 9,
+              h: 3
+            });
+          } catch (e) {
+            console.error("Erro ao adicionar imagem:", e);
+          }
+        }
+
+        slide.addText(chapter.content.substring(0, 500) + '...', {
+          x: 0.5,
+          y: chapter.imageUrl ? 5 : 1.8,
+          w: 9,
+          h: chapter.imageUrl ? 2 : 4.5,
+          fontSize: 14,
+          color: `${palette.text[0].toString(16).padStart(2, '0')}${palette.text[1].toString(16).padStart(2, '0')}${palette.text[2].toString(16).padStart(2, '0')}`
+        });
+      }
+
+      await pptx.writeFile({ fileName: `${generatedEbook.title}.pptx` });
+      
+      toast({
+        title: "PowerPoint baixado!",
+        description: "Seu ebook foi exportado para PowerPoint.",
+      });
+    } catch (error) {
+      console.error("Erro ao gerar PowerPoint:", error);
+      toast({
+        title: "Erro ao exportar",
+        description: "Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const downloadPNGs = async () => {
+    if (!generatedEbook) return;
+
+    try {
+      toast({
+        title: "Gerando imagens...",
+        description: "Criando PNGs de cada capítulo.",
+      });
+
+      for (let i = 0; i < generatedEbook.chapters.length; i++) {
+        const chapter = generatedEbook.chapters[i];
+        const palette = colorPalettes[selectedColorPalette];
+        
+        // Criar elemento HTML temporário
+        const tempDiv = document.createElement('div');
+        tempDiv.style.width = '1200px';
+        tempDiv.style.padding = '60px';
+        tempDiv.style.backgroundColor = `rgb(${palette.secondary.join(',')})`;
+        tempDiv.style.fontFamily = 'Arial, sans-serif';
+        
+        const title = document.createElement('h1');
+        title.textContent = `Capítulo ${i + 1}: ${chapter.title}`;
+        title.style.color = `rgb(${palette.primary.join(',')})`;
+        title.style.marginBottom = '20px';
+        title.style.fontSize = '32px';
+        tempDiv.appendChild(title);
+
+        if (chapter.imageUrl && i === 0) {
+          const img = document.createElement('img');
+          img.src = chapter.imageUrl;
+          img.style.width = '100%';
+          img.style.maxHeight = '400px';
+          img.style.objectFit = 'cover';
+          img.style.marginBottom = '20px';
+          img.style.borderRadius = '8px';
+          tempDiv.appendChild(img);
+        }
+
+        const content = document.createElement('p');
+        content.textContent = chapter.content.substring(0, 800) + '...';
+        content.style.color = `rgb(${palette.text.join(',')})`;
+        content.style.fontSize = '16px';
+        content.style.lineHeight = '1.6';
+        tempDiv.appendChild(content);
+
+        document.body.appendChild(tempDiv);
+
+        const canvas = await html2canvas(tempDiv, {
+          backgroundColor: `rgb(${palette.secondary.join(',')})`,
+          scale: 2
+        });
+
+        const link = document.createElement('a');
+        link.download = `${generatedEbook.title}-capitulo-${i + 1}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+
+        document.body.removeChild(tempDiv);
+      }
+
+      toast({
+        title: "PNGs baixados!",
+        description: `${generatedEbook.chapters.length} imagens foram geradas.`,
+      });
+    } catch (error) {
+      console.error("Erro ao gerar PNGs:", error);
+      toast({
+        title: "Erro ao exportar",
+        description: "Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openGoogleSlides = () => {
+    window.open('https://docs.google.com/presentation/u/0/?tgif=d', '_blank');
+    toast({
+      title: "Google Slides aberto",
+      description: "Copie o conteúdo do ebook e cole no Google Slides.",
+    });
+  };
+
   const resetForm = () => {
     setGeneratedEbook(null);
     setEditingEbook(null);
@@ -366,7 +539,7 @@ export default function CreateEbook() {
                   Descreva seu Ebook
                 </CardTitle>
                 <CardDescription className="text-base">
-                  A IA vai gerar automaticamente: título, descrição, capítulos, conteúdo completo e imagens profissionais
+                  A IA vai gerar automaticamente: título, descrição, capítulos, conteúdo completo e imagem realista da capa
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -616,10 +789,32 @@ export default function CreateEbook() {
                     </span>
                   </div>
                   <div className="flex gap-2 mt-4">
-                    <Button onClick={downloadPDF} size="lg" className="flex-1">
-                      <Download className="mr-2 h-5 w-5" />
-                      Baixar PDF
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="lg" className="flex-1">
+                          <Download className="mr-2 h-5 w-5" />
+                          Exportar Ebook
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem onClick={downloadPDF}>
+                          <Download className="mr-2 h-4 w-4" />
+                          Baixar como PDF
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={downloadPowerPoint}>
+                          <Download className="mr-2 h-4 w-4" />
+                          Baixar como PowerPoint
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={openGoogleSlides}>
+                          <Globe className="mr-2 h-4 w-4" />
+                          Abrir Google Slides
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={downloadPNGs}>
+                          <Download className="mr-2 h-4 w-4" />
+                          Baixar como PNGs
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     {editingEbook && (
                       <Button onClick={handleSaveEdits} size="lg" variant="outline" className="flex-1">
                         <Save className="mr-2 h-5 w-5" />
