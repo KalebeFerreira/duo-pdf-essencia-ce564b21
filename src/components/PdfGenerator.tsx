@@ -6,25 +6,43 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, FileText, Download, FileImage } from "lucide-react";
+import { Loader2, FileText, Download, FileImage, List, CheckCircle2, XCircle } from "lucide-react";
 import { usePdfLimit } from "@/hooks/usePdfLimit";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import PptxGenJS from "pptxgenjs";
+import JSZip from "jszip";
 
 interface PdfGeneratorProps {
   onPdfGenerated: () => void;
 }
 
+interface BatchResult {
+  topic: string;
+  content: string;
+  status: 'success' | 'error';
+  error?: string;
+}
+
 const PdfGenerator = ({ onPdfGenerated }: PdfGeneratorProps) => {
-  const { checkLimit } = usePdfLimit();
+  const { checkLimit, getLimitInfo } = usePdfLimit();
   const [topic, setTopic] = useState("");
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState("");
   const [savedTopic, setSavedTopic] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  
+  // Batch generation states
+  const [batchTopics, setBatchTopics] = useState("");
+  const [batchPrompt, setBatchPrompt] = useState("");
+  const [isBatchGenerating, setIsBatchGenerating] = useState(false);
+  const [batchResults, setBatchResults] = useState<BatchResult[]>([]);
+  const [batchProgress, setBatchProgress] = useState(0);
+  const [currentBatchIndex, setCurrentBatchIndex] = useState(0);
 
   const handleGenerate = async () => {
     if (!topic.trim()) {
@@ -400,19 +418,221 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
     setPrompt("");
   };
 
+  const generateSinglePdfContent = async (singleTopic: string, customPrompt?: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-pdf-content', {
+        body: { topic: singleTopic, prompt: customPrompt || undefined }
+      });
+
+      if (error) {
+        const errorData = (error as any)?.context?.body;
+        const errorCode = errorData?.code || errorData?.error;
+        
+        if (errorCode === 'NO_CREDITS' || errorData?.message?.includes('créditos')) {
+          throw new Error('Créditos esgotados');
+        }
+        throw error;
+      }
+      
+      return data.content;
+    } catch (error: any) {
+      console.error('Error generating content:', error);
+      throw error;
+    }
+  };
+
+  const handleBatchGenerate = async () => {
+    const topicsList = batchTopics.split('\n').map(t => t.trim()).filter(t => t.length > 0);
+    
+    if (topicsList.length === 0) {
+      toast({
+        title: "Erro",
+        description: "Por favor, insira ao menos um tópico (um por linha).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const limitInfo = getLimitInfo();
+    if (topicsList.length > limitInfo.remaining) {
+      toast({
+        title: "Limite Insuficiente",
+        description: `Você tem apenas ${limitInfo.remaining} PDF${limitInfo.remaining === 1 ? '' : 's'} restante${limitInfo.remaining === 1 ? '' : 's'}, mas tentou gerar ${topicsList.length}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsBatchGenerating(true);
+    setBatchResults([]);
+    setBatchProgress(0);
+    setCurrentBatchIndex(0);
+
+    const results: BatchResult[] = [];
+    const { data: { user } } = await supabase.auth.getUser();
+
+    for (let i = 0; i < topicsList.length; i++) {
+      const currentTopic = topicsList[i];
+      setCurrentBatchIndex(i + 1);
+      
+      try {
+        toast({
+          title: `Gerando ${i + 1}/${topicsList.length}`,
+          description: `Processando: ${currentTopic}`,
+        });
+
+        const content = await generateSinglePdfContent(currentTopic, batchPrompt || undefined);
+        
+        // Save to database
+        const base64Content = btoa(unescape(encodeURIComponent(content)));
+        const { error: insertError } = await supabase
+          .from('documents')
+          .insert({
+            title: currentTopic,
+            user_id: user?.id,
+            file_url: `data:text/plain;base64,${base64Content}`,
+            file_size: content.length,
+            template: 'modern',
+          } as any);
+
+        if (insertError) throw insertError;
+
+        // Update usage
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('pdfs_used, pdfs_used_today')
+            .eq('id', user.id)
+            .single();
+
+          if (profile) {
+            await supabase
+              .from('profiles')
+              .update({ 
+                pdfs_used: (profile.pdfs_used || 0) + 1,
+                pdfs_used_today: (profile.pdfs_used_today || 0) + 1
+              })
+              .eq('id', user.id);
+          }
+        }
+
+        results.push({ topic: currentTopic, content, status: 'success' });
+      } catch (error: any) {
+        results.push({ 
+          topic: currentTopic, 
+          content: '', 
+          status: 'error',
+          error: error.message || 'Erro ao gerar conteúdo'
+        });
+      }
+
+      setBatchResults([...results]);
+      setBatchProgress(((i + 1) / topicsList.length) * 100);
+    }
+
+    setIsBatchGenerating(false);
+    
+    const successCount = results.filter(r => r.status === 'success').length;
+    toast({
+      title: "Geração em Lote Concluída!",
+      description: `${successCount} de ${topicsList.length} PDFs gerados com sucesso.`,
+    });
+  };
+
+  const downloadBatchAsZip = async () => {
+    if (batchResults.length === 0) return;
+    
+    setIsExporting(true);
+    try {
+      const zip = new JSZip();
+      
+      for (const result of batchResults) {
+        if (result.status === 'success' && result.content) {
+          const pdf = new jsPDF();
+          const pageWidth = pdf.internal.pageSize.getWidth();
+          const pageHeight = pdf.internal.pageSize.getHeight();
+          const margin = 20;
+          const maxWidth = pageWidth - (margin * 2);
+          let yPosition = margin;
+
+          // Título
+          pdf.setFontSize(18);
+          pdf.setFont("helvetica", "bold");
+          pdf.text(result.topic, margin, yPosition);
+          yPosition += 15;
+
+          // Conteúdo
+          pdf.setFontSize(11);
+          pdf.setFont("helvetica", "normal");
+          
+          const lines = result.content.split('\n');
+          for (const line of lines) {
+            if (line.trim().startsWith('![')) continue;
+            
+            const wrappedLines = pdf.splitTextToSize(line || ' ', maxWidth);
+            
+            if (yPosition + (wrappedLines.length * 7) > pageHeight - margin) {
+              pdf.addPage();
+              yPosition = margin;
+            }
+            
+            pdf.text(wrappedLines, margin, yPosition);
+            yPosition += wrappedLines.length * 7;
+          }
+
+          const pdfBlob = pdf.output('blob');
+          zip.file(`${result.topic}.pdf`, pdfBlob);
+        }
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(zipBlob);
+      link.download = 'pdfs-gerados.zip';
+      link.click();
+
+      toast({
+        title: "ZIP Baixado!",
+        description: "Todos os PDFs foram compactados e baixados com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error creating ZIP:', error);
+      toast({
+        title: "Erro ao criar ZIP",
+        description: "Ocorreu um erro ao compactar os arquivos.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
-            Gerar Novo PDF com IA
+            Gerar PDF com IA
           </CardTitle>
           <CardDescription>
-            Use a inteligência artificial para criar conteúdo profissional automaticamente
+            Escolha entre gerar um único PDF ou múltiplos PDFs em lote
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
+          <Tabs defaultValue="single" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="single" className="gap-2">
+                <FileText className="w-4 h-4" />
+                PDF Único
+              </TabsTrigger>
+              <TabsTrigger value="batch" className="gap-2">
+                <List className="w-4 h-4" />
+                Geração em Lote
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="single" className="space-y-4 mt-4">
           <div className="space-y-2">
             <Label htmlFor="topic">Tópico do PDF *</Label>
             <Input
@@ -436,20 +656,131 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
             />
           </div>
 
-          <Button 
-            onClick={handleGenerate} 
-            disabled={isGenerating || !topic.trim()}
-            className="w-full"
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Gerando Conteúdo...
-              </>
-            ) : (
-              'Gerar PDF com IA'
-            )}
-          </Button>
+              <Button 
+                onClick={handleGenerate} 
+                disabled={isGenerating || !topic.trim()}
+                className="w-full"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Gerando Conteúdo...
+                  </>
+                ) : (
+                  'Gerar PDF com IA'
+                )}
+              </Button>
+            </TabsContent>
+
+            <TabsContent value="batch" className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="batch-topics">Lista de Tópicos *</Label>
+                <Textarea
+                  id="batch-topics"
+                  placeholder="Insira um tópico por linha. Exemplo:&#10;Estratégias de Marketing Digital&#10;Gestão de Projetos Ágeis&#10;Inteligência Artificial no Varejo"
+                  value={batchTopics}
+                  onChange={(e) => setBatchTopics(e.target.value)}
+                  disabled={isBatchGenerating}
+                  rows={8}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {batchTopics.split('\n').filter(t => t.trim()).length} tópico(s) na lista
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="batch-prompt">Instruções Globais (Opcional)</Label>
+                <Textarea
+                  id="batch-prompt"
+                  placeholder="Instruções que serão aplicadas a todos os PDFs..."
+                  value={batchPrompt}
+                  onChange={(e) => setBatchPrompt(e.target.value)}
+                  disabled={isBatchGenerating}
+                  rows={3}
+                />
+              </div>
+
+              {isBatchGenerating && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Gerando PDF {currentBatchIndex} de {batchTopics.split('\n').filter(t => t.trim()).length}
+                    </span>
+                    <span className="font-medium">{Math.round(batchProgress)}%</span>
+                  </div>
+                  <Progress value={batchProgress} className="w-full" />
+                </div>
+              )}
+
+              <Button 
+                onClick={handleBatchGenerate} 
+                disabled={isBatchGenerating || batchTopics.split('\n').filter(t => t.trim()).length === 0}
+                className="w-full"
+              >
+                {isBatchGenerating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Gerando {currentBatchIndex} de {batchTopics.split('\n').filter(t => t.trim()).length}...
+                  </>
+                ) : (
+                  'Gerar Todos os PDFs'
+                )}
+              </Button>
+
+              {batchResults.length > 0 && (
+                <div className="space-y-4 mt-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Resultados da Geração</h3>
+                    <Button 
+                      onClick={downloadBatchAsZip}
+                      disabled={isExporting || batchResults.filter(r => r.status === 'success').length === 0}
+                      variant="outline"
+                    >
+                      {isExporting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Preparando...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4 mr-2" />
+                          Baixar Todos (ZIP)
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {batchResults.map((result, index) => (
+                      <div 
+                        key={index}
+                        className={`p-3 rounded-lg border ${
+                          result.status === 'success' 
+                            ? 'bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800' 
+                            : 'bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          {result.status === 'success' ? (
+                            <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                          ) : (
+                            <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm">{result.topic}</p>
+                            {result.error && (
+                              <p className="text-xs text-red-600 dark:text-red-400 mt-1">{result.error}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
