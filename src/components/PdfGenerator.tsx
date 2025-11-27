@@ -6,8 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, FileText } from "lucide-react";
+import { Loader2, FileText, Download, FileImage } from "lucide-react";
 import { usePdfLimit } from "@/hooks/usePdfLimit";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import PptxGenJS from "pptxgenjs";
 
 interface PdfGeneratorProps {
   onPdfGenerated: () => void;
@@ -19,6 +23,8 @@ const PdfGenerator = ({ onPdfGenerated }: PdfGeneratorProps) => {
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState("");
+  const [savedTopic, setSavedTopic] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleGenerate = async () => {
     if (!topic.trim()) {
@@ -68,6 +74,7 @@ const PdfGenerator = ({ onPdfGenerated }: PdfGeneratorProps) => {
         // O conteúdo já vem com as imagens inseridas nos locais apropriados
         contentToSave = data.content;
         setGeneratedContent(data.content);
+        setSavedTopic(topic);
       } catch (aiError) {
         // Activate Mock Mode if AI fails
         console.log('AI generation failed, activating Mock Mode:', aiError);
@@ -97,6 +104,7 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
 
         contentToSave = mockContent;
         setGeneratedContent(mockContent);
+        setSavedTopic(topic);
       }
 
       // Save document to database with content (real or mock)
@@ -143,9 +151,8 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
           : "Seu conteúdo foi gerado com sucesso.",
       });
 
-      onPdfGenerated();
-      setTopic("");
-      setPrompt("");
+      // Não resetar mais o formulário para permitir exportações
+      // onPdfGenerated();
     } catch (error: any) {
       console.error('Error generating PDF:', error);
       toast({
@@ -156,6 +163,241 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const downloadPDF = async () => {
+    if (!generatedContent || !savedTopic) return;
+    setIsExporting(true);
+
+    try {
+      const pdf = new jsPDF();
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 20;
+      const maxWidth = pageWidth - (margin * 2);
+      let yPosition = margin;
+
+      // Título
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(savedTopic, margin, yPosition);
+      yPosition += 15;
+
+      // Conteúdo
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "normal");
+      
+      const lines = generatedContent.split('\n');
+      for (const line of lines) {
+        if (line.trim().startsWith('![')) {
+          // Ignorar marcações de imagem
+          continue;
+        }
+        
+        const wrappedLines = pdf.splitTextToSize(line || ' ', maxWidth);
+        
+        if (yPosition + (wrappedLines.length * 7) > pageHeight - margin) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        
+        pdf.text(wrappedLines, margin, yPosition);
+        yPosition += wrappedLines.length * 7;
+      }
+
+      pdf.save(`${savedTopic}.pdf`);
+      
+      toast({
+        title: "PDF Baixado!",
+        description: "Seu arquivo PDF foi baixado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast({
+        title: "Erro ao baixar PDF",
+        description: "Ocorreu um erro ao gerar o arquivo PDF.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const downloadPNG = async () => {
+    if (!generatedContent || !savedTopic) return;
+    setIsExporting(true);
+
+    try {
+      const element = document.getElementById('content-preview');
+      if (!element) throw new Error('Content element not found');
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+      });
+
+      const link = document.createElement('a');
+      link.download = `${savedTopic}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+
+      toast({
+        title: "PNG Baixado!",
+        description: "Seu arquivo PNG foi baixado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error downloading PNG:', error);
+      toast({
+        title: "Erro ao baixar PNG",
+        description: "Ocorreu um erro ao gerar o arquivo PNG.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const downloadJPG = async () => {
+    if (!generatedContent || !savedTopic) return;
+    setIsExporting(true);
+
+    try {
+      const element = document.getElementById('content-preview');
+      if (!element) throw new Error('Content element not found');
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+      });
+
+      const link = document.createElement('a');
+      link.download = `${savedTopic}.jpg`;
+      link.href = canvas.toDataURL('image/jpeg', 0.95);
+      link.click();
+
+      toast({
+        title: "JPG Baixado!",
+        description: "Seu arquivo JPG foi baixado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error downloading JPG:', error);
+      toast({
+        title: "Erro ao baixar JPG",
+        description: "Ocorreu um erro ao gerar o arquivo JPG.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const downloadPowerPoint = async () => {
+    if (!generatedContent || !savedTopic) return;
+    setIsExporting(true);
+
+    try {
+      const pptx = new PptxGenJS();
+      
+      // Slide de título
+      const titleSlide = pptx.addSlide();
+      titleSlide.background = { color: "2E3440" };
+      titleSlide.addText(savedTopic, {
+        x: 0.5,
+        y: 2.5,
+        w: 9,
+        h: 1.5,
+        fontSize: 44,
+        bold: true,
+        color: "FFFFFF",
+        align: "center",
+      });
+
+      // Processar conteúdo em slides
+      const sections = generatedContent.split('\n').filter(line => line.trim());
+      let currentSlide = pptx.addSlide();
+      let slideContent: string[] = [];
+      let slideTitle = "";
+
+      for (const line of sections) {
+        if (line.trim().startsWith('##')) {
+          // Nova seção = novo slide
+          if (slideContent.length > 0) {
+            currentSlide.addText(slideTitle || savedTopic, {
+              x: 0.5,
+              y: 0.5,
+              w: 9,
+              h: 0.75,
+              fontSize: 28,
+              bold: true,
+              color: "2E3440",
+            });
+            
+            currentSlide.addText(slideContent.join('\n'), {
+              x: 0.5,
+              y: 1.5,
+              w: 9,
+              h: 4,
+              fontSize: 14,
+              color: "3B4252",
+              valign: "top",
+            });
+          }
+          
+          slideTitle = line.replace(/^#+\s*/, '');
+          slideContent = [];
+          currentSlide = pptx.addSlide();
+          currentSlide.background = { color: "ECEFF4" };
+        } else if (!line.trim().startsWith('![')) {
+          slideContent.push(line);
+        }
+      }
+
+      // Último slide
+      if (slideContent.length > 0) {
+        currentSlide.addText(slideTitle || savedTopic, {
+          x: 0.5,
+          y: 0.5,
+          w: 9,
+          h: 0.75,
+          fontSize: 28,
+          bold: true,
+          color: "2E3440",
+        });
+        
+        currentSlide.addText(slideContent.join('\n'), {
+          x: 0.5,
+          y: 1.5,
+          w: 9,
+          h: 4,
+          fontSize: 14,
+          color: "3B4252",
+          valign: "top",
+        });
+      }
+
+      await pptx.writeFile({ fileName: `${savedTopic}.pptx` });
+
+      toast({
+        title: "PowerPoint Baixado!",
+        description: "Seu arquivo PowerPoint foi baixado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error downloading PowerPoint:', error);
+      toast({
+        title: "Erro ao baixar PowerPoint",
+        description: "Ocorreu um erro ao gerar o arquivo PowerPoint.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleNewGeneration = () => {
+    setGeneratedContent("");
+    setSavedTopic("");
+    setTopic("");
+    setPrompt("");
   };
 
   return (
@@ -216,11 +458,58 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
           <CardHeader>
             <CardTitle>Conteúdo Gerado</CardTitle>
             <CardDescription>
-              Este é o conteúdo gerado pela IA. Você pode copiá-lo ou fazer o download.
+              Escolha o formato para exportar seu conteúdo
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="bg-muted p-4 rounded-lg whitespace-pre-wrap text-sm">
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button disabled={isExporting} className="flex-1 min-w-[200px]">
+                    {isExporting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Exportando...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 mr-2" />
+                        Exportar Conteúdo
+                      </>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuItem onClick={downloadPDF}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Baixar como PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={downloadPNG}>
+                    <FileImage className="w-4 h-4 mr-2" />
+                    Baixar como PNG
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={downloadJPG}>
+                    <FileImage className="w-4 h-4 mr-2" />
+                    Baixar como JPG
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={downloadPowerPoint}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Baixar como PowerPoint
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <Button 
+                variant="outline" 
+                onClick={handleNewGeneration}
+                disabled={isExporting}
+              >
+                Gerar Novo Conteúdo
+              </Button>
+            </div>
+
+            <div id="content-preview" className="bg-background p-6 rounded-lg border whitespace-pre-wrap text-sm">
+              <h1 className="text-2xl font-bold mb-4">{savedTopic}</h1>
               {generatedContent}
             </div>
           </CardContent>
