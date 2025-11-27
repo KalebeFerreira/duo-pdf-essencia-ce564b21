@@ -105,8 +105,8 @@ Formato: Estruture o conteúdo de forma que possa ser facilmente convertido em P
       console.log(`Found ${sections.length} main sections`);
       
       if (sections.length > 0) {
-        // Gerar uma imagem para cada seção (máximo 4)
-        const sectionsToImage = sections.slice(0, 4);
+        // Gerar apenas 2 imagens para acelerar (máximo 2)
+        const sectionsToImage = sections.slice(0, 2);
         
         for (let i = 0; i < sectionsToImage.length; i++) {
           const sectionTitle = sectionsToImage[i].replace(/^#+\s*/, '').trim();
@@ -155,40 +155,35 @@ Formato: Estruture o conteúdo de forma que possa ser facilmente convertido em P
           }
         }
       } else {
-        // Se não houver seções, gerar 2 imagens gerais
-        console.log('No sections found, generating general images');
+        // Se não houver seções, gerar apenas 1 imagem geral para acelerar
+        console.log('No sections found, generating general image');
         
-        const generalPrompts = [
-          `Professional stock photo related to ${topic}, high quality, corporate style, bright lighting, business people`,
-          `Modern professional illustration about ${topic}, clean design, vibrant colors, business concept`
-        ];
+        const imagePrompt = `Professional stock photo related to ${topic}, high quality, corporate style, bright lighting, business people`;
 
-        for (const imagePrompt of generalPrompts) {
-          try {
-            const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${lovableApiKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                model: 'google/gemini-2.5-flash-image-preview',
-                messages: [{ role: 'user', content: imagePrompt }],
-                modalities: ['image', 'text']
-              }),
-            });
+        try {
+          const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${lovableApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-flash-image-preview',
+              messages: [{ role: 'user', content: imagePrompt }],
+              modalities: ['image', 'text']
+            }),
+          });
 
-            if (imageResponse.ok) {
-              const imageData = await imageResponse.json();
-              const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-              if (imageUrl) {
-                enrichedContent += `\n\n![Image](${imageUrl})\n`;
-                console.log('General image added');
-              }
+          if (imageResponse.ok) {
+            const imageData = await imageResponse.json();
+            const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+            if (imageUrl) {
+              enrichedContent += `\n\n![Image](${imageUrl})\n`;
+              console.log('General image added');
             }
-          } catch (imgError) {
-            console.error('Error generating general image:', imgError);
           }
+        } catch (imgError) {
+          console.error('Error generating general image:', imgError);
         }
       }
     } catch (error) {
