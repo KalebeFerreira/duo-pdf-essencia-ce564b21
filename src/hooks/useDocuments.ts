@@ -11,10 +11,18 @@ const decodeContent = (fileUrl: string): string => {
     try {
       const base64Content = fileUrl.replace('data:text/plain;base64,', '');
       // Decodifica base64 UTF-8 corretamente
-      return decodeURIComponent(escape(atob(base64Content)));
+      const decoded = atob(base64Content);
+      // Tenta decodificar como UTF-8, se falhar retorna o conteúdo decodificado
+      try {
+        return decodeURIComponent(escape(decoded));
+      } catch {
+        // Se falhar a decodificação UTF-8, retorna o texto decodificado direto
+        return decoded;
+      }
     } catch (error) {
       console.error('Error decoding base64 content:', error);
-      return fileUrl;
+      // Se tudo falhar, retorna string vazia ao invés de causar erro
+      return '';
     }
   }
   

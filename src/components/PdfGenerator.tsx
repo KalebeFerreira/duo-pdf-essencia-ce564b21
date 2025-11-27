@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, FileText, Download, FileImage, List, CheckCircle2, XCircle } from "lucide-react";
@@ -31,6 +32,7 @@ const PdfGenerator = ({ onPdfGenerated }: PdfGeneratorProps) => {
   const { checkLimit, getLimitInfo } = usePdfLimit();
   const [topic, setTopic] = useState("");
   const [prompt, setPrompt] = useState("");
+  const [language, setLanguage] = useState("pt");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState("");
   const [savedTopic, setSavedTopic] = useState("");
@@ -39,6 +41,7 @@ const PdfGenerator = ({ onPdfGenerated }: PdfGeneratorProps) => {
   // Batch generation states
   const [batchTopics, setBatchTopics] = useState("");
   const [batchPrompt, setBatchPrompt] = useState("");
+  const [batchLanguage, setBatchLanguage] = useState("pt");
   const [isBatchGenerating, setIsBatchGenerating] = useState(false);
   const [batchResults, setBatchResults] = useState<BatchResult[]>([]);
   const [batchProgress, setBatchProgress] = useState(0);
@@ -69,7 +72,7 @@ const PdfGenerator = ({ onPdfGenerated }: PdfGeneratorProps) => {
       // Try to generate with AI
       try {
         const { data, error } = await supabase.functions.invoke('generate-pdf-content', {
-          body: { topic, prompt: prompt || undefined }
+          body: { topic, prompt: prompt || undefined, language }
         });
 
         // Verificar erro de créditos esgotados (402)
@@ -138,8 +141,7 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
           user_id: user?.id,
           file_url: `data:text/plain;base64,${base64Content}`,
           file_size: contentToSave.length,
-          template: 'modern',
-        } as any);
+        });
 
       if (insertError) throw insertError;
 
@@ -418,10 +420,10 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
     setPrompt("");
   };
 
-  const generateSinglePdfContent = async (singleTopic: string, customPrompt?: string) => {
+  const generateSinglePdfContent = async (singleTopic: string, customPrompt?: string, lang?: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('generate-pdf-content', {
-        body: { topic: singleTopic, prompt: customPrompt || undefined }
+        body: { topic: singleTopic, prompt: customPrompt || undefined, language: lang || 'pt' }
       });
 
       if (error) {
@@ -481,7 +483,7 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
           description: `Processando: ${currentTopic}`,
         });
 
-        const content = await generateSinglePdfContent(currentTopic, batchPrompt || undefined);
+        const content = await generateSinglePdfContent(currentTopic, batchPrompt || undefined, batchLanguage);
         
         // Save to database
         const base64Content = btoa(unescape(encodeURIComponent(content)));
@@ -492,8 +494,7 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
             user_id: user?.id,
             file_url: `data:text/plain;base64,${base64Content}`,
             file_size: content.length,
-            template: 'modern',
-          } as any);
+          });
 
         if (insertError) throw insertError;
 
@@ -645,6 +646,23 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="language">Idioma de Geração</Label>
+            <Select value={language} onValueChange={setLanguage} disabled={isGenerating}>
+              <SelectTrigger id="language">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pt">Português</SelectItem>
+                <SelectItem value="en">Inglês</SelectItem>
+                <SelectItem value="es">Espanhol</SelectItem>
+                <SelectItem value="fr">Francês</SelectItem>
+                <SelectItem value="de">Alemão</SelectItem>
+                <SelectItem value="it">Italiano</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="prompt">Instruções Personalizadas (Opcional)</Label>
             <Textarea
               id="prompt"
@@ -687,6 +705,23 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
                 <p className="text-xs text-muted-foreground">
                   {batchTopics.split('\n').filter(t => t.trim()).length} tópico(s) na lista
                 </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="batch-language">Idioma de Geração</Label>
+                <Select value={batchLanguage} onValueChange={setBatchLanguage} disabled={isBatchGenerating}>
+                  <SelectTrigger id="batch-language">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pt">Português</SelectItem>
+                    <SelectItem value="en">Inglês</SelectItem>
+                    <SelectItem value="es">Espanhol</SelectItem>
+                    <SelectItem value="fr">Francês</SelectItem>
+                    <SelectItem value="de">Alemão</SelectItem>
+                    <SelectItem value="it">Italiano</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
@@ -839,9 +874,57 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
               </Button>
             </div>
 
-            <div id="content-preview" className="bg-background p-6 rounded-lg border whitespace-pre-wrap text-sm">
+            <div id="content-preview" className="bg-background p-6 rounded-lg border text-sm">
               <h1 className="text-2xl font-bold mb-4">{savedTopic}</h1>
-              {generatedContent}
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                {generatedContent.split('\n').map((line, idx) => {
+                  // Renderizar imagens
+                  const imageMatch = line.match(/!\[([^\]]*)\]\(([^)]+)\)/);
+                  if (imageMatch) {
+                    return (
+                      <div key={idx} className="my-4">
+                        <img 
+                          src={imageMatch[2]} 
+                          alt={imageMatch[1] || 'Imagem gerada'} 
+                          className="max-w-full h-auto rounded-lg shadow-md"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    );
+                  }
+                  
+                  // Renderizar títulos
+                  if (line.startsWith('# ')) {
+                    return <h1 key={idx} className="text-2xl font-bold mt-6 mb-3">{line.substring(2)}</h1>;
+                  }
+                  if (line.startsWith('## ')) {
+                    return <h2 key={idx} className="text-xl font-bold mt-5 mb-2">{line.substring(3)}</h2>;
+                  }
+                  if (line.startsWith('### ')) {
+                    return <h3 key={idx} className="text-lg font-semibold mt-4 mb-2">{line.substring(4)}</h3>;
+                  }
+                  
+                  // Renderizar separadores
+                  if (line.trim() === '---') {
+                    return <hr key={idx} className="my-6 border-border" />;
+                  }
+                  
+                  // Renderizar listas
+                  if (line.trim().startsWith('- ')) {
+                    return <li key={idx} className="ml-4">{line.substring(2)}</li>;
+                  }
+                  
+                  // Renderizar parágrafos normais
+                  if (line.trim()) {
+                    return <p key={idx} className="mb-2 leading-relaxed">{line}</p>;
+                  }
+                  
+                  // Linha vazia
+                  return <div key={idx} className="h-2" />;
+                })}
+              </div>
             </div>
           </CardContent>
         </Card>
