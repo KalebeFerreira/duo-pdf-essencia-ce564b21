@@ -92,11 +92,17 @@ export type Database = {
           id: string
           last_automations_reset_date: string | null
           last_reset_date: string | null
+          monthly_credits: number | null
           nome_completo: string
           pdfs_limit: number | null
           pdfs_used: number | null
           pdfs_used_today: number | null
           plan: string | null
+          remaining_credits: number | null
+          renewal_date: string | null
+          stripe_customer_id: string | null
+          stripe_product_id: string | null
+          stripe_subscription_id: string | null
         }
         Insert: {
           automations_used?: number | null
@@ -106,11 +112,17 @@ export type Database = {
           id: string
           last_automations_reset_date?: string | null
           last_reset_date?: string | null
+          monthly_credits?: number | null
           nome_completo?: string
           pdfs_limit?: number | null
           pdfs_used?: number | null
           pdfs_used_today?: number | null
           plan?: string | null
+          remaining_credits?: number | null
+          renewal_date?: string | null
+          stripe_customer_id?: string | null
+          stripe_product_id?: string | null
+          stripe_subscription_id?: string | null
         }
         Update: {
           automations_used?: number | null
@@ -120,11 +132,17 @@ export type Database = {
           id?: string
           last_automations_reset_date?: string | null
           last_reset_date?: string | null
+          monthly_credits?: number | null
           nome_completo?: string
           pdfs_limit?: number | null
           pdfs_used?: number | null
           pdfs_used_today?: number | null
           plan?: string | null
+          remaining_credits?: number | null
+          renewal_date?: string | null
+          stripe_customer_id?: string | null
+          stripe_product_id?: string | null
+          stripe_subscription_id?: string | null
         }
         Relationships: []
       }
