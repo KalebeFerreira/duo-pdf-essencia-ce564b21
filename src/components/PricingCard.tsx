@@ -25,16 +25,16 @@ const PricingCard = ({ plan, title, price, description, features, highlighted }:
     <Card 
       className={`relative overflow-hidden transition-all hover:-translate-y-2 ${
         highlighted 
-          ? "border-2 border-primary shadow-glow scale-105" 
+          ? "border-2 border-secondary shadow-glow scale-105" 
           : "border-border hover:shadow-lg"
       }`}
     >
       {highlighted && (
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-primary" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-secondary" />
       )}
       
       {highlighted && (
-        <div className="absolute -top-3 -right-3 bg-gradient-primary text-primary-foreground px-4 py-1 rounded-full text-xs font-bold rotate-12 shadow-md">
+        <div className="absolute -top-3 -right-3 bg-gradient-secondary text-secondary-foreground px-4 py-1 rounded-full text-xs font-bold rotate-12 shadow-md">
           Mais Popular
         </div>
       )}
@@ -61,9 +61,9 @@ const PricingCard = ({ plan, title, price, description, features, highlighted }:
         {features.map((feature, index) => (
           <div key={index} className="flex items-start gap-3">
             <div className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
-              highlighted ? "bg-primary" : "bg-muted"
+              highlighted ? "bg-secondary" : "bg-muted"
             }`}>
-              <Check className={`w-3 h-3 ${highlighted ? "text-primary-foreground" : "text-foreground"}`} />
+              <Check className={`w-3 h-3 ${highlighted ? "text-secondary-foreground" : "text-foreground"}`} />
             </div>
             <span className="text-sm text-muted-foreground">{feature}</span>
           </div>
@@ -75,7 +75,7 @@ const PricingCard = ({ plan, title, price, description, features, highlighted }:
           asChild 
           className={`w-full ${
             highlighted 
-              ? "bg-gradient-primary shadow-glow hover:shadow-xl" 
+              ? "bg-gradient-secondary shadow-glow hover:shadow-xl" 
               : "bg-muted hover:bg-muted/80 text-foreground"
           } transition-all`}
           size="lg"

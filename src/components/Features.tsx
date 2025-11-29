@@ -10,39 +10,39 @@ const Features = () => {
       icon: Wand2,
       image: featureCatalog,
       title: "Automação com IA",
-      description: "Crie catálogos, cardápios e orçamentos automaticamente com layouts profissionais em menos de 30 segundos.",
+      description: "Gere PDFs, currículos profissionais, ebooks completos e artes gráficas automaticamente com IA avançada.",
       gradient: "from-primary to-primary-glow"
     },
     {
       icon: Edit3,
       image: featureEdit,
-      title: "Edição Completa",
-      description: "Edite, corte, rotacione e ajuste brilho/contraste. Combine múltiplas fotos e textos em um único PDF.",
+      title: "Editor Completo",
+      description: "Editor de designs com templates prontos, manipulação de fotos e ferramentas profissionais de criação.",
       gradient: "from-secondary to-secondary-glow"
     },
     {
       icon: Share2,
       image: featureShare,
-      title: "Compartilhamento Rápido",
-      description: "Envie seus PDFs diretamente pelo WhatsApp ou faça download. Armazenamento seguro em nuvem.",
+      title: "Compartilhamento Simples",
+      description: "Baixe ou compartilhe seus documentos instantaneamente. Armazenamento seguro em nuvem com acesso em qualquer lugar.",
       gradient: "from-primary to-secondary"
     },
     {
       icon: Zap,
-      title: "Ultra Rápido",
-      description: "Processamento instantâneo. Converta múltiplas imagens em PDF profissional em segundos.",
+      title: "Processamento Rápido",
+      description: "IA de última geração processa seus documentos em menos de 30 segundos. Qualidade profissional garantida.",
       gradient: "from-primary-glow to-primary"
     },
     {
       icon: Shield,
-      title: "100% Seguro",
-      description: "Seus documentos são criptografados e protegidos. Conforme LGPD. Privacidade garantida.",
+      title: "Segurança Total",
+      description: "Seus dados protegidos com criptografia de ponta. 100% seguro e conforme LGPD. Privacidade garantida.",
       gradient: "from-secondary-glow to-secondary"
     },
     {
       icon: Cloud,
-      title: "Sempre Disponível",
-      description: "Acesse seus PDFs de qualquer lugar, em qualquer dispositivo. Sincronização automática.",
+      title: "Nuvem Integrada",
+      description: "Acesse seus documentos de qualquer dispositivo. Sincronização automática e backup em nuvem.",
       gradient: "from-primary to-secondary-glow"
     }
   ];
@@ -52,13 +52,13 @@ const Features = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4">
-            Tudo que Você Precisa Para{" "}
-            <span className="bg-gradient-primary bg-clip-text text-transparent">
-              Criar PDFs
+            Ferramentas Poderosas Para{" "}
+            <span className="bg-gradient-secondary bg-clip-text text-transparent">
+              Criar Qualquer Documento
             </span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            Ferramentas poderosas e intuitivas para transformar suas ideias em documentos profissionais
+            Da criação à publicação: tudo que você precisa em uma única plataforma
           </p>
         </div>
 
