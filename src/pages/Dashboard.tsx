@@ -20,6 +20,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
 import { Upload, FileText, Zap, LogOut, Settings, Download, Eye, MoreVertical, Edit, Trash2, User, BookOpen, Palette } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -95,24 +97,25 @@ const Dashboard = () => {
 
   if (authLoading || profileLoading) {
     return (
-      <div className="min-h-screen bg-muted/30">
-        <header className="bg-background border-b border-border">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <Skeleton className="h-8 w-48" />
-              <Skeleton className="h-8 w-20" />
-            </div>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full bg-muted/30">
+          <AppSidebar />
+          <div className="flex-1 flex flex-col">
+            <header className="bg-background border-b border-border h-16 flex items-center px-4">
+              <SidebarTrigger />
+              <Skeleton className="h-8 w-48 ml-4" />
+            </header>
+            <main className="flex-1 p-8">
+              <Skeleton className="h-12 w-64 mb-8" />
+              <div className="grid md:grid-cols-3 gap-6">
+                <Skeleton className="h-40" />
+                <Skeleton className="h-40" />
+                <Skeleton className="h-40" />
+              </div>
+            </main>
           </div>
-        </header>
-        <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Skeleton className="h-12 w-64 mb-8" />
-          <div className="grid md:grid-cols-3 gap-6">
-            <Skeleton className="h-40" />
-            <Skeleton className="h-40" />
-            <Skeleton className="h-40" />
-          </div>
-        </main>
-      </div>
+        </div>
+      </SidebarProvider>
     );
   }
 
@@ -143,34 +146,29 @@ const Dashboard = () => {
   })) || [];
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="bg-background border-b border-border sticky top-0 z-50">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2 font-bold text-xl">
-              <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <FileText className="w-5 h-5 text-primary-foreground" />
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-muted/30">
+        <AppSidebar />
+        
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <header className="bg-background border-b border-border sticky top-0 z-50 h-16 flex items-center px-4">
+            <SidebarTrigger />
+            <div className="flex items-center justify-between flex-1 ml-4">
+              <div className="flex items-center gap-2 font-bold text-xl">
+                <span>Dashboard</span>
               </div>
-              <span>Essência Duo PDF</span>
-            </div>
 
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" asChild>
-                <Link to="/settings">
-                  <Settings className="w-5 h-5" />
-                </Link>
-              </Button>
-              <Button variant="ghost" size="icon" onClick={handleLogout}>
-                <LogOut className="w-5 h-5" />
-              </Button>
+              <div className="flex items-center gap-4">
+                <Button variant="ghost" size="icon" onClick={handleLogout}>
+                  <LogOut className="w-5 h-5" />
+                </Button>
+              </div>
             </div>
-          </div>
-        </div>
-      </header>
+          </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Main Content */}
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
         {/* Upgrade Banner for Free Users */}
         <UpgradeBanner />
         
@@ -432,40 +430,42 @@ const Dashboard = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Modals and Dialogs */}
+        <PdfViewModal
+          isOpen={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          document={selectedDocument}
+        />
+
+        <PdfEditDialog
+          isOpen={editDialogOpen}
+          onClose={() => setEditDialogOpen(false)}
+          onSave={handleSaveEdit}
+          document={selectedDocument}
+        />
+
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir o documento "{selectedDocument?.name}"? 
+                Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
-
-      {/* Modals and Dialogs */}
-      <PdfViewModal
-        isOpen={viewModalOpen}
-        onClose={() => setViewModalOpen(false)}
-        document={selectedDocument}
-      />
-
-      <PdfEditDialog
-        isOpen={editDialogOpen}
-        onClose={() => setEditDialogOpen(false)}
-        onSave={handleSaveEdit}
-        document={selectedDocument}
-      />
-
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir o documento "{selectedDocument?.name}"? 
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
+  </div>
+</SidebarProvider>
   );
 };
 

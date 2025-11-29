@@ -17,12 +17,12 @@ const Index = () => {
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4">
               Escolha o Plano{" "}
-              <span className="bg-gradient-primary bg-clip-text text-transparent">
-                Perfeito
+              <span className="bg-gradient-secondary bg-clip-text text-transparent">
+                Ideal
               </span>
             </h2>
             <p className="text-lg text-muted-foreground">
-              Comece grátis e faça upgrade quando precisar de mais recursos
+              Comece grátis e escale conforme seu negócio cresce
             </p>
           </div>
 
