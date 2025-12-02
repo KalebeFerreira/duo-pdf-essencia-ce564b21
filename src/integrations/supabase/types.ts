@@ -89,10 +89,15 @@ export type Database = {
           automations_used_today: number | null
           daily_automations_limit: number | null
           daily_pdfs_limit: number | null
+          designs_used_this_month: number | null
+          ebook_page_limit: number | null
           id: string
           last_automations_reset_date: string | null
+          last_monthly_reset_date: string | null
           last_reset_date: string | null
           monthly_credits: number | null
+          monthly_designs_limit: number | null
+          monthly_resumes_limit: number | null
           nome_completo: string
           pdfs_limit: number | null
           pdfs_used: number | null
@@ -100,6 +105,7 @@ export type Database = {
           plan: string | null
           remaining_credits: number | null
           renewal_date: string | null
+          resumes_used_this_month: number | null
           stripe_customer_id: string | null
           stripe_product_id: string | null
           stripe_subscription_id: string | null
@@ -109,10 +115,15 @@ export type Database = {
           automations_used_today?: number | null
           daily_automations_limit?: number | null
           daily_pdfs_limit?: number | null
+          designs_used_this_month?: number | null
+          ebook_page_limit?: number | null
           id: string
           last_automations_reset_date?: string | null
+          last_monthly_reset_date?: string | null
           last_reset_date?: string | null
           monthly_credits?: number | null
+          monthly_designs_limit?: number | null
+          monthly_resumes_limit?: number | null
           nome_completo?: string
           pdfs_limit?: number | null
           pdfs_used?: number | null
@@ -120,6 +131,7 @@ export type Database = {
           plan?: string | null
           remaining_credits?: number | null
           renewal_date?: string | null
+          resumes_used_this_month?: number | null
           stripe_customer_id?: string | null
           stripe_product_id?: string | null
           stripe_subscription_id?: string | null
@@ -129,10 +141,15 @@ export type Database = {
           automations_used_today?: number | null
           daily_automations_limit?: number | null
           daily_pdfs_limit?: number | null
+          designs_used_this_month?: number | null
+          ebook_page_limit?: number | null
           id?: string
           last_automations_reset_date?: string | null
+          last_monthly_reset_date?: string | null
           last_reset_date?: string | null
           monthly_credits?: number | null
+          monthly_designs_limit?: number | null
+          monthly_resumes_limit?: number | null
           nome_completo?: string
           pdfs_limit?: number | null
           pdfs_used?: number | null
@@ -140,6 +157,7 @@ export type Database = {
           plan?: string | null
           remaining_credits?: number | null
           renewal_date?: string | null
+          resumes_used_this_month?: number | null
           stripe_customer_id?: string | null
           stripe_product_id?: string | null
           stripe_subscription_id?: string | null

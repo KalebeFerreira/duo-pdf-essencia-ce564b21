@@ -35,10 +35,11 @@ const Pricing = () => {
               price="Grátis"
               description="Perfeito para experimentar"
               features={[
-                "10 PDFs por dia",
-                "1 automação por dia",
-                "Conversão de imagens",
-                "Armazenamento básico",
+                "40 PDFs por mês",
+                "30 automações por mês",
+                "30 artes por mês",
+                "10 currículos por mês",
+                "Ebooks até 10 páginas",
                 "Suporte por email",
               ]}
             />
@@ -46,14 +47,14 @@ const Pricing = () => {
             <PricingCard
               plan="basic"
               title="Básico"
-              price="R$ 19,90"
+              price="R$ 34,00"
               description="Para uso regular"
               features={[
-                "25 PDFs por dia",
-                "Automações ilimitadas",
+                "200 PDFs por mês",
+                "300 artes por mês",
+                "300 currículos por mês",
+                "Ebooks até 30 páginas",
                 "IA para geração de conteúdo",
-                "Conversão de imagens",
-                "Armazenamento ampliado",
                 "Suporte prioritário",
                 "Sem marca d'água",
               ]}
@@ -62,18 +63,18 @@ const Pricing = () => {
 
             <PricingCard
               plan="complete"
-              title="Completo"
-              price="R$ 49,90"
-              description="Poder ilimitado"
+              title="Profissional"
+              price="R$ 59,99"
+              description="Recursos ilimitados"
               features={[
                 "PDFs ilimitados",
+                "Artes ilimitadas",
+                "Currículos ilimitados",
+                "Ebooks ilimitados",
                 "Automações ilimitadas",
                 "IA avançada para conteúdo",
-                "Conversão de imagens ilimitada",
-                "Armazenamento ilimitado",
                 "Suporte premium 24/7",
                 "API para integrações",
-                "Personalização total",
               ]}
             />
           </div>
@@ -101,15 +102,33 @@ const Pricing = () => {
                   </thead>
                   <tbody>
                     <tr className="border-b border-border hover:bg-muted/50 transition-colors">
-                      <td className="py-4 px-6 text-muted-foreground">PDFs por dia</td>
-                      <td className="py-4 px-6 text-center text-foreground">10</td>
-                      <td className="py-4 px-6 text-center text-foreground bg-primary/5">25</td>
+                      <td className="py-4 px-6 text-muted-foreground">PDFs por mês</td>
+                      <td className="py-4 px-6 text-center text-foreground">40</td>
+                      <td className="py-4 px-6 text-center text-foreground bg-primary/5">200</td>
                       <td className="py-4 px-6 text-center text-foreground">Ilimitado</td>
                     </tr>
                     <tr className="border-b border-border hover:bg-muted/50 transition-colors">
-                      <td className="py-4 px-6 text-muted-foreground">Automações por dia</td>
-                      <td className="py-4 px-6 text-center text-foreground">1</td>
+                      <td className="py-4 px-6 text-muted-foreground">Artes por mês</td>
+                      <td className="py-4 px-6 text-center text-foreground">30</td>
+                      <td className="py-4 px-6 text-center text-foreground bg-primary/5">300</td>
+                      <td className="py-4 px-6 text-center text-foreground">Ilimitado</td>
+                    </tr>
+                    <tr className="border-b border-border hover:bg-muted/50 transition-colors">
+                      <td className="py-4 px-6 text-muted-foreground">Currículos por mês</td>
+                      <td className="py-4 px-6 text-center text-foreground">10</td>
+                      <td className="py-4 px-6 text-center text-foreground bg-primary/5">300</td>
+                      <td className="py-4 px-6 text-center text-foreground">Ilimitado</td>
+                    </tr>
+                    <tr className="border-b border-border hover:bg-muted/50 transition-colors">
+                      <td className="py-4 px-6 text-muted-foreground">Automações por mês</td>
+                      <td className="py-4 px-6 text-center text-foreground">30</td>
                       <td className="py-4 px-6 text-center text-foreground bg-primary/5">Ilimitado</td>
+                      <td className="py-4 px-6 text-center text-foreground">Ilimitado</td>
+                    </tr>
+                    <tr className="border-b border-border hover:bg-muted/50 transition-colors">
+                      <td className="py-4 px-6 text-muted-foreground">Limite de páginas Ebook</td>
+                      <td className="py-4 px-6 text-center text-foreground">10</td>
+                      <td className="py-4 px-6 text-center text-foreground bg-primary/5">30</td>
                       <td className="py-4 px-6 text-center text-foreground">Ilimitado</td>
                     </tr>
                     <tr className="border-b border-border hover:bg-muted/50 transition-colors">

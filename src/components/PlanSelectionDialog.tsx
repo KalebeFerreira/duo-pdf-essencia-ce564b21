@@ -15,24 +15,24 @@ const PlanSelectionDialog = ({ open, onSelectPlan }: PlanSelectionDialogProps) =
       name: "Grátis",
       icon: Zap,
       price: "R$ 0",
-      features: ["10 PDFs/dia", "1 automação/dia", "Conversão de imagens"],
+      features: ["40 PDFs/mês", "30 automações/mês", "30 artes/mês", "10 currículos/mês", "Ebooks até 10 páginas"],
       color: "from-muted to-muted-foreground/20"
     },
     {
       id: "basic" as const,
       name: "Básico",
       icon: Sparkles,
-      price: "R$ 19,90",
-      features: ["25 PDFs/dia", "Automações ilimitadas", "IA para conteúdo", "Sem marca d'água"],
+      price: "R$ 34,00",
+      features: ["200 PDFs/mês", "300 artes/mês", "300 currículos/mês", "Ebooks até 30 páginas", "IA para conteúdo"],
       color: "from-primary to-primary-glow",
       recommended: true
     },
     {
       id: "complete" as const,
-      name: "Completo",
+      name: "Profissional",
       icon: Crown,
-      price: "R$ 49,90",
-      features: ["PDFs ilimitados", "Automações ilimitadas", "IA avançada", "API", "Suporte 24/7"],
+      price: "R$ 59,99",
+      features: ["Recursos ilimitados", "IA avançada", "API", "Suporte 24/7"],
       color: "from-secondary to-secondary-glow"
     }
   ];

@@ -33,10 +33,11 @@ const Index = () => {
               price="Grátis"
               description="Perfeito para experimentar"
               features={[
-                "10 PDFs por dia",
-                "1 automação por dia",
-                "Conversão de imagens",
-                "Armazenamento básico",
+                "40 PDFs por mês",
+                "30 automações por mês",
+                "30 artes por mês",
+                "10 currículos por mês",
+                "Ebooks até 10 páginas",
                 "Suporte por email",
               ]}
             />
@@ -44,14 +45,14 @@ const Index = () => {
             <PricingCard
               plan="basic"
               title="Básico"
-              price="R$ 19,90"
+              price="R$ 34,00"
               description="Para uso regular"
               features={[
-                "25 PDFs por dia",
-                "Automações ilimitadas",
+                "200 PDFs por mês",
+                "300 artes por mês",
+                "300 currículos por mês",
+                "Ebooks até 30 páginas",
                 "IA para geração de conteúdo",
-                "Conversão de imagens",
-                "Armazenamento ampliado",
                 "Suporte prioritário",
                 "Sem marca d'água",
               ]}
@@ -60,18 +61,18 @@ const Index = () => {
 
             <PricingCard
               plan="complete"
-              title="Completo"
-              price="R$ 49,90"
-              description="Poder ilimitado"
+              title="Profissional"
+              price="R$ 59,99"
+              description="Recursos ilimitados"
               features={[
                 "PDFs ilimitados",
+                "Artes ilimitadas",
+                "Currículos ilimitados",
+                "Ebooks ilimitados",
                 "Automações ilimitadas",
                 "IA avançada para conteúdo",
-                "Conversão de imagens ilimitada",
-                "Armazenamento ilimitado",
                 "Suporte premium 24/7",
                 "API para integrações",
-                "Personalização total",
               ]}
             />
           </div>
