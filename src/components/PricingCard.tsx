@@ -1,7 +1,20 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Crown, Sparkles, Zap } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Check, Crown, Sparkles, Zap, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
+import { toast } from "@/hooks/use-toast";
+
+const PRICE_IDS = {
+  basic_monthly: 'price_1SZsmBF2249riykhMgcfH0a2',
+  basic_yearly: 'price_1SZspYF2249riykhVdqLChv6',
+  professional_monthly: 'price_1SZsmUF2249riykhwm1siLIS',
+  professional_yearly: 'price_1SZspmF2249riykh9kMoOJfW',
+};
 
 interface PricingCardProps {
   plan: "free" | "basic" | "complete";
@@ -13,6 +26,12 @@ interface PricingCardProps {
 }
 
 const PricingCard = ({ plan, title, price, description, features, highlighted }: PricingCardProps) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { createCheckout } = useSubscription();
+  const [isLoading, setIsLoading] = useState(false);
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+
   const icons = {
     free: Zap,
     basic: Sparkles,
@@ -20,6 +39,68 @@ const PricingCard = ({ plan, title, price, description, features, highlighted }:
   };
 
   const Icon = icons[plan];
+
+  const getPriceId = () => {
+    if (plan === 'basic') {
+      return billingPeriod === 'monthly' ? PRICE_IDS.basic_monthly : PRICE_IDS.basic_yearly;
+    }
+    if (plan === 'complete') {
+      return billingPeriod === 'monthly' ? PRICE_IDS.professional_monthly : PRICE_IDS.professional_yearly;
+    }
+    return null;
+  };
+
+  const getDisplayPrice = () => {
+    if (plan === 'free') return 'Grátis';
+    if (plan === 'basic') {
+      return billingPeriod === 'monthly' ? 'R$ 34,00' : 'R$ 346,80';
+    }
+    if (plan === 'complete') {
+      return billingPeriod === 'monthly' ? 'R$ 59,99' : 'R$ 611,90';
+    }
+    return price;
+  };
+
+  const handleClick = async () => {
+    if (plan === 'free') {
+      if (!user) {
+        navigate('/auth');
+      } else {
+        navigate('/dashboard');
+      }
+      return;
+    }
+
+    if (!user) {
+      toast({
+        title: "Login necessário",
+        description: "Faça login para assinar um plano.",
+      });
+      navigate('/auth');
+      return;
+    }
+
+    const priceId = getPriceId();
+    if (!priceId) return;
+
+    setIsLoading(true);
+    try {
+      await createCheckout(priceId);
+      toast({
+        title: "Redirecionando...",
+        description: "Você será redirecionado para o checkout do Stripe.",
+      });
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível iniciar o checkout. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <Card 
@@ -51,9 +132,29 @@ const PricingCard = ({ plan, title, price, description, features, highlighted }:
         <CardTitle className="text-2xl font-bold text-foreground">{title}</CardTitle>
         <CardDescription className="text-muted-foreground">{description}</CardDescription>
         
-        <div className="mt-6">
-          <div className="text-4xl font-bold text-foreground">{price}</div>
-          {price !== "Grátis" && <div className="text-sm text-muted-foreground mt-1">por mês</div>}
+        {plan !== 'free' && (
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <span className={`text-xs ${billingPeriod === 'monthly' ? 'font-semibold' : 'text-muted-foreground'}`}>Mensal</span>
+            <Switch
+              checked={billingPeriod === 'yearly'}
+              onCheckedChange={(checked) => setBillingPeriod(checked ? 'yearly' : 'monthly')}
+            />
+            <span className={`text-xs ${billingPeriod === 'yearly' ? 'font-semibold' : 'text-muted-foreground'}`}>
+              Anual
+            </span>
+            {billingPeriod === 'yearly' && (
+              <Badge variant="secondary" className="text-xs">-15%</Badge>
+            )}
+          </div>
+        )}
+        
+        <div className="mt-4">
+          <div className="text-4xl font-bold text-foreground">{getDisplayPrice()}</div>
+          {plan !== 'free' && (
+            <div className="text-sm text-muted-foreground mt-1">
+              {billingPeriod === 'monthly' ? 'por mês' : 'por ano'}
+            </div>
+          )}
         </div>
       </CardHeader>
 
@@ -72,7 +173,8 @@ const PricingCard = ({ plan, title, price, description, features, highlighted }:
 
       <CardFooter>
         <Button 
-          asChild 
+          onClick={handleClick}
+          disabled={isLoading}
           className={`w-full ${
             highlighted 
               ? "bg-gradient-secondary shadow-glow hover:shadow-xl" 
@@ -80,9 +182,14 @@ const PricingCard = ({ plan, title, price, description, features, highlighted }:
           } transition-all`}
           size="lg"
         >
-          <Link to="/auth">
-            {plan === "free" ? "Começar Grátis" : "Assinar Agora"}
-          </Link>
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Processando...
+            </>
+          ) : (
+            plan === "free" ? "Começar Grátis" : "Assinar Agora"
+          )}
         </Button>
       </CardFooter>
     </Card>
