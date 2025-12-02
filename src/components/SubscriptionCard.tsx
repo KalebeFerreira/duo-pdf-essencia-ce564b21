@@ -6,8 +6,8 @@ import { Loader2, Crown, Sparkles, Zap } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const PRICE_IDS = {
-  basic: 'price_1SZsVdF2249riykhHHEgbX9Y',
-  professional: 'price_1SZsW3F2249riykhGncbvAuR',
+  basic: 'price_1SZsmBF2249riykhMgcfH0a2',
+  professional: 'price_1SZsmUF2249riykhwm1siLIS',
 };
 
 export const SubscriptionCard = () => {

@@ -40,8 +40,8 @@ const PLAN_LIMITS = {
 };
 
 const PRODUCT_TO_PLAN: Record<string, keyof typeof PLAN_LIMITS> = {
-  'prod_TWwOXvAb8fMVVH': 'basic',      // Plano Básico
-  'prod_TWwO8djF8GSQHl': 'professional', // Plano Profissional
+  'prod_TWwfNoJ9osiCCA': 'basic',      // Plano Básico
+  'prod_TWwfYOkIPqsPdY': 'professional', // Plano Profissional
 };
 
 serve(async (req) => {
