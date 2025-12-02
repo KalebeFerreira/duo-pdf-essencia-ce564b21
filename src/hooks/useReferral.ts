@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { useEffect, useState } from 'react';
 
 interface ReferralCode {
   id: string;
@@ -29,12 +30,23 @@ interface Commission {
   created_at: string;
 }
 
+// Gerar código único de 8 caracteres
+const generateUniqueCode = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+};
+
 export const useReferral = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [isCreatingCode, setIsCreatingCode] = useState(false);
 
   // Buscar código de indicação do usuário
-  const { data: referralCode, isLoading: isLoadingCode } = useQuery({
+  const { data: referralCode, isLoading: isLoadingCode, refetch: refetchCode } = useQuery({
     queryKey: ['referral-code', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
@@ -50,6 +62,36 @@ export const useReferral = () => {
     },
     enabled: !!user?.id,
   });
+
+  // Criar código de indicação se não existir
+  useEffect(() => {
+    const createCodeIfNeeded = async () => {
+      if (!user?.id || isLoadingCode || referralCode || isCreatingCode) return;
+      
+      setIsCreatingCode(true);
+      try {
+        const newCode = generateUniqueCode();
+        const { error } = await supabase
+          .from('referral_codes')
+          .insert({
+            user_id: user.id,
+            code: newCode,
+          });
+        
+        if (!error) {
+          await refetchCode();
+        } else {
+          console.error('Erro ao criar código de indicação:', error);
+        }
+      } catch (err) {
+        console.error('Erro ao criar código de indicação:', err);
+      } finally {
+        setIsCreatingCode(false);
+      }
+    };
+
+    createCodeIfNeeded();
+  }, [user?.id, isLoadingCode, referralCode, isCreatingCode, refetchCode]);
 
   // Buscar indicações feitas pelo usuário
   const { data: referrals, isLoading: isLoadingReferrals } = useQuery({
@@ -139,7 +181,7 @@ export const useReferral = () => {
     totalPending,
     totalPaid,
     totalReferrals,
-    isLoading: isLoadingCode || isLoadingReferrals || isLoadingCommissions,
+    isLoading: isLoadingCode || isLoadingReferrals || isLoadingCommissions || isCreatingCode,
     updatePixKey: updatePixKey.mutate,
     isUpdatingPixKey: updatePixKey.isPending,
   };
