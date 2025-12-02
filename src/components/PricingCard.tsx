@@ -120,6 +120,12 @@ const PricingCard = ({ plan, title, price, description, features, highlighted }:
         </div>
       )}
 
+      {plan !== 'free' && (
+        <div className="absolute top-3 left-3 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">
+          1 mês grátis!
+        </div>
+      )}
+
       <CardHeader className="text-center pb-8">
         <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${
           plan === "free" ? "from-muted to-muted-foreground/20" :
