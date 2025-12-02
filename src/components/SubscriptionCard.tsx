@@ -1,17 +1,22 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Loader2, Crown, Sparkles, Zap } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const PRICE_IDS = {
-  basic: 'price_1SZsmBF2249riykhMgcfH0a2',
-  professional: 'price_1SZsmUF2249riykhwm1siLIS',
+  basic_monthly: 'price_1SZsmBF2249riykhMgcfH0a2',
+  basic_yearly: 'price_1SZspYF2249riykhVdqLChv6',
+  professional_monthly: 'price_1SZsmUF2249riykhwm1siLIS',
+  professional_yearly: 'price_1SZspmF2249riykh9kMoOJfW',
 };
 
 export const SubscriptionCard = () => {
   const { plan, subscribed, subscription_end, isLoading, createCheckout, openCustomerPortal } = useSubscription();
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
 
   const handleUpgrade = async (priceId: string) => {
     try {
@@ -99,55 +104,66 @@ export const SubscriptionCard = () => {
         ))}
       </ul>
 
-      <div className="space-y-2">
-        {plan === 'free' && (
-          <>
+      {plan === 'free' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-center gap-3 p-2 bg-muted/50 rounded-lg">
+            <span className={`text-sm ${billingPeriod === 'monthly' ? 'font-semibold' : 'text-muted-foreground'}`}>Mensal</span>
+            <Switch
+              checked={billingPeriod === 'yearly'}
+              onCheckedChange={(checked) => setBillingPeriod(checked ? 'yearly' : 'monthly')}
+            />
+            <span className={`text-sm ${billingPeriod === 'yearly' ? 'font-semibold' : 'text-muted-foreground'}`}>
+              Anual <Badge variant="secondary" className="ml-1 text-xs">-15%</Badge>
+            </span>
+          </div>
+          
+          <div className="space-y-2">
             <Button
-              onClick={() => handleUpgrade(PRICE_IDS.basic)}
+              onClick={() => handleUpgrade(billingPeriod === 'monthly' ? PRICE_IDS.basic_monthly : PRICE_IDS.basic_yearly)}
               className="w-full bg-gradient-primary"
             >
-              Upgrade para Básico - R$ 34/mês
+              Upgrade para Básico - {billingPeriod === 'monthly' ? 'R$ 34/mês' : 'R$ 346,80/ano'}
             </Button>
             <Button
-              onClick={() => handleUpgrade(PRICE_IDS.professional)}
+              onClick={() => handleUpgrade(billingPeriod === 'monthly' ? PRICE_IDS.professional_monthly : PRICE_IDS.professional_yearly)}
               variant="outline"
               className="w-full"
             >
-              Upgrade para Profissional - R$ 59,99/mês
+              Upgrade para Profissional - {billingPeriod === 'monthly' ? 'R$ 59,99/mês' : 'R$ 611,90/ano'}
             </Button>
-          </>
-        )}
+          </div>
+        </div>
+      )}
 
-        {plan === 'basic' && (
-          <>
-            <Button
-              onClick={() => handleUpgrade(PRICE_IDS.professional)}
-              className="w-full bg-gradient-primary"
-            >
-              Upgrade para Profissional - R$ 59,99/mês
-            </Button>
-            {subscribed && (
-              <Button
-                onClick={handleManage}
-                variant="outline"
-                className="w-full"
-              >
-                Gerenciar Assinatura
-              </Button>
-            )}
-          </>
-        )}
-
-        {plan === 'professional' && subscribed && (
+      {plan === 'basic' && (
+        <div className="space-y-2">
           <Button
-            onClick={handleManage}
-            variant="outline"
-            className="w-full"
+            onClick={() => handleUpgrade(PRICE_IDS.professional_monthly)}
+            className="w-full bg-gradient-primary"
           >
-            Gerenciar Assinatura
+            Upgrade para Profissional - R$ 59,99/mês
           </Button>
-        )}
-      </div>
+          {subscribed && (
+            <Button
+              onClick={handleManage}
+              variant="outline"
+              className="w-full"
+            >
+              Gerenciar Assinatura
+            </Button>
+          )}
+        </div>
+      )}
+
+      {plan === 'professional' && subscribed && (
+        <Button
+          onClick={handleManage}
+          variant="outline"
+          className="w-full"
+        >
+          Gerenciar Assinatura
+        </Button>
+      )}
     </Card>
   );
 };
