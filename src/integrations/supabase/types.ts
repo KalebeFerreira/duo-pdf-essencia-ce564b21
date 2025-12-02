@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      commissions: {
+        Row: {
+          commission_amount: number
+          created_at: string | null
+          id: string
+          payment_amount: number
+          payment_date: string | null
+          pix_key: string | null
+          referral_id: string
+          referrer_id: string
+          status: string | null
+        }
+        Insert: {
+          commission_amount: number
+          created_at?: string | null
+          id?: string
+          payment_amount: number
+          payment_date?: string | null
+          pix_key?: string | null
+          referral_id: string
+          referrer_id: string
+          status?: string | null
+        }
+        Update: {
+          commission_amount?: number
+          created_at?: string | null
+          id?: string
+          payment_amount?: number
+          payment_date?: string | null
+          pix_key?: string | null
+          referral_id?: string
+          referrer_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commissions_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           created_at: string | null
@@ -102,6 +146,7 @@ export type Database = {
           pdfs_limit: number | null
           pdfs_used: number | null
           pdfs_used_today: number | null
+          pix_key: string | null
           plan: string | null
           remaining_credits: number | null
           renewal_date: string | null
@@ -128,6 +173,7 @@ export type Database = {
           pdfs_limit?: number | null
           pdfs_used?: number | null
           pdfs_used_today?: number | null
+          pix_key?: string | null
           plan?: string | null
           remaining_credits?: number | null
           renewal_date?: string | null
@@ -154,6 +200,7 @@ export type Database = {
           pdfs_limit?: number | null
           pdfs_used?: number | null
           pdfs_used_today?: number | null
+          pix_key?: string | null
           plan?: string | null
           remaining_credits?: number | null
           renewal_date?: string | null
@@ -163,6 +210,62 @@ export type Database = {
           stripe_subscription_id?: string | null
         }
         Relationships: []
+      }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          commission_expires_at: string | null
+          created_at: string | null
+          id: string
+          referral_code_id: string
+          referred_id: string
+          referrer_id: string
+        }
+        Insert: {
+          commission_expires_at?: string | null
+          created_at?: string | null
+          id?: string
+          referral_code_id: string
+          referred_id: string
+          referrer_id: string
+        }
+        Update: {
+          commission_expires_at?: string | null
+          created_at?: string | null
+          id?: string
+          referral_code_id?: string
+          referred_id?: string
+          referrer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "referral_codes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

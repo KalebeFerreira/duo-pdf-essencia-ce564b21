@@ -11,9 +11,10 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft, User, Palette, HelpCircle, Share2, Mail, Twitter, Instagram, MessageCircle, CreditCard } from 'lucide-react';
+import { ArrowLeft, User, Palette, HelpCircle, Share2, Mail, Twitter, Instagram, MessageCircle, CreditCard, Gift } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SubscriptionCard } from '@/components/SubscriptionCard';
+import { ReferralCard } from '@/components/ReferralCard';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -208,7 +209,10 @@ const Settings = () => {
             </CardContent>
           </Card>
 
-          {/* Seção 3: Preferências e Aparência */}
+          {/* Seção 3: Programa de Indicação */}
+          <ReferralCard />
+
+          {/* Seção 4: Preferências e Aparência */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
