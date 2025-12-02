@@ -2,13 +2,42 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Check, Zap, Sparkles, Crown } from "lucide-react";
+import { useSubscription } from "@/hooks/useSubscription";
+import { toast } from "@/hooks/use-toast";
 
 interface PlanSelectionDialogProps {
   open: boolean;
   onSelectPlan: (plan: "free" | "basic" | "complete") => void;
 }
 
+const PRICE_IDS = {
+  basic: 'price_1SZsVdF2249riykhHHEgbX9Y',
+  professional: 'price_1SZsW3F2249riykhGncbvAuR',
+};
+
 const PlanSelectionDialog = ({ open, onSelectPlan }: PlanSelectionDialogProps) => {
+  const { createCheckout } = useSubscription();
+
+  const handleSelectPlan = async (planId: string, priceId?: string) => {
+    if (planId === 'free') {
+      onSelectPlan('free');
+    } else if (priceId) {
+      try {
+        await createCheckout(priceId);
+        toast({
+          title: "Redirecionando...",
+          description: "Você está sendo redirecionado para o checkout.",
+        });
+      } catch (error) {
+        toast({
+          title: "Erro",
+          description: "Não foi possível iniciar o checkout. Tente novamente.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   const plans = [
     {
       id: "free" as const,
@@ -85,7 +114,10 @@ const PlanSelectionDialog = ({ open, onSelectPlan }: PlanSelectionDialogProps) =
                 </ul>
 
                 <Button
-                  onClick={() => onSelectPlan(plan.id)}
+                  onClick={() => handleSelectPlan(
+                    plan.id,
+                    plan.id === 'basic' ? PRICE_IDS.basic : plan.id === 'complete' ? PRICE_IDS.professional : undefined
+                  )}
                   className={`w-full ${
                     plan.recommended 
                       ? "bg-gradient-primary shadow-glow" 
