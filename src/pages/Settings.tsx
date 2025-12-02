@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft, User, Palette, HelpCircle, Share2, Mail, Twitter, Instagram, MessageCircle } from 'lucide-react';
+import { ArrowLeft, User, Palette, HelpCircle, Share2, Mail, Twitter, Instagram, MessageCircle, CreditCard } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SubscriptionCard } from '@/components/SubscriptionCard';
 
@@ -195,7 +195,18 @@ const Settings = () => {
           </Card>
 
           {/* Seção 2: Assinatura e Cobrança */}
-          <SubscriptionCard />
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Assinatura e Cobrança
+              </CardTitle>
+              <CardDescription>Gerencie seu plano, método de pagamento e cancele se necessário.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SubscriptionCard />
+            </CardContent>
+          </Card>
 
           {/* Seção 3: Preferências e Aparência */}
           <Card>

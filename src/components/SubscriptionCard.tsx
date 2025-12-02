@@ -82,7 +82,7 @@ export const SubscriptionCard = () => {
   const Icon = currentPlan.icon;
 
   return (
-    <Card className="p-6">
+    <div className="space-y-6">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${currentPlan.color} flex items-center justify-center`}>
@@ -246,6 +246,6 @@ export const SubscriptionCard = () => {
           </p>
         </div>
       )}
-    </Card>
+    </div>
   );
 };
