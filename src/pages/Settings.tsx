@@ -9,11 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Progress } from '@/components/ui/progress';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft, User, Crown, Palette, HelpCircle, Share2, Mail, Twitter, Instagram, MessageCircle } from 'lucide-react';
+import { ArrowLeft, User, Palette, HelpCircle, Share2, Mail, Twitter, Instagram, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { SubscriptionCard } from '@/components/SubscriptionCard';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -84,13 +84,6 @@ const Settings = () => {
     signOut();
   };
 
-  const handleCancelSubscription = () => {
-    toast({
-      title: "Assinatura cancelada",
-      description: "Sua assinatura será cancelada ao final do período atual.",
-    });
-  };
-
   const handleShare = (platform: string) => {
     const shareUrl = "https://essenciaduopdf.com";
     toast({
@@ -98,9 +91,6 @@ const Settings = () => {
       description: `Link: ${shareUrl}`,
     });
   };
-
-  const pdfUsagePercentage = profile ? ((profile.pdfs_used || 0) / (profile.pdfs_limit || 1)) * 100 : 0;
-  const planName = profile?.plan === 'free' ? 'Gratuito' : profile?.plan === 'basic' ? 'Básico' : 'Premium';
 
   return (
     <div className="min-h-screen bg-background">
@@ -205,62 +195,7 @@ const Settings = () => {
           </Card>
 
           {/* Seção 2: Assinatura e Cobrança */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Crown className="h-5 w-5" />
-                Assinatura e Cobrança
-              </CardTitle>
-              <CardDescription>Gerencie seu plano e preferências de pagamento.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Plano Atual */}
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold mb-1">Plano Atual</h3>
-                  <p className="text-2xl font-bold text-primary">{planName}</p>
-                </div>
-
-                {/* Uso de Recursos */}
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>PDFs Usados</span>
-                      <span className="font-medium">{profile?.pdfs_used || 0} / {profile?.pdfs_limit || 0}</span>
-                    </div>
-                    <Progress value={pdfUsagePercentage} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Automações Usadas</span>
-                      <span className="font-medium">{profile?.automations_used || 0}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Ações */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button asChild className="w-full sm:w-auto">
-                    <Link to="/pricing">Fazer Upgrade</Link>
-                  </Button>
-                  {profile?.plan !== 'free' && (
-                    <Button variant="outline" onClick={handleCancelSubscription} className="w-full sm:w-auto">
-                      Cancelar Assinatura
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Histórico de Faturamento */}
-              <div className="border-t pt-6">
-                <h3 className="font-semibold mb-2">Histórico de Faturamento</h3>
-                <p className="text-sm text-muted-foreground">
-                  Histórico de Faturas e Métodos de Pagamento (Integração Stripe - Fase 4).
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <SubscriptionCard />
 
           {/* Seção 3: Preferências e Aparência */}
           <Card>
