@@ -133,6 +133,64 @@ serve(async (req) => {
       } else {
         logStep("Profile updated with subscription limits");
       }
+
+      // Process referral commission for recent payments
+      try {
+        // Get recent invoices for this subscription
+        const invoices = await stripe.invoices.list({
+          customer: customerId,
+          subscription: subscription.id,
+          status: 'paid',
+          limit: 5,
+        });
+
+        for (const invoice of invoices.data) {
+          // Check if we already processed this invoice
+          const { data: existingCommission } = await supabaseClient
+            .from('commissions')
+            .select('id')
+            .eq('referral_id', invoice.id)
+            .single();
+
+          if (!existingCommission && invoice.amount_paid > 0) {
+            // Check if user was referred
+            const { data: referral } = await supabaseClient
+              .from('referrals')
+              .select('*')
+              .eq('referred_id', user.id)
+              .single();
+
+            if (referral) {
+              // Check if commission period is still valid
+              const expiresAt = new Date(referral.commission_expires_at);
+              if (expiresAt > new Date()) {
+                const paymentAmount = invoice.amount_paid / 100; // Convert from cents
+                const commissionAmount = paymentAmount * 0.10; // 10%
+
+                const { error: commissionError } = await supabaseClient
+                  .from('commissions')
+                  .insert({
+                    referral_id: referral.id,
+                    referrer_id: referral.referrer_id,
+                    payment_amount: paymentAmount,
+                    commission_amount: commissionAmount,
+                    status: 'pending',
+                  });
+
+                if (!commissionError) {
+                  logStep("Commission created", { 
+                    referrer_id: referral.referrer_id,
+                    payment: paymentAmount,
+                    commission: commissionAmount 
+                  });
+                }
+              }
+            }
+          }
+        }
+      } catch (commissionError) {
+        logStep("Error processing commissions", { error: String(commissionError) });
+      }
     } else {
       logStep("No active subscription, resetting to free plan");
       

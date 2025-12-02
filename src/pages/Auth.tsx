@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { FileText, ArrowLeft, Eye, EyeOff, Gift } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import PlanSelectionDialog from "@/components/PlanSelectionDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -27,6 +28,8 @@ const Auth = () => {
   
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const referralCode = searchParams.get('ref');
 
   useEffect(() => {
     if (user) {
@@ -55,6 +58,21 @@ const Auth = () => {
 
     if (result.data?.user) {
       setPendingUserId(result.data.user.id);
+      
+      // Registrar indicação se houver código
+      if (referralCode) {
+        try {
+          await supabase.functions.invoke('register-referral', {
+            body: { 
+              referral_code: referralCode, 
+              referred_user_id: result.data.user.id 
+            },
+          });
+        } catch (error) {
+          console.error('Error registering referral:', error);
+        }
+      }
+      
       setShowPlanDialog(true);
     }
   };
@@ -223,6 +241,12 @@ const Auth = () => {
               <CardHeader>
                 <CardTitle>Criar Conta Grátis</CardTitle>
                 <CardDescription>Comece a criar PDFs profissionais agora</CardDescription>
+                {referralCode && (
+                  <Badge className="mt-2 bg-green-500 text-white w-fit">
+                    <Gift className="w-3 h-3 mr-1" />
+                    Indicação: {referralCode}
+                  </Badge>
+                )}
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSignup} className="space-y-4">
