@@ -17,6 +17,31 @@ export interface PdfTemplateConfig {
   layout: "single-column" | "two-column" | "header-sidebar";
 }
 
+/**
+ * Adiciona marca d'água do Essência Duo em todas as páginas do PDF
+ */
+const addWatermark = (pdf: jsPDF, isFreePlan: boolean) => {
+  if (!isFreePlan) return;
+  
+  const pageCount = pdf.getNumberOfPages();
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  
+  for (let i = 1; i <= pageCount; i++) {
+    pdf.setPage(i);
+    pdf.setFontSize(10);
+    pdf.setTextColor(150, 150, 150);
+    
+    const watermarkText = "Criado com Essência Duo PDF - essenciaduopdf.com";
+    const textWidth = pdf.getTextWidth(watermarkText);
+    const xPosition = (pageWidth - textWidth) / 2;
+    const yPosition = pageHeight - 10;
+    
+    pdf.text(watermarkText, xPosition, yPosition);
+    pdf.setTextColor(0, 0, 0);
+  }
+};
+
 const templateConfigs: Record<string, PdfTemplateConfig> = {
   modern: {
     colors: {
@@ -92,19 +117,26 @@ export function applyTemplate(
   content: string,
   title: string,
   photoUrl?: string,
-  signatureUrl?: string
+  signatureUrl?: string,
+  isFreePlan: boolean = false
 ): jsPDF {
   const config = templateConfigs[template] || templateConfigs.modern;
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
   
+  let result: jsPDF;
   if (config.layout === "single-column") {
-    return applySingleColumnLayout(pdf, config, content, title, photoUrl, signatureUrl);
+    result = applySingleColumnLayout(pdf, config, content, title, photoUrl, signatureUrl);
   } else if (config.layout === "two-column") {
-    return applyTwoColumnLayout(pdf, config, content, title, photoUrl, signatureUrl);
+    result = applyTwoColumnLayout(pdf, config, content, title, photoUrl, signatureUrl);
   } else {
-    return applyHeaderSidebarLayout(pdf, config, content, title, photoUrl, signatureUrl);
+    result = applyHeaderSidebarLayout(pdf, config, content, title, photoUrl, signatureUrl);
   }
+  
+  // Adicionar marca d'água para plano gratuito
+  addWatermark(result, isFreePlan);
+  
+  return result;
 }
 
 function applySingleColumnLayout(

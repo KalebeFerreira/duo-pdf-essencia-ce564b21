@@ -16,6 +16,8 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import PptxGenJS from "pptxgenjs";
 import JSZip from "jszip";
+import { addWatermarkToPdf, checkIsFreePlan } from "@/utils/pdfWatermark";
+import { useAuth } from "@/hooks/useAuth";
 
 interface PdfGeneratorProps {
   onPdfGenerated: () => void;
@@ -29,6 +31,7 @@ interface BatchResult {
 }
 
 const PdfGenerator = ({ onPdfGenerated }: PdfGeneratorProps) => {
+  const { user } = useAuth();
   const { checkLimit, getLimitInfo } = usePdfLimit();
   const [topic, setTopic] = useState("");
   const [prompt, setPrompt] = useState("");
@@ -190,6 +193,9 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
     setIsExporting(true);
 
     try {
+      // Verificar se é plano gratuito
+      const isFreePlan = await checkIsFreePlan(supabase, user?.id);
+      
       const pdf = new jsPDF();
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -224,6 +230,9 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
         pdf.text(wrappedLines, margin, yPosition);
         yPosition += wrappedLines.length * 7;
       }
+
+      // Adicionar marca d'água para plano gratuito
+      addWatermarkToPdf(pdf, isFreePlan);
 
       pdf.save(`${savedTopic}.pdf`);
       
@@ -545,6 +554,9 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
     
     setIsExporting(true);
     try {
+      // Verificar se é plano gratuito
+      const isFreePlan = await checkIsFreePlan(supabase, user?.id);
+      
       const zip = new JSZip();
       
       for (const result of batchResults) {
@@ -580,6 +592,9 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
             pdf.text(wrappedLines, margin, yPosition);
             yPosition += wrappedLines.length * 7;
           }
+
+          // Adicionar marca d'água para plano gratuito
+          addWatermarkToPdf(pdf, isFreePlan);
 
           const pdfBlob = pdf.output('blob');
           zip.file(`${result.topic}.pdf`, pdfBlob);

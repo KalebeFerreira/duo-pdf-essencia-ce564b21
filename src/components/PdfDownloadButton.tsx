@@ -3,6 +3,9 @@ import { Download } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import { applyTemplate } from "@/utils/pdfTemplates";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useState } from "react";
 
 interface PdfDownloadButtonProps {
   content: string;
@@ -16,8 +19,23 @@ interface PdfDownloadButtonProps {
 }
 
 const PdfDownloadButton = ({ content, title, photoUrl, signatureUrl, template = "modern", variant = "outline", size = "sm", className = "" }: PdfDownloadButtonProps) => {
+  const { user } = useAuth();
+  const [isDownloading, setIsDownloading] = useState(false);
+
   const handleDownload = async () => {
+    setIsDownloading(true);
     try {
+      // Verificar se é plano gratuito
+      let isFreePlan = true;
+      if (user?.id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('plan')
+          .eq('id', user.id)
+          .single();
+        isFreePlan = !profile?.plan || profile.plan === 'free';
+      }
+
       // Decodificar conteúdo se estiver em base64
       let decodedContent = content;
       if (content.startsWith("data:text/plain;base64,")) {
@@ -66,13 +84,23 @@ const PdfDownloadButton = ({ content, title, photoUrl, signatureUrl, template = 
         const y = (pageHeight - height) / 2;
 
         pdf.addImage(content, "JPEG", x, y, width, height);
+        
+        // Adicionar marca d'água se for plano gratuito
+        if (isFreePlan) {
+          pdf.setFontSize(10);
+          pdf.setTextColor(150, 150, 150);
+          const watermarkText = "Criado com Essência Duo PDF - essenciaduopdf.com";
+          const textWidth = pdf.getTextWidth(watermarkText);
+          pdf.text(watermarkText, (pageWidth - textWidth) / 2, pageHeight - 10);
+        }
+        
         pdf.save(`${title}.pdf`);
       } else {
         // It's text content, create PDF from text with template
         const pdf = new jsPDF();
         
-        // Aplicar template visual ao PDF
-        const styledPdf = applyTemplate(pdf, template, decodedContent, title, photoUrl, signatureUrl);
+        // Aplicar template visual ao PDF com marca d'água para plano gratuito
+        const styledPdf = applyTemplate(pdf, template, decodedContent, title, photoUrl, signatureUrl, isFreePlan);
         
         styledPdf.save(`${title}.pdf`);
       }
@@ -88,13 +116,15 @@ const PdfDownloadButton = ({ content, title, photoUrl, signatureUrl, template = 
         description: "Ocorreu um erro ao baixar o PDF. Tente novamente.",
         variant: "destructive",
       });
+    } finally {
+      setIsDownloading(false);
     }
   };
 
   return (
-    <Button variant={variant} size={size} onClick={handleDownload} className={className}>
+    <Button variant={variant} size={size} onClick={handleDownload} className={className} disabled={isDownloading}>
       <Download className="w-3 h-3 mr-1" />
-      Download
+      {isDownloading ? "..." : "Download"}
     </Button>
   );
 };

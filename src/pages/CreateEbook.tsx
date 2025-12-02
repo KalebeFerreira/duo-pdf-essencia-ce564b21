@@ -19,6 +19,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import jsPDF from "jspdf";
 import PptxGenJS from "pptxgenjs";
 import html2canvas from "html2canvas";
+import { addWatermarkToPdf, checkIsFreePlan } from "@/utils/pdfWatermark";
 
 const colorPalettes = {
   classic: { name: "Clássico", primary: [37, 99, 235], secondary: [243, 244, 246], text: [0, 0, 0] },
@@ -186,6 +187,9 @@ export default function CreateEbook() {
     if (!generatedEbook) return;
 
     try {
+      // Verificar se é plano gratuito
+      const isFreePlan = await checkIsFreePlan(supabase, user?.id);
+      
       const pdf = new jsPDF();
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -245,6 +249,9 @@ export default function CreateEbook() {
           yPos += 7;
         }
       }
+
+      // Adicionar marca d'água para plano gratuito
+      addWatermarkToPdf(pdf, isFreePlan);
 
       pdf.save(`${generatedEbook.title}.pdf`);
       toast({
