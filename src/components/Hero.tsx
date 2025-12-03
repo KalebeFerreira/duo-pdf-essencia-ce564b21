@@ -37,7 +37,7 @@ const Hero = () => {
               >
                 <Link to="/auth">
                   Começar Grátis
-                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-smooth" />
+                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                 </Link>
               </Button>
               

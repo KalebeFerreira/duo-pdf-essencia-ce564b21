@@ -121,7 +121,7 @@ const Auth = () => {
       
       <div className="w-full max-w-md relative z-10">
         <div className="mb-8 text-center">
-          <Link to="/" className="inline-flex items-center gap-2 font-bold text-2xl text-foreground hover:text-primary transition-smooth mb-2">
+          <Link to="/" className="inline-flex items-center gap-2 font-bold text-2xl text-foreground hover:text-primary transition-colors duration-300 mb-2">
             <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
               <FileText className="w-6 h-6 text-primary-foreground" />
             </div>
@@ -380,7 +380,7 @@ const Auth = () => {
         </Tabs>
 
         <div className="mt-8 text-center">
-          <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-smooth">
+          <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors duration-300">
             <ArrowLeft className="w-4 h-4" />
             Voltar para a página inicial
           </Link>

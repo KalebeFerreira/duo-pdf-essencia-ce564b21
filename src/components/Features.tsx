@@ -17,6 +17,7 @@ import featureCatalog from "@/assets/feature-catalog.png";
 import featureEdit from "@/assets/feature-edit.png";
 import featureShare from "@/assets/feature-share.png";
 
+// Landing page features section
 const Features = () => {
   const features = [
     {
