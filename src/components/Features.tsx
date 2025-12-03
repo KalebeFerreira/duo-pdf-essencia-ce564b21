@@ -130,7 +130,7 @@ const Features = () => {
                     />
                   )}
                 </div>
-                <CardTitle className="text-xl text-foreground group-hover:text-primary transition-smooth">
+                <CardTitle className="text-xl text-foreground group-hover:text-primary transition-colors duration-300">
                   {feature.title}
                 </CardTitle>
               </CardHeader>
