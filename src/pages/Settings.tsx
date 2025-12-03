@@ -10,11 +10,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, User, Palette, HelpCircle, Share2, Mail, Twitter, Instagram, MessageCircle, CreditCard, Gift, Check, Monitor, Smartphone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SubscriptionCard } from '@/components/SubscriptionCard';
+import { DeleteAccountDialog } from '@/components/DeleteAccountDialog';
 import { ReferralCard } from '@/components/ReferralCard';
 
 const SIDEBAR_COLORS = [
@@ -146,16 +146,6 @@ const Settings = () => {
     setConfirmPassword('');
   };
 
-  const handleDeleteAccount = () => {
-    // Mock - implementação real virá depois
-    toast({
-      title: "Conta deletada",
-      description: "Sua conta foi removida do sistema.",
-      variant: "destructive",
-    });
-    signOut();
-  };
-
   const handleShare = (platform: string) => {
     const shareUrl = "https://essenciaduopdf.com";
     toast({
@@ -242,26 +232,10 @@ const Settings = () => {
                 <p className="text-sm text-muted-foreground mb-4">
                   Esta ação é irreversível. Todos os seus dados serão permanentemente excluídos.
                 </p>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive">Deletar Conta</Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Esta ação não pode ser desfeita. Isso irá deletar permanentemente sua conta
-                        e remover todos os seus dados dos nossos servidores.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                        Deletar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <DeleteAccountDialog 
+                  userEmail={user?.email || ''} 
+                  onSignOut={signOut} 
+                />
               </div>
             </CardContent>
           </Card>
