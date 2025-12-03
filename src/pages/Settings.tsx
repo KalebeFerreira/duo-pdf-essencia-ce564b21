@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useTheme } from 'next-themes';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft, User, Palette, HelpCircle, Share2, Mail, Twitter, Instagram, MessageCircle, CreditCard, Gift, Check } from 'lucide-react';
+import { ArrowLeft, User, Palette, HelpCircle, Share2, Mail, Twitter, Instagram, MessageCircle, CreditCard, Gift, Check, Monitor, Smartphone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SubscriptionCard } from '@/components/SubscriptionCard';
 import { ReferralCard } from '@/components/ReferralCard';
@@ -35,8 +36,9 @@ const Settings = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { profile, updateProfile } = useUserProfile();
+  const isMobile = useIsMobile();
   
-  const { theme, setTheme } = useTheme();
+  const { setTheme } = useTheme();
   
   const [nomeCompleto, setNomeCompleto] = useState(profile?.nome_completo || '');
   const [newPassword, setNewPassword] = useState('');
@@ -45,6 +47,8 @@ const Settings = () => {
   const [whatsappIntegration, setWhatsappIntegration] = useState(false);
   const [language, setLanguage] = useState('pt-BR');
   const [sidebarColor, setSidebarColor] = useState(profile?.sidebar_color || '#1e3a5f');
+  const [themeDesktop, setThemeDesktop] = useState(profile?.theme_desktop || 'system');
+  const [themeMobile, setThemeMobile] = useState(profile?.theme_mobile || 'system');
 
   useEffect(() => {
     if (profile?.sidebar_color) {
@@ -52,6 +56,12 @@ const Settings = () => {
     }
     if (profile?.nome_completo) {
       setNomeCompleto(profile.nome_completo);
+    }
+    if (profile?.theme_desktop) {
+      setThemeDesktop(profile.theme_desktop);
+    }
+    if (profile?.theme_mobile) {
+      setThemeMobile(profile.theme_mobile);
     }
   }, [profile]);
 
@@ -298,19 +308,72 @@ const Settings = () => {
                 </div>
               </div>
 
-              {/* Tema */}
-              <div className="space-y-2 border-t pt-6">
-                <Label>Tema</Label>
-                <Select value={theme} onValueChange={setTheme}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um tema" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="light">Claro</SelectItem>
-                    <SelectItem value="dark">Escuro</SelectItem>
-                    <SelectItem value="system">Sistema</SelectItem>
-                  </SelectContent>
-                </Select>
+              {/* Tema por Dispositivo */}
+              <div className="space-y-4 border-t pt-6">
+                <div>
+                  <Label className="text-base font-semibold">Tema por Dispositivo</Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Configure temas diferentes para desktop e celular
+                  </p>
+                </div>
+                
+                {/* Tema Desktop */}
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 min-w-[120px]">
+                    <Monitor className="h-4 w-4 text-muted-foreground" />
+                    <Label>Desktop</Label>
+                  </div>
+                  <Select 
+                    value={themeDesktop} 
+                    onValueChange={(value) => {
+                      setThemeDesktop(value);
+                      updateProfile({ theme_desktop: value });
+                      if (!isMobile) setTheme(value);
+                      toast({
+                        title: "Tema desktop atualizado!",
+                        description: `Tema ${value === 'light' ? 'Claro' : value === 'dark' ? 'Escuro' : 'Sistema'} aplicado ao desktop.`,
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">Claro</SelectItem>
+                      <SelectItem value="dark">Escuro</SelectItem>
+                      <SelectItem value="system">Sistema</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Tema Mobile */}
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 min-w-[120px]">
+                    <Smartphone className="h-4 w-4 text-muted-foreground" />
+                    <Label>Celular</Label>
+                  </div>
+                  <Select 
+                    value={themeMobile} 
+                    onValueChange={(value) => {
+                      setThemeMobile(value);
+                      updateProfile({ theme_mobile: value });
+                      if (isMobile) setTheme(value);
+                      toast({
+                        title: "Tema mobile atualizado!",
+                        description: `Tema ${value === 'light' ? 'Claro' : value === 'dark' ? 'Escuro' : 'Sistema'} aplicado ao celular.`,
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">Claro</SelectItem>
+                      <SelectItem value="dark">Escuro</SelectItem>
+                      <SelectItem value="system">Sistema</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Idioma */}
