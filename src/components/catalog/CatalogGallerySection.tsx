@@ -84,10 +84,11 @@ const CatalogGallerySection = ({
       <div className="space-y-4">
         {/* Upload */}
         <div>
-          <Input
+          <input
             type="file"
             accept="image/*"
             multiple
+            capture="environment"
             onChange={handleImageUpload}
             className="hidden"
             id="gallery-upload"

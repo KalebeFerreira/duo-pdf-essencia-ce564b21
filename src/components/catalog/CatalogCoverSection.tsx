@@ -84,7 +84,7 @@ const CatalogCoverSection = ({
           <Input
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
-            placeholder="Digite o título do seu catálogo"
+            placeholder=""
             className="mt-1"
           />
         </div>
@@ -103,9 +103,10 @@ const CatalogCoverSection = ({
           
           <div className="flex flex-col gap-3 mt-2">
             <div className="flex gap-2">
-              <Input
+              <input
                 type="file"
                 accept="image/*"
+                capture="environment"
                 onChange={handleImageUpload}
                 className="hidden"
                 id="cover-upload"

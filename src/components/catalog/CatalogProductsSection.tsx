@@ -229,9 +229,10 @@ const CatalogProductsSection = ({
                 />
               )}
               <div className="flex gap-2 mt-1">
-                <Input
+                <input
                   type="file"
                   accept="image/*"
+                  capture="environment"
                   onChange={(e) => handleImageUpload(product.id, e)}
                   className="hidden"
                   id={`product-image-${product.id}`}

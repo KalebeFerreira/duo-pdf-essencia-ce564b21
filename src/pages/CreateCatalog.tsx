@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Save, FileDown, Loader2, BookOpen } from "lucide-react";
+import { ArrowLeft, Save, FileDown, Loader2, BookOpen, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCatalog, useCatalogs, type Catalog, type CatalogProduct, type CatalogPriceItem, type CatalogTestimonial } from "@/hooks/useCatalogs";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { jsPDF } from "jspdf";
 import { addWatermarkToPdf } from "@/utils/pdfWatermark";
+import { supabase } from "@/integrations/supabase/client";
 
 import CatalogCoverSection from "@/components/catalog/CatalogCoverSection";
 import CatalogAboutSection from "@/components/catalog/CatalogAboutSection";
@@ -29,7 +30,7 @@ const CreateCatalog = () => {
   const { createCatalog, updateCatalog, isCreating, isUpdating } = useCatalogs();
 
   const [catalog, setCatalog] = useState<Partial<Catalog>>({
-    title: 'Meu Catálogo',
+    title: '',
     about_title: 'Sobre',
     products: [],
     price_table: [],
@@ -42,6 +43,7 @@ const CreateCatalog = () => {
   });
 
   const [isExporting, setIsExporting] = useState(false);
+  const [isGeneratingAll, setIsGeneratingAll] = useState(false);
 
   useEffect(() => {
     if (existingCatalog) {
@@ -50,6 +52,108 @@ const CreateCatalog = () => {
   }, [existingCatalog]);
 
   const isFreePlan = profile?.plan === 'free' || !profile?.plan;
+
+  const handleGenerateAll = async () => {
+    if (!catalog.title?.trim()) {
+      toast({
+        title: "Erro",
+        description: "Digite um título para o catálogo primeiro",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingAll(true);
+    try {
+      // Generate about text
+      const aboutResponse = await supabase.functions.invoke('generate-catalog-content', {
+        body: { type: 'about', prompt: catalog.title }
+      });
+      
+      if (aboutResponse.data?.content) {
+        setCatalog(prev => ({ ...prev, about_text: aboutResponse.data.content }));
+      }
+
+      // Generate 3 products
+      const products: any[] = [];
+      for (let i = 0; i < 3; i++) {
+        const productResponse = await supabase.functions.invoke('generate-catalog-content', {
+          body: { type: 'product', prompt: `${catalog.title} - produto ${i + 1}` }
+        });
+        
+        if (productResponse.data?.content) {
+          try {
+            const productData = typeof productResponse.data.content === 'string' 
+              ? JSON.parse(productResponse.data.content) 
+              : productResponse.data.content;
+            products.push({
+              id: crypto.randomUUID(),
+              name: productData.name || '',
+              description: productData.description || '',
+              price: productData.price || '',
+            });
+          } catch {}
+        }
+      }
+      if (products.length > 0) {
+        setCatalog(prev => ({ ...prev, products }));
+      }
+
+      // Generate price table
+      const priceResponse = await supabase.functions.invoke('generate-catalog-content', {
+        body: { type: 'price_table', prompt: catalog.title }
+      });
+      
+      if (priceResponse.data?.content) {
+        try {
+          const priceData = typeof priceResponse.data.content === 'string'
+            ? JSON.parse(priceResponse.data.content)
+            : priceResponse.data.content;
+          if (Array.isArray(priceData)) {
+            setCatalog(prev => ({ ...prev, price_table: priceData }));
+          }
+        } catch {}
+      }
+
+      // Generate testimonials
+      const testimonialResponse = await supabase.functions.invoke('generate-catalog-content', {
+        body: { type: 'testimonials', prompt: catalog.title }
+      });
+      
+      if (testimonialResponse.data?.content) {
+        try {
+          const testimonialData = typeof testimonialResponse.data.content === 'string'
+            ? JSON.parse(testimonialResponse.data.content)
+            : testimonialResponse.data.content;
+          if (Array.isArray(testimonialData)) {
+            setCatalog(prev => ({ ...prev, testimonials: testimonialData }));
+          }
+        } catch {}
+      }
+
+      // Generate cover image
+      const coverImageResponse = await supabase.functions.invoke('generate-catalog-image', {
+        body: { prompt: `capa profissional para catálogo de ${catalog.title}` }
+      });
+      
+      if (coverImageResponse.data?.imageUrl) {
+        setCatalog(prev => ({ ...prev, cover_image: coverImageResponse.data.imageUrl }));
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Conteúdo gerado com sucesso! Revise e ajuste conforme necessário.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao gerar conteúdo",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingAll(false);
+    }
+  };
 
   const handleSave = () => {
     if (!user?.id) {
@@ -306,6 +410,18 @@ const CreateCatalog = () => {
               Catálogo Digital
             </h1>
             <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                onClick={handleGenerateAll}
+                disabled={isGeneratingAll || !catalog.title?.trim()}
+              >
+                {isGeneratingAll ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Wand2 className="w-4 h-4 mr-2" />
+                )}
+                Gerar Tudo
+              </Button>
               <Button
                 variant="outline"
                 onClick={handleExportPDF}
