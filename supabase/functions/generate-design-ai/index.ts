@@ -1,8 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const logStep = (step: string, details?: any) => {
+  console.log(`[GENERATE-DESIGN-AI] ${step}`, details ? JSON.stringify(details) : '');
 };
 
 serve(async (req) => {
@@ -11,6 +16,35 @@ serve(async (req) => {
   }
 
   try {
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      logStep('Error: Missing authorization header');
+      return new Response(
+        JSON.stringify({ error: "Autenticação necessária" }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create Supabase client with user's token
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Verify user
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      logStep('Error: Invalid user', { error: userError?.message });
+      return new Response(
+        JSON.stringify({ error: "Usuário não autenticado" }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    logStep('User authenticated', { userId: user.id });
+
     const { prompt, template } = await req.json();
 
     if (!prompt) {
@@ -40,7 +74,7 @@ serve(async (req) => {
     
     const enhancedPrompt = `Create a professional print-ready design for ${templateContext}. ${prompt}. The design should be high-quality, print-ready with proper margins, and visually appealing. Ultra high resolution.`;
 
-    console.log('Gerando arte com prompt:', enhancedPrompt);
+    logStep('Generating design', { userId: user.id, template });
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -94,7 +128,7 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('Resposta da IA recebida');
+    logStep('AI response received', { userId: user.id });
 
     // Extract image from response
     const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
