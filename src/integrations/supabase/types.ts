@@ -27,6 +27,7 @@ export type Database = {
           created_at: string
           gallery: Json
           id: string
+          is_public: boolean | null
           price_table: Json
           products: Json
           sections_order: Json
@@ -50,6 +51,7 @@ export type Database = {
           created_at?: string
           gallery?: Json
           id?: string
+          is_public?: boolean | null
           price_table?: Json
           products?: Json
           sections_order?: Json
@@ -73,6 +75,7 @@ export type Database = {
           created_at?: string
           gallery?: Json
           id?: string
+          is_public?: boolean | null
           price_table?: Json
           products?: Json
           sections_order?: Json
@@ -223,6 +226,7 @@ export type Database = {
           remaining_credits: number | null
           renewal_date: string | null
           resumes_used_this_month: number | null
+          sidebar_color: string | null
           stripe_customer_id: string | null
           stripe_product_id: string | null
           stripe_subscription_id: string | null
@@ -250,6 +254,7 @@ export type Database = {
           remaining_credits?: number | null
           renewal_date?: string | null
           resumes_used_this_month?: number | null
+          sidebar_color?: string | null
           stripe_customer_id?: string | null
           stripe_product_id?: string | null
           stripe_subscription_id?: string | null
@@ -277,6 +282,7 @@ export type Database = {
           remaining_credits?: number | null
           renewal_date?: string | null
           resumes_used_this_month?: number | null
+          sidebar_color?: string | null
           stripe_customer_id?: string | null
           stripe_product_id?: string | null
           stripe_subscription_id?: string | null

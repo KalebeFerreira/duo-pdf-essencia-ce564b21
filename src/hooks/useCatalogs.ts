@@ -45,6 +45,7 @@ export interface Catalog {
   theme_secondary_color: string;
   theme_font: string;
   sections_order: string[];
+  is_public?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -129,6 +130,7 @@ export const useCatalogs = () => {
       if (updates.theme_secondary_color !== undefined) updateData.theme_secondary_color = updates.theme_secondary_color;
       if (updates.theme_font !== undefined) updateData.theme_font = updates.theme_font;
       if (updates.sections_order !== undefined) updateData.sections_order = updates.sections_order as unknown as Json;
+      if (updates.is_public !== undefined) updateData.is_public = updates.is_public;
 
       const { data, error } = await supabase
         .from('catalogs')
