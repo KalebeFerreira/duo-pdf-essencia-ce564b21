@@ -230,6 +230,8 @@ export type Database = {
           stripe_customer_id: string | null
           stripe_product_id: string | null
           stripe_subscription_id: string | null
+          theme_desktop: string | null
+          theme_mobile: string | null
         }
         Insert: {
           automations_used?: number | null
@@ -258,6 +260,8 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_product_id?: string | null
           stripe_subscription_id?: string | null
+          theme_desktop?: string | null
+          theme_mobile?: string | null
         }
         Update: {
           automations_used?: number | null
@@ -286,6 +290,8 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_product_id?: string | null
           stripe_subscription_id?: string | null
+          theme_desktop?: string | null
+          theme_mobile?: string | null
         }
         Relationships: []
       }
