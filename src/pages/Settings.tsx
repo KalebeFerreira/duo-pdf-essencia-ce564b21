@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -11,10 +11,25 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft, User, Palette, HelpCircle, Share2, Mail, Twitter, Instagram, MessageCircle, CreditCard, Gift } from 'lucide-react';
+import { ArrowLeft, User, Palette, HelpCircle, Share2, Mail, Twitter, Instagram, MessageCircle, CreditCard, Gift, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SubscriptionCard } from '@/components/SubscriptionCard';
 import { ReferralCard } from '@/components/ReferralCard';
+
+const SIDEBAR_COLORS = [
+  { name: 'Azul Marinho', value: '#1e3a5f' },
+  { name: 'Azul Royal', value: '#1e40af' },
+  { name: 'Verde Escuro', value: '#14532d' },
+  { name: 'Verde Esmeralda', value: '#047857' },
+  { name: 'Roxo', value: '#581c87' },
+  { name: 'Violeta', value: '#6d28d9' },
+  { name: 'Cinza Escuro', value: '#1f2937' },
+  { name: 'Slate', value: '#334155' },
+  { name: 'Rosa Escuro', value: '#831843' },
+  { name: 'Vermelho Escuro', value: '#7f1d1d' },
+  { name: 'Laranja Escuro', value: '#9a3412' },
+  { name: 'Âmbar', value: '#92400e' },
+];
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -29,6 +44,25 @@ const Settings = () => {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [whatsappIntegration, setWhatsappIntegration] = useState(false);
   const [language, setLanguage] = useState('pt-BR');
+  const [sidebarColor, setSidebarColor] = useState(profile?.sidebar_color || '#1e3a5f');
+
+  useEffect(() => {
+    if (profile?.sidebar_color) {
+      setSidebarColor(profile.sidebar_color);
+    }
+    if (profile?.nome_completo) {
+      setNomeCompleto(profile.nome_completo);
+    }
+  }, [profile]);
+
+  const handleSidebarColorChange = (color: string) => {
+    setSidebarColor(color);
+    updateProfile({ sidebar_color: color });
+    toast({
+      title: "Cor da sidebar atualizada!",
+      description: "A nova cor será aplicada imediatamente.",
+    });
+  };
 
   const handleSaveProfile = () => {
     if (!nomeCompleto.trim()) {
@@ -222,8 +256,50 @@ const Settings = () => {
               <CardDescription>Personalize a aparência e o comportamento do aplicativo.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Cor da Sidebar */}
+              <div className="space-y-3">
+                <Label>Cor da Sidebar</Label>
+                <p className="text-sm text-muted-foreground">
+                  Escolha a cor do menu lateral do aplicativo
+                </p>
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+                  {SIDEBAR_COLORS.map((color) => (
+                    <button
+                      key={color.value}
+                      onClick={() => handleSidebarColorChange(color.value)}
+                      className={`
+                        relative w-full aspect-square rounded-xl transition-all hover:scale-110
+                        ${sidebarColor === color.value ? 'ring-2 ring-primary ring-offset-2' : ''}
+                      `}
+                      style={{ backgroundColor: color.value }}
+                      title={color.name}
+                    >
+                      {sidebarColor === color.value && (
+                        <Check className="absolute inset-0 m-auto w-5 h-5 text-white" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+                {/* Custom color input */}
+                <div className="flex items-center gap-3 mt-4">
+                  <Label className="text-sm">Cor personalizada:</Label>
+                  <input
+                    type="color"
+                    value={sidebarColor}
+                    onChange={(e) => handleSidebarColorChange(e.target.value)}
+                    className="w-10 h-10 rounded cursor-pointer border-0"
+                  />
+                  <Input
+                    value={sidebarColor}
+                    onChange={(e) => handleSidebarColorChange(e.target.value)}
+                    className="w-28 font-mono text-sm"
+                    placeholder="#1e3a5f"
+                  />
+                </div>
+              </div>
+
               {/* Tema */}
-              <div className="space-y-2">
+              <div className="space-y-2 border-t pt-6">
                 <Label>Tema</Label>
                 <Select value={theme} onValueChange={setTheme}>
                   <SelectTrigger>
