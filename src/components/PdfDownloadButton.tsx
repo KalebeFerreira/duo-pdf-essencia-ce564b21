@@ -89,7 +89,7 @@ const PdfDownloadButton = ({ content, title, photoUrl, signatureUrl, template = 
         if (isFreePlan) {
           pdf.setFontSize(10);
           pdf.setTextColor(150, 150, 150);
-          const watermarkText = "Criado com Essência Duo PDF - essenciaduopdf.com";
+          const watermarkText = "Essência Duo";
           const textWidth = pdf.getTextWidth(watermarkText);
           pdf.text(watermarkText, (pageWidth - textWidth) / 2, pageHeight - 10);
         }
