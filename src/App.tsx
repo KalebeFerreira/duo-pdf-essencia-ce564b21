@@ -16,6 +16,8 @@ import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 import Automations from "./pages/Automations";
 import Settings from "./pages/Settings";
+import Catalogs from "./pages/Catalogs";
+import CreateCatalog from "./pages/CreateCatalog";
 
 const queryClient = new QueryClient({
   defaultOptions: {
