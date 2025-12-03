@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Save, FileDown, Loader2, BookOpen, Wand2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, Save, FileDown, Loader2, BookOpen, Wand2, Share2, Link2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCatalog, useCatalogs, type Catalog, type CatalogProduct, type CatalogPriceItem, type CatalogTestimonial } from "@/hooks/useCatalogs";
 import { useAuth } from "@/hooks/useAuth";
@@ -44,6 +48,7 @@ const CreateCatalog = () => {
 
   const [isExporting, setIsExporting] = useState(false);
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     if (existingCatalog) {
@@ -52,6 +57,50 @@ const CreateCatalog = () => {
   }, [existingCatalog]);
 
   const isFreePlan = profile?.plan === 'free' || !profile?.plan;
+  
+  const publicLink = id ? `${window.location.origin}/c/${id}` : '';
+
+  const handleTogglePublic = async (checked: boolean) => {
+    if (!id) {
+      toast({
+        title: "Aviso",
+        description: "Salve o catálogo primeiro para compartilhar",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setCatalog({ ...catalog, is_public: checked });
+    
+    const { error } = await supabase
+      .from('catalogs')
+      .update({ is_public: checked })
+      .eq('id', id);
+    
+    if (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar visibilidade",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    toast({
+      title: checked ? "Link público ativado!" : "Link público desativado",
+      description: checked ? "Qualquer pessoa com o link pode ver seu catálogo" : "O catálogo agora é privado",
+    });
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(publicLink);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+    toast({
+      title: "Link copiado!",
+      description: "Cole onde quiser compartilhar",
+    });
+  };
 
   const handleGenerateAll = async () => {
     if (!catalog.title?.trim()) {
@@ -503,6 +552,53 @@ const CreateCatalog = () => {
 
           {/* Sidebar */}
           <div className="space-y-4">
+            {/* Share Section */}
+            {id && (
+              <Card className="border-primary/20">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2 text-primary">
+                    <Share2 className="w-5 h-5" />
+                    <CardTitle className="text-base">Compartilhar</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="public-toggle" className="text-sm">Link Público</Label>
+                    <Switch
+                      id="public-toggle"
+                      checked={catalog.is_public || false}
+                      onCheckedChange={handleTogglePublic}
+                    />
+                  </div>
+                  {catalog.is_public && (
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Input
+                          value={publicLink}
+                          readOnly
+                          className="text-xs"
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleCopyLink}
+                        >
+                          {linkCopied ? <Check className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        onClick={() => window.open(publicLink, '_blank')}
+                      >
+                        Ver Catálogo Público
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             <CatalogThemeSection
               primaryColor={catalog.theme_primary_color || '#3B82F6'}
               secondaryColor={catalog.theme_secondary_color || '#1E40AF'}

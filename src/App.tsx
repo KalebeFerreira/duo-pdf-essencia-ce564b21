@@ -18,6 +18,7 @@ import Automations from "./pages/Automations";
 import Settings from "./pages/Settings";
 import Catalogs from "./pages/Catalogs";
 import CreateCatalog from "./pages/CreateCatalog";
+import PublicCatalog from "./pages/PublicCatalog";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -59,6 +60,7 @@ const App = () => (
             <Route path="/catalogs" element={<Catalogs />} />
             <Route path="/catalog/new" element={<CreateCatalog />} />
             <Route path="/catalog/:id" element={<CreateCatalog />} />
+            <Route path="/c/:id" element={<PublicCatalog />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/settings" element={<Settings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
