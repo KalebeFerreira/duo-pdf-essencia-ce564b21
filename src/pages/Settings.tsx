@@ -49,6 +49,8 @@ const Settings = () => {
   const [sidebarColor, setSidebarColor] = useState(profile?.sidebar_color || '#1e3a5f');
   const [themeDesktop, setThemeDesktop] = useState(profile?.theme_desktop || 'system');
   const [themeMobile, setThemeMobile] = useState(profile?.theme_mobile || 'system');
+  const [customBgColor, setCustomBgColor] = useState(profile?.custom_bg_color || '');
+  const [useBgColor, setUseBgColor] = useState(!!profile?.custom_bg_color);
 
   useEffect(() => {
     if (profile?.sidebar_color) {
@@ -63,7 +65,32 @@ const Settings = () => {
     if (profile?.theme_mobile) {
       setThemeMobile(profile.theme_mobile);
     }
+    if (profile?.custom_bg_color !== undefined) {
+      setCustomBgColor(profile.custom_bg_color || '');
+      setUseBgColor(!!profile.custom_bg_color);
+    }
   }, [profile]);
+
+  const handleCustomBgColorChange = (color: string) => {
+    setCustomBgColor(color);
+    updateProfile({ custom_bg_color: color });
+    toast({
+      title: "Cor de fundo atualizada!",
+      description: "A nova cor de fundo será aplicada imediatamente.",
+    });
+  };
+
+  const handleToggleBgColor = (enabled: boolean) => {
+    setUseBgColor(enabled);
+    if (!enabled) {
+      setCustomBgColor('');
+      updateProfile({ custom_bg_color: null });
+      toast({
+        title: "Cor de fundo desativada",
+        description: "O tema padrão será usado.",
+      });
+    }
+  };
 
   const handleSidebarColorChange = (color: string) => {
     setSidebarColor(color);
@@ -376,8 +403,45 @@ const Settings = () => {
                 </div>
               </div>
 
+              {/* Cor de Fundo Personalizada */}
+              <div className="space-y-4 border-t pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-semibold">Cor de Fundo Personalizada</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Usar uma cor de fundo fixa em vez do tema
+                    </p>
+                  </div>
+                  <Switch 
+                    checked={useBgColor} 
+                    onCheckedChange={handleToggleBgColor}
+                  />
+                </div>
+                
+                {useBgColor && (
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={customBgColor || '#f8fafc'}
+                      onChange={(e) => handleCustomBgColorChange(e.target.value)}
+                      className="w-12 h-12 rounded cursor-pointer border-0"
+                    />
+                    <Input
+                      value={customBgColor}
+                      onChange={(e) => handleCustomBgColorChange(e.target.value)}
+                      className="w-32 font-mono text-sm"
+                      placeholder="#f8fafc"
+                    />
+                    <div 
+                      className="h-12 flex-1 rounded-lg border"
+                      style={{ backgroundColor: customBgColor || '#f8fafc' }}
+                    />
+                  </div>
+                )}
+              </div>
+
               {/* Idioma */}
-              <div className="space-y-2">
+              <div className="space-y-2 border-t pt-6">
                 <Label>Idioma</Label>
                 <Select value={language} onValueChange={setLanguage}>
                   <SelectTrigger>
