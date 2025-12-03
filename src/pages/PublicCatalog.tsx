@@ -212,7 +212,14 @@ const PublicCatalog = () => {
                 <Button 
                   variant="secondary"
                   className="gap-2"
-                  onClick={() => window.open(`https://wa.me/${catalog.contact_whatsapp.replace(/\D/g, '')}`, '_blank')}
+                  onClick={() => {
+                    let phone = catalog.contact_whatsapp!.replace(/\D/g, '');
+                    // Add Brazil country code if not present
+                    if (phone.length <= 11 && !phone.startsWith('55')) {
+                      phone = '55' + phone;
+                    }
+                    window.open(`https://wa.me/${phone}`, '_blank');
+                  }}
                 >
                   <Phone className="w-4 h-4" />
                   WhatsApp
@@ -222,7 +229,7 @@ const PublicCatalog = () => {
                 <Button 
                   variant="secondary"
                   className="gap-2"
-                  onClick={() => window.open(`mailto:${catalog.contact_email}`, '_blank')}
+                  onClick={() => window.location.href = `mailto:${catalog.contact_email}`}
                 >
                   <Mail className="w-4 h-4" />
                   E-mail
@@ -232,7 +239,10 @@ const PublicCatalog = () => {
                 <Button 
                   variant="secondary"
                   className="gap-2"
-                  onClick={() => window.open(`https://instagram.com/${catalog.contact_instagram.replace('@', '')}`, '_blank')}
+                  onClick={() => {
+                    const username = catalog.contact_instagram!.replace('@', '').replace('https://instagram.com/', '').replace('https://www.instagram.com/', '');
+                    window.open(`https://instagram.com/${username}`, '_blank');
+                  }}
                 >
                   <Instagram className="w-4 h-4" />
                   Instagram
@@ -242,7 +252,13 @@ const PublicCatalog = () => {
                 <Button 
                   variant="secondary"
                   className="gap-2"
-                  onClick={() => window.open(`https://facebook.com/${catalog.contact_facebook}`, '_blank')}
+                  onClick={() => {
+                    let fbUrl = catalog.contact_facebook!;
+                    if (!fbUrl.startsWith('http')) {
+                      fbUrl = `https://facebook.com/${fbUrl.replace('facebook.com/', '')}`;
+                    }
+                    window.open(fbUrl, '_blank');
+                  }}
                 >
                   <Facebook className="w-4 h-4" />
                   Facebook

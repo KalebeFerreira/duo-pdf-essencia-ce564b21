@@ -206,10 +206,17 @@ const CatalogAIGenerator = ({ onGenerate }: CatalogAIGeneratorProps) => {
         let productData: any = {};
         if (productResponse.data?.content) {
           try {
-            productData = typeof productResponse.data.content === 'string' 
-              ? JSON.parse(productResponse.data.content) 
-              : productResponse.data.content;
-          } catch {}
+            let contentStr = productResponse.data.content;
+            // Remove markdown code blocks if present
+            if (typeof contentStr === 'string') {
+              contentStr = contentStr.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            }
+            productData = typeof contentStr === 'string' 
+              ? JSON.parse(contentStr) 
+              : contentStr;
+          } catch (e) {
+            console.error('Error parsing product:', e);
+          }
         }
 
         // Generate image for product
@@ -241,13 +248,36 @@ const CatalogAIGenerator = ({ onGenerate }: CatalogAIGeneratorProps) => {
       let testimonials: CatalogTestimonial[] = [];
       if (testimonialsResponse.data?.content) {
         try {
-          const testimonialData = typeof testimonialsResponse.data.content === 'string'
-            ? JSON.parse(testimonialsResponse.data.content)
-            : testimonialsResponse.data.content;
-          if (Array.isArray(testimonialData)) {
-            testimonials = testimonialData;
+          let contentStr = testimonialsResponse.data.content;
+          // Remove markdown code blocks if present
+          if (typeof contentStr === 'string') {
+            contentStr = contentStr.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
           }
-        } catch {}
+          const testimonialData = typeof contentStr === 'string'
+            ? JSON.parse(contentStr)
+            : contentStr;
+          if (Array.isArray(testimonialData)) {
+            testimonials = testimonialData.map((t: any) => ({
+              id: crypto.randomUUID(),
+              name: t.name || 'Cliente',
+              text: t.text || t.depoimento || 'Excelente serviço!'
+            }));
+          }
+        } catch (e) {
+          console.error('Error parsing testimonials:', e);
+          // Fallback testimonials
+          testimonials = [
+            { id: crypto.randomUUID(), name: 'Cliente Satisfeito', text: `Excelente experiência com ${businessName}! Recomendo muito.` },
+            { id: crypto.randomUUID(), name: 'Maria Silva', text: 'Atendimento impecável e resultado perfeito. Voltarei sempre!' },
+            { id: crypto.randomUUID(), name: 'João Santos', text: 'Profissionalismo e qualidade. Superou minhas expectativas!' }
+          ];
+        }
+      } else {
+        // Fallback if no response
+        testimonials = [
+          { id: crypto.randomUUID(), name: 'Cliente Satisfeito', text: `Excelente experiência com ${businessName}! Recomendo muito.` },
+          { id: crypto.randomUUID(), name: 'Maria Silva', text: 'Atendimento impecável e resultado perfeito. Voltarei sempre!' }
+        ];
       }
 
       // Generate cover image
