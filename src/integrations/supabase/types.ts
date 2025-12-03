@@ -14,6 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      catalogs: {
+        Row: {
+          about_image: string | null
+          about_text: string | null
+          about_title: string | null
+          contact_email: string | null
+          contact_facebook: string | null
+          contact_instagram: string | null
+          contact_whatsapp: string | null
+          cover_image: string | null
+          created_at: string
+          gallery: Json
+          id: string
+          price_table: Json
+          products: Json
+          sections_order: Json
+          testimonials: Json
+          theme_font: string | null
+          theme_primary_color: string | null
+          theme_secondary_color: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          about_image?: string | null
+          about_text?: string | null
+          about_title?: string | null
+          contact_email?: string | null
+          contact_facebook?: string | null
+          contact_instagram?: string | null
+          contact_whatsapp?: string | null
+          cover_image?: string | null
+          created_at?: string
+          gallery?: Json
+          id?: string
+          price_table?: Json
+          products?: Json
+          sections_order?: Json
+          testimonials?: Json
+          theme_font?: string | null
+          theme_primary_color?: string | null
+          theme_secondary_color?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          about_image?: string | null
+          about_text?: string | null
+          about_title?: string | null
+          contact_email?: string | null
+          contact_facebook?: string | null
+          contact_instagram?: string | null
+          contact_whatsapp?: string | null
+          cover_image?: string | null
+          created_at?: string
+          gallery?: Json
+          id?: string
+          price_table?: Json
+          products?: Json
+          sections_order?: Json
+          testimonials?: Json
+          theme_font?: string | null
+          theme_primary_color?: string | null
+          theme_secondary_color?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       commissions: {
         Row: {
           commission_amount: number
