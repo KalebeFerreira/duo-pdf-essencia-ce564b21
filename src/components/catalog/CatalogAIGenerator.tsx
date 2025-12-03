@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Loader2, Plus, Trash2, Scissors, Palette, Dumbbell, Utensils, Camera, Wrench, GraduationCap, Heart } from "lucide-react";
+import { Sparkles, Loader2, Plus, Trash2, Scissors, Palette, Dumbbell, Utensils, Camera, Wrench, GraduationCap, Heart, PawPrint, Stethoscope, Scale, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Catalog, CatalogProduct, CatalogPriceItem, CatalogTestimonial } from "@/hooks/useCatalogs";
@@ -123,6 +123,58 @@ const TEMPLATES = [
       { name: 'Massagem Relaxante', price: 'R$ 100,00' },
       { name: 'Design de Sobrancelhas', price: 'R$ 40,00' },
       { name: 'Depilação', price: 'R$ 60,00' },
+    ]
+  },
+  { 
+    id: 'petshop', 
+    name: 'Pet Shop', 
+    icon: PawPrint,
+    color: 'bg-yellow-500',
+    description: 'Banho, tosa e cuidados para pets',
+    services: [
+      { name: 'Banho Pequeno Porte', price: 'R$ 50,00' },
+      { name: 'Banho Grande Porte', price: 'R$ 80,00' },
+      { name: 'Tosa Higiênica', price: 'R$ 40,00' },
+      { name: 'Tosa Completa', price: 'R$ 90,00' },
+    ]
+  },
+  { 
+    id: 'consultorio', 
+    name: 'Consultório Médico', 
+    icon: Stethoscope,
+    color: 'bg-teal-500',
+    description: 'Consultas e procedimentos médicos',
+    services: [
+      { name: 'Consulta Particular', price: 'R$ 250,00' },
+      { name: 'Retorno', price: 'R$ 150,00' },
+      { name: 'Exame Clínico', price: 'R$ 100,00' },
+      { name: 'Procedimento Simples', price: 'R$ 200,00' },
+    ]
+  },
+  { 
+    id: 'advocacia', 
+    name: 'Escritório Advocacia', 
+    icon: Scale,
+    color: 'bg-slate-600',
+    description: 'Consultoria jurídica e processos',
+    services: [
+      { name: 'Consulta Jurídica', price: 'R$ 300,00' },
+      { name: 'Elaboração de Contrato', price: 'R$ 500,00' },
+      { name: 'Assessoria Mensal', price: 'R$ 1.500,00' },
+      { name: 'Acompanhamento Processual', price: 'R$ 2.000,00' },
+    ]
+  },
+  { 
+    id: 'imobiliaria', 
+    name: 'Imobiliária', 
+    icon: Building2,
+    color: 'bg-cyan-600',
+    description: 'Venda e locação de imóveis',
+    services: [
+      { name: 'Avaliação de Imóvel', price: 'R$ 500,00' },
+      { name: 'Taxa de Administração', price: '10% do aluguel' },
+      { name: 'Consultoria Imobiliária', price: 'R$ 200,00' },
+      { name: 'Documentação', price: 'R$ 300,00' },
     ]
   },
 ];
@@ -316,6 +368,10 @@ const CatalogAIGenerator = ({ onGenerate }: CatalogAIGeneratorProps) => {
           'manutencao': { primary: '#3B82F6', secondary: '#1D4ED8' },
           'cursos': { primary: '#6366F1', secondary: '#4338CA' },
           'estetica': { primary: '#F43F5E', secondary: '#BE123C' },
+          'petshop': { primary: '#EAB308', secondary: '#CA8A04' },
+          'consultorio': { primary: '#14B8A6', secondary: '#0D9488' },
+          'advocacia': { primary: '#475569', secondary: '#334155' },
+          'imobiliaria': { primary: '#0891B2', secondary: '#0E7490' },
         };
         const colors = colorMap[template.id];
         if (colors) {
