@@ -1,5 +1,18 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wand2, Edit3, Share2, Zap, Shield, Cloud } from "lucide-react";
+import { 
+  FileText, 
+  User, 
+  BookOpen, 
+  Palette, 
+  ShoppingBag, 
+  Wand2, 
+  Download, 
+  Languages, 
+  Layers, 
+  Users, 
+  Zap, 
+  Shield 
+} from "lucide-react";
 import featureCatalog from "@/assets/feature-catalog.png";
 import featureEdit from "@/assets/feature-edit.png";
 import featureShare from "@/assets/feature-share.png";
@@ -7,43 +20,79 @@ import featureShare from "@/assets/feature-share.png";
 const Features = () => {
   const features = [
     {
-      icon: Wand2,
+      icon: FileText,
       image: featureCatalog,
-      title: "Automação com IA",
-      description: "Gere PDFs, currículos profissionais, ebooks completos e artes gráficas automaticamente com IA avançada.",
+      title: "Geração de PDFs com IA",
+      description: "Crie PDFs profissionais com imagens geradas por IA, geração em lote de múltiplos documentos e seleção de idiomas.",
       gradient: "from-primary to-primary-glow"
     },
     {
-      icon: Edit3,
+      icon: User,
       image: featureEdit,
-      title: "Editor Completo",
-      description: "Editor de designs com templates prontos, manipulação de fotos e ferramentas profissionais de criação.",
+      title: "Criação de Currículos",
+      description: "Gere currículos profissionais com editor de fotos integrado, assinatura digital e remoção de fundo automática por IA.",
       gradient: "from-secondary to-secondary-glow"
     },
     {
-      icon: Share2,
-      image: featureShare,
-      title: "Compartilhamento Simples",
-      description: "Baixe ou compartilhe seus documentos instantaneamente. Armazenamento seguro em nuvem com acesso em qualquer lugar.",
+      icon: BookOpen,
+      title: "Geração de Ebooks",
+      description: "Crie ebooks completos com paletas de cores personalizadas, capítulos editáveis e melhoria de texto com IA.",
       gradient: "from-primary to-secondary"
+    },
+    {
+      icon: Palette,
+      image: featureShare,
+      title: "Editor de Artes",
+      description: "Editor visual com templates prontos (Flyer, Cartão de Visita, Panfleto), canvas interativo e exportação para impressão.",
+      gradient: "from-primary-glow to-primary"
+    },
+    {
+      icon: ShoppingBag,
+      title: "Catálogos Digitais",
+      description: "Crie catálogos profissionais com geração automática por IA, seções customizáveis e compartilhamento via link público.",
+      gradient: "from-secondary-glow to-secondary"
+    },
+    {
+      icon: Wand2,
+      title: "Automações com IA",
+      description: "Insira prompts personalizados e deixe a IA gerar qualquer conteúdo. Flexibilidade total para criar o que precisar.",
+      gradient: "from-primary to-secondary-glow"
+    },
+    {
+      icon: Download,
+      title: "Multi-Formatos de Exportação",
+      description: "Exporte seus documentos em PDF, PowerPoint (PPTX) e imagens (PNG/JPG). Todos prontos para uso profissional.",
+      gradient: "from-secondary to-primary"
+    },
+    {
+      icon: Languages,
+      title: "Suporte Multi-Idiomas",
+      description: "Gere conteúdo em Português, Inglês, Espanhol, Francês, Alemão e Italiano. IA ajusta automaticamente o idioma.",
+      gradient: "from-primary-glow to-secondary-glow"
+    },
+    {
+      icon: Layers,
+      title: "Geração em Lote",
+      description: "Gere múltiplos PDFs de uma só vez. Insira vários tópicos e receba todos em um arquivo ZIP organizado.",
+      gradient: "from-secondary to-secondary-glow"
+    },
+    {
+      icon: Users,
+      title: "Programa de Afiliados",
+      description: "Indique amigos e ganhe 10% de comissão recorrente por 12 meses em cada assinatura. Pagamento via PIX.",
+      gradient: "from-primary to-primary-glow"
     },
     {
       icon: Zap,
       title: "Processamento Rápido",
       description: "IA de última geração processa seus documentos em menos de 30 segundos. Qualidade profissional garantida.",
-      gradient: "from-primary-glow to-primary"
+      gradient: "from-secondary-glow to-primary"
     },
     {
       icon: Shield,
       title: "Segurança Total",
       description: "Seus dados protegidos com criptografia de ponta. 100% seguro e conforme LGPD. Privacidade garantida.",
-      gradient: "from-secondary-glow to-secondary"
-    },
-    {
-      icon: Cloud,
-      title: "Nuvem Integrada",
-      description: "Acesse seus documentos de qualquer dispositivo. Sincronização automática e backup em nuvem.",
-      gradient: "from-primary to-secondary-glow"
+      gradient: "from-primary to-secondary"
     }
   ];
 
@@ -52,17 +101,17 @@ const Features = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4">
-            Ferramentas Poderosas Para{" "}
+            Todas as Ferramentas Que Você{" "}
             <span className="bg-gradient-secondary bg-clip-text text-transparent">
-              Criar Qualquer Documento
+              Precisa em Um Só Lugar
             </span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            Da criação à publicação: tudo que você precisa em uma única plataforma
+            Da criação à publicação: PDFs, currículos, ebooks, artes e catálogos com IA avançada
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {features.map((feature, index) => (
             <Card 
               key={index}
