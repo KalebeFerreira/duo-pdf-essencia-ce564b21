@@ -13,6 +13,8 @@ import { Type, Square, Circle as CircleIcon, Image as ImageIcon, Download, Spark
 import { PhotoEditor } from "./PhotoEditor";
 import jsPDF from "jspdf";
 import { predefinedTemplates } from "@/utils/designTemplates";
+import { useAuth } from "@/hooks/useAuth";
+import { checkIsFreePlan, addWatermarkToPdf } from "@/utils/pdfWatermark";
 
 interface DesignCanvasProps {
   selectedTemplate: string | null;
@@ -27,8 +29,19 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
   const [bleedMargin, setBleedMargin] = useState(3);
   const [showPhotoEditor, setShowPhotoEditor] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [isFreePlan, setIsFreePlan] = useState(true);
+  const { user } = useAuth();
 
   const currentTemplate = predefinedTemplates.find(t => t.id === selectedTemplate) || predefinedTemplates[0];
+
+  // Check user plan
+  useEffect(() => {
+    const checkPlan = async () => {
+      const freePlan = await checkIsFreePlan(supabase, user?.id);
+      setIsFreePlan(freePlan);
+    };
+    checkPlan();
+  }, [user?.id]);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -264,6 +277,9 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
       currentTemplate.dimensions.width / 10,
       currentTemplate.dimensions.height / 10
     );
+
+    // Add watermark for free plan users
+    addWatermarkToPdf(pdf, isFreePlan);
 
     pdf.save(`design-${selectedTemplate || "template"}.pdf`);
     toast({ title: "PDF exportado com sucesso!" });
