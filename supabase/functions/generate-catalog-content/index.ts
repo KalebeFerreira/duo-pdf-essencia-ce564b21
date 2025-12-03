@@ -41,9 +41,17 @@ O texto deve ter 3-4 parágrafos, ser profissional e destacar diferenciais.`;
       case 'testimonial':
         systemPrompt = `Você é um especialista em criar depoimentos autênticos de clientes.
 Gere depoimentos realistas em português brasileiro.
-Responda APENAS em formato JSON válido, sem markdown.`;
+Responda APENAS em formato JSON válido, sem markdown, sem blocos de código.`;
         userPrompt = `Gere um depoimento fictício de cliente satisfeito para: "${prompt}"
-Retorne um JSON com: {"name": "Nome do Cliente", "text": "depoimento de 2-3 frases", "rating": 5}`;
+Retorne APENAS este JSON: {"name": "Nome do Cliente", "text": "depoimento de 2-3 frases", "rating": 5}`;
+        break;
+
+      case 'testimonials':
+        systemPrompt = `Você é um especialista em criar depoimentos autênticos de clientes.
+Gere depoimentos realistas em português brasileiro.
+Responda APENAS em formato JSON válido, sem markdown, sem blocos de código.`;
+        userPrompt = `Gere 3 depoimentos fictícios de clientes satisfeitos para: "${prompt}"
+Retorne APENAS um array JSON: [{"id": "uuid", "name": "Nome Cliente 1", "text": "depoimento positivo"}, {"id": "uuid2", "name": "Nome Cliente 2", "text": "depoimento positivo"}, {"id": "uuid3", "name": "Nome Cliente 3", "text": "depoimento positivo"}]`;
         break;
 
       case 'price_item':
