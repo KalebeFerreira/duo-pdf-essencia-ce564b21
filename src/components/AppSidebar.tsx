@@ -1,6 +1,7 @@
 import { Home, FileText, Zap, User, BookOpen, Palette, Settings, CreditCard, ShoppingBag } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 import {
   Sidebar,
@@ -33,19 +34,30 @@ export function AppSidebar() {
   const { open } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
+  const { profile } = useUserProfile();
 
   const isActive = (path: string) => currentPath === path;
 
+  // User's chosen sidebar color or default
+  const sidebarColor = profile?.sidebar_color || '#1e3a5f';
+
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarContent className="bg-sidebar">
+    <Sidebar 
+      collapsible="icon" 
+      className="border-r border-sidebar-border"
+      style={{ 
+        '--sidebar-bg': sidebarColor,
+        backgroundColor: sidebarColor 
+      } as React.CSSProperties}
+    >
+      <SidebarContent style={{ backgroundColor: sidebarColor }}>
         {/* Logo */}
-        <div className="flex items-center gap-2 px-4 py-4 border-b border-sidebar-border">
-          <div className="w-8 h-8 bg-gradient-secondary rounded-lg flex items-center justify-center flex-shrink-0">
-            <FileText className="w-5 h-5 text-secondary-foreground" />
+        <div className="flex items-center gap-2 px-4 py-4 border-b border-white/10">
+          <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+            <FileText className="w-5 h-5 text-white" />
           </div>
           {open && (
-            <span className="font-bold text-sidebar-foreground text-sm">
+            <span className="font-bold text-white text-sm">
               Essência Duo PDF
             </span>
           )}
@@ -53,7 +65,7 @@ export function AppSidebar() {
 
         {/* Main Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/60">Menu Principal</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-white/60">Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
@@ -62,8 +74,8 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end
-                      className="hover:bg-sidebar-accent"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      className="text-white/80 hover:bg-white/10 hover:text-white"
+                      activeClassName="bg-white/20 text-white font-medium"
                     >
                       <item.icon className="w-4 h-4" />
                       <span>{item.title}</span>
@@ -77,7 +89,7 @@ export function AppSidebar() {
 
         {/* Settings */}
         <SidebarGroup className="mt-auto">
-          <SidebarGroupLabel className="text-sidebar-foreground/60">Configurações</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-white/60">Configurações</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {settingsItems.map((item) => (
@@ -86,8 +98,8 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end
-                      className="hover:bg-sidebar-accent"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      className="text-white/80 hover:bg-white/10 hover:text-white"
+                      activeClassName="bg-white/20 text-white font-medium"
                     >
                       <item.icon className="w-4 h-4" />
                       <span>{item.title}</span>
