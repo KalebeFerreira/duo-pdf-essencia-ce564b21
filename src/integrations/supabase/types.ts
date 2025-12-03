@@ -206,6 +206,7 @@ export type Database = {
         Row: {
           automations_used: number | null
           automations_used_today: number | null
+          custom_bg_color: string | null
           daily_automations_limit: number | null
           daily_pdfs_limit: number | null
           designs_used_this_month: number | null
@@ -236,6 +237,7 @@ export type Database = {
         Insert: {
           automations_used?: number | null
           automations_used_today?: number | null
+          custom_bg_color?: string | null
           daily_automations_limit?: number | null
           daily_pdfs_limit?: number | null
           designs_used_this_month?: number | null
@@ -266,6 +268,7 @@ export type Database = {
         Update: {
           automations_used?: number | null
           automations_used_today?: number | null
+          custom_bg_color?: string | null
           daily_automations_limit?: number | null
           daily_pdfs_limit?: number | null
           designs_used_this_month?: number | null
