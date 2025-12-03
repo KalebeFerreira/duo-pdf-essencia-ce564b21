@@ -16,22 +16,55 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseAdmin = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
-
   try {
     logStep("Function started");
 
-    const { referral_code, referred_user_id } = await req.json();
+    // Get the authorization header to verify the user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error("Missing authorization header");
+    }
+
+    // Create Supabase client with user's auth token
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      {
+        global: {
+          headers: { Authorization: authHeader },
+        },
+        auth: { persistSession: false }
+      }
+    );
+
+    // Get the authenticated user from JWT - this is the ONLY trusted source for user ID
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     
-    if (!referral_code || !referred_user_id) {
-      throw new Error("referral_code and referred_user_id are required");
+    if (userError || !user) {
+      logStep("Authentication failed", { error: userError?.message });
+      return new Response(JSON.stringify({ error: "Authentication required" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+
+    // The referred_user_id is ALWAYS the authenticated user - never trust client input
+    const referred_user_id = user.id;
+    
+    const { referral_code } = await req.json();
+    
+    if (!referral_code) {
+      throw new Error("referral_code is required");
     }
     
     logStep("Processing referral registration", { referral_code, referred_user_id });
+
+    // Use admin client for database operations
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
 
     // Buscar o código de indicação
     const { data: codeData, error: codeError } = await supabaseAdmin

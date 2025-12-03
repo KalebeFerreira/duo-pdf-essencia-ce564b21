@@ -67,33 +67,16 @@ export const DeleteAccountDialog = ({ userEmail, onSignOut }: DeleteAccountDialo
     setIsDeleting(true);
     
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('Usuário não encontrado');
+      // Call the delete-user edge function which handles complete account deletion
+      const { data, error } = await supabase.functions.invoke('delete-user');
+
+      if (error) {
+        throw new Error(error.message || 'Erro ao deletar conta');
       }
 
-      // Delete user data from all tables
-      const userId = user.id;
-
-      // Delete from profiles
-      await supabase.from('profiles').delete().eq('id', userId);
-      
-      // Delete from documents
-      await supabase.from('documents').delete().eq('user_id', userId);
-      
-      // Delete from ebooks
-      await supabase.from('ebooks').delete().eq('user_id', userId);
-      
-      // Delete from catalogs
-      await supabase.from('catalogs').delete().eq('user_id', userId);
-
-      // Delete referral codes
-      await supabase.from('referral_codes').delete().eq('user_id', userId);
-
-      // Sign out
-      await supabase.auth.signOut();
+      if (!data?.success) {
+        throw new Error(data?.error || 'Erro ao deletar conta');
+      }
 
       toast({
         title: "Conta deletada",
@@ -103,6 +86,9 @@ export const DeleteAccountDialog = ({ userEmail, onSignOut }: DeleteAccountDialo
 
       setOpen(false);
       resetDialog();
+      
+      // Redirect to home page after deletion
+      window.location.href = '/';
       
     } catch (error: any) {
       console.error('Error deleting account:', error);
