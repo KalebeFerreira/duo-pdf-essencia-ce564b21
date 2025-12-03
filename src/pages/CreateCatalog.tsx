@@ -23,6 +23,7 @@ import CatalogTestimonialsSection from "@/components/catalog/CatalogTestimonials
 import CatalogContactsSection from "@/components/catalog/CatalogContactsSection";
 import CatalogThemeSection from "@/components/catalog/CatalogThemeSection";
 import CatalogPreview from "@/components/catalog/CatalogPreview";
+import CatalogAIGenerator from "@/components/catalog/CatalogAIGenerator";
 
 const CreateCatalog = () => {
   const { id } = useParams();
@@ -500,6 +501,15 @@ const CreateCatalog = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Editor */}
           <div className="lg:col-span-2 space-y-4">
+            {/* AI Generator - Only show for new catalogs */}
+            {!id && (
+              <CatalogAIGenerator 
+                onGenerate={(generatedCatalog) => {
+                  setCatalog({ ...catalog, ...generatedCatalog });
+                }}
+              />
+            )}
+
             <CatalogCoverSection
               title={catalog.title || ''}
               coverImage={catalog.cover_image}
