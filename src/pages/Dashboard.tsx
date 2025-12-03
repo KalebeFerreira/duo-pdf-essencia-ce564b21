@@ -23,6 +23,7 @@ import {
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Upload, FileText, Zap, LogOut, Settings, Download, Eye, MoreVertical, Edit, Trash2, User, BookOpen, Palette } from "lucide-react";
+import MobileQuickActions from "@/components/MobileQuickActions";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useDocuments } from "@/hooks/useDocuments";
@@ -463,6 +464,9 @@ const Dashboard = () => {
           </AlertDialogContent>
         </AlertDialog>
       </main>
+      
+      {/* Mobile Quick Actions FAB */}
+      <MobileQuickActions />
     </div>
   </div>
 </SidebarProvider>

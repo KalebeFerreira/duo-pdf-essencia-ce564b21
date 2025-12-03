@@ -272,6 +272,9 @@ export default function CreateEbook() {
     if (!generatedEbook) return;
 
     try {
+      // Verificar se é plano gratuito
+      const isFreePlan = await checkIsFreePlan(supabase, user?.id);
+      
       const pptx = new PptxGenJS();
       const palette = colorPalettes[selectedColorPalette];
 
@@ -295,6 +298,19 @@ export default function CreateEbook() {
           w: 8,
           h: 1,
           fontSize: 18,
+          color: 'FFFFFF',
+          align: 'center',
+        });
+      }
+      
+      // Marca d'água na capa para plano gratuito
+      if (isFreePlan) {
+        coverSlide.addText("Criado com Essência Duo PDF - essenciaduopdf.com", {
+          x: 0,
+          y: 5.2,
+          w: 10,
+          h: 0.3,
+          fontSize: 10,
           color: 'FFFFFF',
           align: 'center',
         });
@@ -343,6 +359,19 @@ export default function CreateEbook() {
             valign: 'top',
           });
         }
+        
+        // Marca d'água em cada slide para plano gratuito
+        if (isFreePlan) {
+          slide.addText("Criado com Essência Duo PDF - essenciaduopdf.com", {
+            x: 0,
+            y: 5.2,
+            w: 10,
+            h: 0.3,
+            fontSize: 10,
+            color: '999999',
+            align: 'center',
+          });
+        }
       }
 
       await pptx.writeFile({ fileName: `${generatedEbook.title}.pptx` });
@@ -364,6 +393,9 @@ export default function CreateEbook() {
     if (!generatedEbook) return;
 
     try {
+      // Verificar se é plano gratuito
+      const isFreePlan = await checkIsFreePlan(supabase, user?.id);
+      
       toast({
         title: "Gerando imagens...",
         description: "Convertendo páginas em imagens PNG.",
@@ -376,6 +408,7 @@ export default function CreateEbook() {
         element.style.padding = '60px';
         element.style.backgroundColor = 'white';
         element.style.fontFamily = 'Arial, sans-serif';
+        element.style.position = 'relative';
 
         const titleEl = document.createElement('h1');
         titleEl.textContent = chapter.title;
@@ -401,6 +434,20 @@ export default function CreateEbook() {
         contentEl.style.lineHeight = '1.6';
         contentEl.style.whiteSpace = 'pre-wrap';
         element.appendChild(contentEl);
+
+        // Marca d'água para plano gratuito
+        if (isFreePlan) {
+          const watermarkEl = document.createElement('div');
+          watermarkEl.textContent = 'Criado com Essência Duo PDF - essenciaduopdf.com';
+          watermarkEl.style.position = 'absolute';
+          watermarkEl.style.bottom = '20px';
+          watermarkEl.style.left = '0';
+          watermarkEl.style.right = '0';
+          watermarkEl.style.textAlign = 'center';
+          watermarkEl.style.fontSize = '18px';
+          watermarkEl.style.color = '#999999';
+          element.appendChild(watermarkEl);
+        }
 
         document.body.appendChild(element);
 
