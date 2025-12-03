@@ -19,7 +19,7 @@ export const addWatermarkToPdf = (pdf: jsPDF, isFreePlan: boolean) => {
     pdf.setTextColor(150, 150, 150); // Cinza claro
     
     // Texto da marca d'água no rodapé
-    const watermarkText = "Criado com Essência Duo PDF - essenciaduopdf.com";
+    const watermarkText = "Essência Duo";
     const textWidth = pdf.getTextWidth(watermarkText);
     
     // Posição centralizada no rodapé

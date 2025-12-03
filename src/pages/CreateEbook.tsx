@@ -305,7 +305,7 @@ export default function CreateEbook() {
       
       // Marca d'água na capa para plano gratuito
       if (isFreePlan) {
-        coverSlide.addText("Criado com Essência Duo PDF - essenciaduopdf.com", {
+        coverSlide.addText("Essência Duo", {
           x: 0,
           y: 5.2,
           w: 10,
@@ -362,7 +362,7 @@ export default function CreateEbook() {
         
         // Marca d'água em cada slide para plano gratuito
         if (isFreePlan) {
-          slide.addText("Criado com Essência Duo PDF - essenciaduopdf.com", {
+          slide.addText("Essência Duo", {
             x: 0,
             y: 5.2,
             w: 10,
@@ -438,7 +438,7 @@ export default function CreateEbook() {
         // Marca d'água para plano gratuito
         if (isFreePlan) {
           const watermarkEl = document.createElement('div');
-          watermarkEl.textContent = 'Criado com Essência Duo PDF - essenciaduopdf.com';
+          watermarkEl.textContent = 'Essência Duo';
           watermarkEl.style.position = 'absolute';
           watermarkEl.style.bottom = '20px';
           watermarkEl.style.left = '0';
