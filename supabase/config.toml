@@ -31,7 +31,16 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.register-referral]
-verify_jwt = false
+verify_jwt = true
 
 [functions.process-referral-commission]
+verify_jwt = true
+
+[functions.delete-user]
+verify_jwt = true
+
+[functions.generate-catalog-content]
+verify_jwt = true
+
+[functions.generate-catalog-image]
 verify_jwt = true
