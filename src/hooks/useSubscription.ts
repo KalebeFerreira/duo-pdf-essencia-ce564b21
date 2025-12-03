@@ -63,6 +63,10 @@ export const useSubscription = () => {
   };
 
   const createCheckout = async (priceId: string) => {
+    if (!user) {
+      throw new Error('Você precisa estar logado para assinar um plano');
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { priceId },
