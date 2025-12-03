@@ -25,16 +25,13 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: (failureCount, error: any) => {
-        // Don't retry on JWT expired errors
         if (error?.message?.includes('JWT expired') || error?.code === 'PGRST301' || error?.code === 'PGRST303') {
           console.error('JWT expired detected, forcing logout');
-          // Force logout on JWT expired
           supabase.auth.signOut().then(() => {
             window.location.href = '/auth';
           });
           return false;
         }
-        // Retry other errors up to 2 times
         return failureCount < 2;
       },
       refetchOnWindowFocus: false,
@@ -45,32 +42,31 @@ const queryClient = new QueryClient({
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <DeviceThemeApplier>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/create-pdf" element={<CreatePdf />} />
-            <Route path="/create-resume" element={<CreateResume />} />
-            <Route path="/create-ebook" element={<CreateEbook />} />
-            <Route path="/create-design" element={<CreateDesign />} />
-            <Route path="/automations" element={<Automations />} />
-            <Route path="/catalogs" element={<Catalogs />} />
-            <Route path="/catalog/new" element={<CreateCatalog />} />
-            <Route path="/catalog/:id" element={<CreateCatalog />} />
-            <Route path="/c/:id" element={<PublicCatalog />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/settings" element={<Settings />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </DeviceThemeApplier>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <DeviceThemeApplier>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/create-pdf" element={<CreatePdf />} />
+              <Route path="/create-resume" element={<CreateResume />} />
+              <Route path="/create-ebook" element={<CreateEbook />} />
+              <Route path="/create-design" element={<CreateDesign />} />
+              <Route path="/automations" element={<Automations />} />
+              <Route path="/catalogs" element={<Catalogs />} />
+              <Route path="/catalog/new" element={<CreateCatalog />} />
+              <Route path="/catalog/:id" element={<CreateCatalog />} />
+              <Route path="/c/:id" element={<PublicCatalog />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </DeviceThemeApplier>
+        </BrowserRouter>
+      </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

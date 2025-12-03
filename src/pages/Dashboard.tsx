@@ -235,7 +235,7 @@ const Dashboard = () => {
             onClick={() => navigate("/create-pdf")}
           >
             <CardHeader>
-              <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-smooth">
+              <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                 <Upload className="w-6 h-6 text-primary-foreground" />
               </div>
               <CardTitle>Criar PDF</CardTitle>
@@ -248,7 +248,7 @@ const Dashboard = () => {
             onClick={() => navigate("/create-resume")}
           >
             <CardHeader>
-              <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-smooth">
+              <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                 <User className="w-6 h-6 text-accent-foreground" />
               </div>
               <CardTitle>Criar Currículo</CardTitle>
@@ -261,7 +261,7 @@ const Dashboard = () => {
             onClick={() => navigate("/create-ebook")}
           >
             <CardHeader>
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-smooth">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                 <BookOpen className="w-6 h-6 text-white" />
               </div>
               <CardTitle>Criar Ebook</CardTitle>
@@ -274,7 +274,7 @@ const Dashboard = () => {
             onClick={() => navigate("/create-design")}
           >
             <CardHeader>
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-teal-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-smooth">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-teal-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                 <Palette className="w-6 h-6 text-white" />
               </div>
               <CardTitle>Editor de Artes</CardTitle>
@@ -287,7 +287,7 @@ const Dashboard = () => {
             onClick={() => navigate("/automations")}
           >
             <CardHeader>
-              <div className="w-12 h-12 bg-gradient-secondary rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-smooth">
+              <div className="w-12 h-12 bg-gradient-secondary rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                 <Zap className="w-6 h-6 text-secondary-foreground" />
               </div>
               <CardTitle>Automação com IA</CardTitle>

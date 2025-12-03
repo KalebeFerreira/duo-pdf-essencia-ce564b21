@@ -46,7 +46,7 @@ const DesignTemplates = ({ onSelectTemplate }: DesignTemplatesProps) => {
             className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group"
           >
             <CardHeader>
-              <div className={`w-12 h-12 bg-gradient-to-br ${template.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-smooth`}>
+              <div className={`w-12 h-12 bg-gradient-to-br ${template.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
                 <Icon className="w-6 h-6 text-white" />
               </div>
               <CardTitle className="text-lg">{template.name}</CardTitle>
