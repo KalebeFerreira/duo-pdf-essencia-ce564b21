@@ -26,8 +26,27 @@ const Hero = () => {
             </h1>
             
             <p className="text-lg sm:text-xl text-muted-foreground max-w-xl">
-              Gere PDFs, currículos, ebooks e artes gráficas em segundos. Ferramentas completas de design e automação IA para profissionais e empresas.
+              Gere <span className="font-semibold text-foreground">Catálogos Digitais</span>, PDFs, currículos, ebooks e artes gráficas em segundos. Ferramentas completas de design e automação IA para profissionais e empresas.
             </p>
+            
+            {/* Feature Pills */}
+            <div className="flex flex-wrap gap-3 pt-2">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full border border-primary/20">
+                <span className="text-sm font-bold text-primary">📚 Catálogo Digital</span>
+              </div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full">
+                <span className="text-xs font-medium text-muted-foreground">PDFs com IA</span>
+              </div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full">
+                <span className="text-xs font-medium text-muted-foreground">Currículos</span>
+              </div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full">
+                <span className="text-xs font-medium text-muted-foreground">Ebooks</span>
+              </div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full">
+                <span className="text-xs font-medium text-muted-foreground">Artes Gráficas</span>
+              </div>
+            </div>
             
             <div className="flex flex-col sm:flex-row gap-4">
               <Button 
