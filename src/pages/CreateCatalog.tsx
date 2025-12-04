@@ -5,7 +5,15 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Save, FileDown, Loader2, BookOpen, Wand2, Share2, Link2, Check } from "lucide-react";
+import { ArrowLeft, Save, FileDown, Loader2, BookOpen, Wand2, Share2, Link2, Check, Image, FileSpreadsheet, Presentation, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import html2canvas from "html2canvas";
+import PptxGenJS from "pptxgenjs";
 import { useToast } from "@/hooks/use-toast";
 import { useCatalog, useCatalogs, type Catalog, type CatalogProduct, type CatalogPriceItem, type CatalogTestimonial } from "@/hooks/useCatalogs";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,6 +56,7 @@ const CreateCatalog = () => {
   });
 
   const [isExporting, setIsExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState<string | null>(null);
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
@@ -433,6 +442,278 @@ const CreateCatalog = () => {
       });
     } finally {
       setIsExporting(false);
+      setExportFormat(null);
+    }
+  };
+
+  const handleExportImage = async (format: 'jpg' | 'png') => {
+    setIsExporting(true);
+    setExportFormat(format);
+    try {
+      const previewElement = document.getElementById('catalog-preview-container');
+      if (!previewElement) {
+        throw new Error('Preview não encontrado');
+      }
+
+      const canvas = await html2canvas(previewElement, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+      });
+
+      const link = document.createElement('a');
+      link.download = `${catalog.title || 'catalogo'}.${format}`;
+      link.href = canvas.toDataURL(`image/${format === 'jpg' ? 'jpeg' : 'png'}`, format === 'jpg' ? 0.95 : 1);
+      link.click();
+
+      toast({
+        title: "Sucesso",
+        description: `${format.toUpperCase()} exportado com sucesso!`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || `Erro ao exportar ${format.toUpperCase()}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+      setExportFormat(null);
+    }
+  };
+
+  const handleExportPowerPoint = async () => {
+    setIsExporting(true);
+    setExportFormat('pptx');
+    try {
+      const pptx = new PptxGenJS();
+      pptx.author = 'Essência Duo';
+      pptx.title = catalog.title || 'Catálogo';
+
+      // Cover slide
+      const coverSlide = pptx.addSlide();
+      coverSlide.addText(catalog.title || 'Meu Catálogo', {
+        x: 0.5,
+        y: 2,
+        w: '90%',
+        fontSize: 44,
+        bold: true,
+        color: catalog.theme_primary_color?.replace('#', '') || '3B82F6',
+        align: 'center',
+      });
+
+      // About slide
+      if (catalog.about_text) {
+        const aboutSlide = pptx.addSlide();
+        aboutSlide.addText(catalog.about_title || 'Sobre', {
+          x: 0.5,
+          y: 0.5,
+          fontSize: 28,
+          bold: true,
+          color: catalog.theme_primary_color?.replace('#', '') || '3B82F6',
+        });
+        aboutSlide.addText(catalog.about_text, {
+          x: 0.5,
+          y: 1.2,
+          w: '90%',
+          fontSize: 16,
+          color: '333333',
+        });
+      }
+
+      // Products slide
+      if (catalog.products && catalog.products.length > 0) {
+        const productsSlide = pptx.addSlide();
+        productsSlide.addText('Produtos & Serviços', {
+          x: 0.5,
+          y: 0.5,
+          fontSize: 28,
+          bold: true,
+          color: catalog.theme_primary_color?.replace('#', '') || '3B82F6',
+        });
+        
+        catalog.products.forEach((product, i) => {
+          productsSlide.addText(`${product.name} - ${product.price}`, {
+            x: 0.5,
+            y: 1.2 + i * 0.8,
+            fontSize: 18,
+            bold: true,
+          });
+          productsSlide.addText(product.description, {
+            x: 0.5,
+            y: 1.5 + i * 0.8,
+            fontSize: 14,
+            color: '666666',
+          });
+        });
+      }
+
+      // Price table slide
+      if (catalog.price_table && catalog.price_table.length > 0) {
+        const priceSlide = pptx.addSlide();
+        priceSlide.addText('Tabela de Preços', {
+          x: 0.5,
+          y: 0.5,
+          fontSize: 28,
+          bold: true,
+          color: catalog.theme_primary_color?.replace('#', '') || '3B82F6',
+        });
+
+        const tableData = catalog.price_table.map((item: any) => [
+          { text: item.service, options: { fontSize: 14 } },
+          { text: item.price, options: { fontSize: 14, bold: true, color: catalog.theme_primary_color?.replace('#', '') || '3B82F6' } },
+        ]);
+
+        priceSlide.addTable(tableData, {
+          x: 0.5,
+          y: 1.2,
+          w: 9,
+          colW: [6, 3],
+          border: { pt: 1, color: 'CCCCCC' },
+        });
+      }
+
+      // Testimonials slide
+      if (catalog.testimonials && catalog.testimonials.length > 0) {
+        const testimonialsSlide = pptx.addSlide();
+        testimonialsSlide.addText('Depoimentos', {
+          x: 0.5,
+          y: 0.5,
+          fontSize: 28,
+          bold: true,
+          color: catalog.theme_primary_color?.replace('#', '') || '3B82F6',
+        });
+
+        catalog.testimonials.forEach((t: any, i: number) => {
+          testimonialsSlide.addText(`"${t.text}"`, {
+            x: 0.5,
+            y: 1.2 + i * 1.2,
+            w: '90%',
+            fontSize: 14,
+            italic: true,
+          });
+          testimonialsSlide.addText(`— ${t.name}`, {
+            x: 0.5,
+            y: 1.6 + i * 1.2,
+            fontSize: 12,
+            bold: true,
+          });
+        });
+      }
+
+      // Contact slide
+      if (catalog.contact_whatsapp || catalog.contact_email) {
+        const contactSlide = pptx.addSlide();
+        contactSlide.addText('Contato', {
+          x: 0.5,
+          y: 0.5,
+          fontSize: 28,
+          bold: true,
+          color: catalog.theme_primary_color?.replace('#', '') || '3B82F6',
+        });
+        
+        let contactY = 1.2;
+        if (catalog.contact_whatsapp) {
+          contactSlide.addText(`WhatsApp: ${catalog.contact_whatsapp}`, { x: 0.5, y: contactY, fontSize: 16 });
+          contactY += 0.5;
+        }
+        if (catalog.contact_email) {
+          contactSlide.addText(`E-mail: ${catalog.contact_email}`, { x: 0.5, y: contactY, fontSize: 16 });
+          contactY += 0.5;
+        }
+        if (catalog.contact_instagram) {
+          contactSlide.addText(`Instagram: ${catalog.contact_instagram}`, { x: 0.5, y: contactY, fontSize: 16 });
+          contactY += 0.5;
+        }
+        if (catalog.contact_facebook) {
+          contactSlide.addText(`Facebook: ${catalog.contact_facebook}`, { x: 0.5, y: contactY, fontSize: 16 });
+        }
+      }
+
+      await pptx.writeFile({ fileName: `${catalog.title || 'catalogo'}.pptx` });
+
+      toast({
+        title: "Sucesso",
+        description: "PowerPoint exportado com sucesso!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao exportar PowerPoint",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+      setExportFormat(null);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    setExportFormat('xlsx');
+    try {
+      // Create CSV content
+      let csvContent = "data:text/csv;charset=utf-8,";
+      
+      // Title
+      csvContent += `${catalog.title || 'Catálogo'}\n\n`;
+      
+      // Products
+      if (catalog.products && catalog.products.length > 0) {
+        csvContent += "PRODUTOS E SERVIÇOS\n";
+        csvContent += "Nome,Preço,Descrição\n";
+        catalog.products.forEach((p) => {
+          csvContent += `"${p.name}","${p.price}","${p.description}"\n`;
+        });
+        csvContent += "\n";
+      }
+      
+      // Price table
+      if (catalog.price_table && catalog.price_table.length > 0) {
+        csvContent += "TABELA DE PREÇOS\n";
+        csvContent += "Serviço,Preço\n";
+        catalog.price_table.forEach((item: any) => {
+          csvContent += `"${item.service}","${item.price}"\n`;
+        });
+        csvContent += "\n";
+      }
+
+      // Testimonials
+      if (catalog.testimonials && catalog.testimonials.length > 0) {
+        csvContent += "DEPOIMENTOS\n";
+        csvContent += "Nome,Depoimento,Avaliação\n";
+        catalog.testimonials.forEach((t: any) => {
+          csvContent += `"${t.name}","${t.text}","${t.rating || 5} estrelas"\n`;
+        });
+        csvContent += "\n";
+      }
+
+      // Contacts
+      csvContent += "CONTATOS\n";
+      if (catalog.contact_whatsapp) csvContent += `WhatsApp,"${catalog.contact_whatsapp}"\n`;
+      if (catalog.contact_email) csvContent += `E-mail,"${catalog.contact_email}"\n`;
+      if (catalog.contact_instagram) csvContent += `Instagram,"${catalog.contact_instagram}"\n`;
+      if (catalog.contact_facebook) csvContent += `Facebook,"${catalog.contact_facebook}"\n`;
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `${catalog.title || 'catalogo'}.csv`);
+      link.click();
+
+      toast({
+        title: "Sucesso",
+        description: "Excel (CSV) exportado com sucesso!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao exportar Excel",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+      setExportFormat(null);
     }
   };
 
@@ -450,9 +731,9 @@ const CreateCatalog = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Button variant="ghost" asChild>
-              <Link to="/dashboard">
+              <Link to="/catalogs">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar
+                Meus Catálogos
               </Link>
             </Button>
             <h1 className="text-lg font-semibold flex items-center gap-2">
@@ -472,18 +753,41 @@ const CreateCatalog = () => {
                 )}
                 Gerar Tudo
               </Button>
-              <Button
-                variant="outline"
-                onClick={handleExportPDF}
-                disabled={isExporting}
-              >
-                {isExporting ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <FileDown className="w-4 h-4 mr-2" />
-                )}
-                Exportar PDF
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" disabled={isExporting}>
+                    {isExporting ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <FileDown className="w-4 h-4 mr-2" />
+                    )}
+                    Exportar
+                    <ChevronDown className="w-4 h-4 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleExportPDF}>
+                    <FileDown className="w-4 h-4 mr-2" />
+                    PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportImage('jpg')}>
+                    <Image className="w-4 h-4 mr-2" />
+                    JPG
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportImage('png')}>
+                    <Image className="w-4 h-4 mr-2" />
+                    PNG
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportPowerPoint}>
+                    <Presentation className="w-4 h-4 mr-2" />
+                    PowerPoint
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportExcel}>
+                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                    Excel (CSV)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button onClick={handleSave} disabled={isCreating || isUpdating}>
                 {(isCreating || isUpdating) ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -618,7 +922,7 @@ const CreateCatalog = () => {
               onFontChange={(theme_font) => setCatalog({ ...catalog, theme_font })}
             />
 
-            <div className="sticky top-24">
+            <div className="sticky top-24" id="catalog-preview-container">
               <CatalogPreview catalog={catalog} />
             </div>
           </div>
