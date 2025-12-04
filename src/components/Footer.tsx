@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { FileText, Mail, Instagram, Twitter } from "lucide-react";
+import { Mail, Instagram, Twitter } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -11,9 +12,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-2 font-bold text-xl text-foreground">
-              <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <FileText className="w-5 h-5 text-primary-foreground" />
-              </div>
+              <img src={logo} alt="Essência-duo" className="w-10 h-10 rounded-lg" />
               <span>Essência-duo</span>
             </Link>
             <p className="text-sm text-muted-foreground">
