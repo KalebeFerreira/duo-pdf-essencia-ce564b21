@@ -32,6 +32,8 @@ import CatalogContactsSection from "@/components/catalog/CatalogContactsSection"
 import CatalogThemeSection from "@/components/catalog/CatalogThemeSection";
 import CatalogPreview from "@/components/catalog/CatalogPreview";
 import CatalogAIGenerator from "@/components/catalog/CatalogAIGenerator";
+import CatalogTemplateSelector from "@/components/catalog/CatalogTemplateSelector";
+import type { CatalogTemplate } from "@/utils/catalogTemplates";
 
 const CreateCatalog = () => {
   const { id } = useParams();
@@ -59,6 +61,8 @@ const CreateCatalog = () => {
   const [exportFormat, setExportFormat] = useState<string | null>(null);
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [showAIGenerator, setShowAIGenerator] = useState(false);
+  const [selectedTemplateForAI, setSelectedTemplateForAI] = useState<CatalogTemplate | null>(null);
 
   useEffect(() => {
     if (existingCatalog) {
@@ -805,12 +809,31 @@ const CreateCatalog = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Editor */}
           <div className="lg:col-span-2 space-y-4">
-            {/* AI Generator - Only show for new catalogs */}
-            {!id && (
+            {/* Template Selector - Only show for new catalogs without content */}
+            {!id && !catalog.title && (
+              <CatalogTemplateSelector
+                onApplyTemplate={(templateCatalog) => {
+                  setCatalog({ ...catalog, ...templateCatalog });
+                  toast({
+                    title: "Template aplicado!",
+                    description: "Você pode editar todos os campos conforme necessário.",
+                  });
+                }}
+                onSelectForAI={(template) => {
+                  setSelectedTemplateForAI(template);
+                  setShowAIGenerator(true);
+                }}
+              />
+            )}
+
+            {/* AI Generator - Show when selected from template or for new catalogs */}
+            {!id && (showAIGenerator || catalog.title) && (
               <CatalogAIGenerator 
                 onGenerate={(generatedCatalog) => {
                   setCatalog({ ...catalog, ...generatedCatalog });
+                  setShowAIGenerator(false);
                 }}
+                initialTemplate={selectedTemplateForAI || undefined}
               />
             )}
 
