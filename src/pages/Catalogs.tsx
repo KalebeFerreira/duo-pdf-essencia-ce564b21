@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, BookOpen, Edit, Trash2, Copy, FileDown, Loader2 } from "lucide-react";
+import { Plus, BookOpen, Edit, Trash2, Copy, Eye, Loader2, Clock, Calendar } from "lucide-react";
 import { useCatalogs } from "@/hooks/useCatalogs";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 
 const Catalogs = () => {
   const { catalogs, isLoading, deleteCatalog, duplicateCatalog, isDeleting } = useCatalogs();
@@ -87,28 +88,40 @@ const Catalogs = () => {
           {catalogs.map((catalog) => (
             <Card key={catalog.id} className="overflow-hidden group">
               {catalog.cover_image ? (
-                <div className="h-32 overflow-hidden">
+                <div className="h-32 overflow-hidden relative">
                   <img
                     src={catalog.cover_image}
                     alt={catalog.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                   />
+                  {catalog.is_public && (
+                    <Badge className="absolute top-2 right-2 bg-green-500">Público</Badge>
+                  )}
                 </div>
               ) : (
                 <div
-                  className="h-32 flex items-center justify-center"
+                  className="h-32 flex items-center justify-center relative"
                   style={{ backgroundColor: catalog.theme_primary_color }}
                 >
                   <BookOpen className="w-12 h-12 text-white/50" />
+                  {catalog.is_public && (
+                    <Badge className="absolute top-2 right-2 bg-green-500">Público</Badge>
+                  )}
                 </div>
               )}
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg line-clamp-1">{catalog.title}</CardTitle>
-                <CardDescription>
-                  Atualizado em{' '}
-                  {format(new Date(catalog.updated_at), "dd 'de' MMMM 'às' HH:mm", {
-                    locale: ptBR,
-                  })}
+                <CardDescription className="space-y-1">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    Criado em{' '}
+                    {format(new Date(catalog.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    Atualizado{' '}
+                    {format(new Date(catalog.updated_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                  </div>
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -116,6 +129,8 @@ const Catalogs = () => {
                   <span>{(catalog.products as any[])?.length || 0} produtos</span>
                   <span>•</span>
                   <span>{(catalog.gallery as any[])?.length || 0} imagens</span>
+                  <span>•</span>
+                  <span>{(catalog.testimonials as any[])?.length || 0} depoimentos</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button variant="outline" size="sm" asChild className="flex-1">
@@ -124,16 +139,27 @@ const Catalogs = () => {
                       Editar
                     </Link>
                   </Button>
+                  {catalog.is_public && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => window.open(`/c/${catalog.id}`, '_blank')}
+                      title="Ver catálogo público"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="icon"
                     onClick={() => handleDuplicate(catalog)}
+                    title="Duplicar"
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="icon" className="text-destructive">
+                      <Button variant="outline" size="icon" className="text-destructive" title="Excluir">
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </AlertDialogTrigger>

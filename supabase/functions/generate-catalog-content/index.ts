@@ -51,7 +51,15 @@ Retorne APENAS este JSON: {"name": "Nome do Cliente", "text": "depoimento de 2-3
 Gere depoimentos realistas em português brasileiro.
 Responda APENAS em formato JSON válido, sem markdown, sem blocos de código.`;
         userPrompt = `Gere 3 depoimentos fictícios de clientes satisfeitos para: "${prompt}"
-Retorne APENAS um array JSON: [{"id": "uuid", "name": "Nome Cliente 1", "text": "depoimento positivo"}, {"id": "uuid2", "name": "Nome Cliente 2", "text": "depoimento positivo"}, {"id": "uuid3", "name": "Nome Cliente 3", "text": "depoimento positivo"}]`;
+Retorne APENAS um array JSON: [{"id": "${crypto.randomUUID()}", "name": "Nome Cliente 1", "text": "depoimento positivo de 2-3 frases", "rating": 5}, {"id": "${crypto.randomUUID()}", "name": "Nome Cliente 2", "text": "depoimento positivo de 2-3 frases", "rating": 5}, {"id": "${crypto.randomUUID()}", "name": "Nome Cliente 3", "text": "depoimento positivo de 2-3 frases", "rating": 4}]`;
+        break;
+
+      case 'price_table':
+        systemPrompt = `Você é um especialista em precificação de serviços.
+Gere tabelas de preços em português brasileiro.
+Responda APENAS em formato JSON válido, sem markdown.`;
+        userPrompt = `Gere uma tabela de preços com 5 serviços para: "${prompt}"
+Retorne APENAS um array JSON: [{"id": "${crypto.randomUUID()}", "service": "Nome do Serviço", "price": "R$ XX,XX"}, ...]`;
         break;
 
       case 'price_item':

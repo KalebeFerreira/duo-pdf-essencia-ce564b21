@@ -235,7 +235,15 @@ const CatalogPreview = ({ catalog }: CatalogPreviewProps) => {
             <div className="grid grid-cols-2 gap-2">
               {contact_whatsapp && (
                 <a
-                  href={`https://wa.me/${contact_whatsapp.replace(/\D/g, '')}`}
+                  href={(() => {
+                    let phone = contact_whatsapp.replace(/\D/g, '');
+                    if (phone.length <= 11 && !phone.startsWith('55')) {
+                      phone = '55' + phone;
+                    }
+                    return `https://wa.me/${phone}`;
+                  })()}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center gap-2 p-2 rounded-lg text-white text-sm"
                   style={{ backgroundColor: '#25D366' }}
                 >
