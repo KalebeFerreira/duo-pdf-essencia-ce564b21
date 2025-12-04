@@ -16,7 +16,7 @@ const Navbar = () => {
             <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
               <FileText className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span>Essência Duo PDF</span>
+            <span>Essência-duo</span>
           </Link>
 
           {/* Desktop Menu */}

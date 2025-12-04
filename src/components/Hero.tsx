@@ -95,7 +95,7 @@ const Hero = () => {
             <div className="absolute -inset-4 bg-gradient-secondary opacity-20 blur-3xl rounded-full" />
             <img
               src={heroImage}
-              alt="Essência Duo PDF - Plataforma completa para criação de documentos com IA"
+              alt="Essência-duo - Plataforma completa para criação de documentos com IA"
               className="relative rounded-2xl shadow-xl w-full h-auto"
               loading="eager"
             />
