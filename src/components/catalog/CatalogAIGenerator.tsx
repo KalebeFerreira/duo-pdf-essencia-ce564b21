@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { Sparkles, Loader2, Plus, Trash2, Scissors, Palette, Dumbbell, Utensils,
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Catalog, CatalogProduct, CatalogPriceItem, CatalogTestimonial } from "@/hooks/useCatalogs";
+import { CATALOG_TEMPLATES, type CatalogTemplate } from "@/utils/catalogTemplates";
 
 interface ServiceInput {
   id: string;
@@ -18,176 +19,37 @@ interface ServiceInput {
 
 interface CatalogAIGeneratorProps {
   onGenerate: (catalog: Partial<Catalog>) => void;
+  initialTemplate?: CatalogTemplate;
 }
 
-const TEMPLATES = [
-  { 
-    id: 'barbearia', 
-    name: 'Barbearia', 
-    icon: Scissors,
-    color: 'bg-amber-500',
-    description: 'Cortes, barbas e tratamentos masculinos',
-    services: [
-      { name: 'Corte Masculino', price: 'R$ 45,00' },
-      { name: 'Barba', price: 'R$ 35,00' },
-      { name: 'Corte + Barba', price: 'R$ 70,00' },
-      { name: 'Degradê', price: 'R$ 50,00' },
-    ]
-  },
-  { 
-    id: 'salao', 
-    name: 'Salão de Beleza', 
-    icon: Palette,
-    color: 'bg-pink-500',
-    description: 'Cortes, coloração e tratamentos capilares',
-    services: [
-      { name: 'Corte Feminino', price: 'R$ 80,00' },
-      { name: 'Escova', price: 'R$ 50,00' },
-      { name: 'Coloração', price: 'R$ 150,00' },
-      { name: 'Progressiva', price: 'R$ 250,00' },
-    ]
-  },
-  { 
-    id: 'academia', 
-    name: 'Academia/Personal', 
-    icon: Dumbbell,
-    color: 'bg-green-500',
-    description: 'Planos de treino e acompanhamento',
-    services: [
-      { name: 'Plano Mensal', price: 'R$ 99,00' },
-      { name: 'Plano Trimestral', price: 'R$ 249,00' },
-      { name: 'Personal (hora)', price: 'R$ 80,00' },
-      { name: 'Avaliação Física', price: 'R$ 50,00' },
-    ]
-  },
-  { 
-    id: 'restaurante', 
-    name: 'Restaurante/Delivery', 
-    icon: Utensils,
-    color: 'bg-orange-500',
-    description: 'Cardápio e pratos especiais',
-    services: [
-      { name: 'Prato Executivo', price: 'R$ 25,00' },
-      { name: 'Porção', price: 'R$ 35,00' },
-      { name: 'Sobremesa', price: 'R$ 15,00' },
-      { name: 'Bebidas', price: 'R$ 8,00' },
-    ]
-  },
-  { 
-    id: 'fotografia', 
-    name: 'Fotografia', 
-    icon: Camera,
-    color: 'bg-purple-500',
-    description: 'Ensaios, eventos e produtos',
-    services: [
-      { name: 'Ensaio Individual', price: 'R$ 350,00' },
-      { name: 'Cobertura de Evento', price: 'R$ 800,00' },
-      { name: 'Fotos de Produto', price: 'R$ 150,00' },
-      { name: 'Edição Avançada', price: 'R$ 50,00' },
-    ]
-  },
-  { 
-    id: 'manutencao', 
-    name: 'Serviços Gerais', 
-    icon: Wrench,
-    color: 'bg-blue-500',
-    description: 'Manutenção, reparos e instalações',
-    services: [
-      { name: 'Visita Técnica', price: 'R$ 80,00' },
-      { name: 'Instalação', price: 'R$ 120,00' },
-      { name: 'Reparo Simples', price: 'R$ 100,00' },
-      { name: 'Manutenção Preventiva', price: 'R$ 150,00' },
-    ]
-  },
-  { 
-    id: 'cursos', 
-    name: 'Cursos/Aulas', 
-    icon: GraduationCap,
-    color: 'bg-indigo-500',
-    description: 'Aulas particulares e cursos',
-    services: [
-      { name: 'Aula Avulsa', price: 'R$ 60,00' },
-      { name: 'Pacote 4 Aulas', price: 'R$ 200,00' },
-      { name: 'Curso Completo', price: 'R$ 500,00' },
-      { name: 'Mentoria', price: 'R$ 150,00' },
-    ]
-  },
-  { 
-    id: 'estetica', 
-    name: 'Estética/Spa', 
-    icon: Heart,
-    color: 'bg-rose-500',
-    description: 'Tratamentos estéticos e bem-estar',
-    services: [
-      { name: 'Limpeza de Pele', price: 'R$ 120,00' },
-      { name: 'Massagem Relaxante', price: 'R$ 100,00' },
-      { name: 'Design de Sobrancelhas', price: 'R$ 40,00' },
-      { name: 'Depilação', price: 'R$ 60,00' },
-    ]
-  },
-  { 
-    id: 'petshop', 
-    name: 'Pet Shop', 
-    icon: PawPrint,
-    color: 'bg-yellow-500',
-    description: 'Banho, tosa e cuidados para pets',
-    services: [
-      { name: 'Banho Pequeno Porte', price: 'R$ 50,00' },
-      { name: 'Banho Grande Porte', price: 'R$ 80,00' },
-      { name: 'Tosa Higiênica', price: 'R$ 40,00' },
-      { name: 'Tosa Completa', price: 'R$ 90,00' },
-    ]
-  },
-  { 
-    id: 'consultorio', 
-    name: 'Consultório Médico', 
-    icon: Stethoscope,
-    color: 'bg-teal-500',
-    description: 'Consultas e procedimentos médicos',
-    services: [
-      { name: 'Consulta Particular', price: 'R$ 250,00' },
-      { name: 'Retorno', price: 'R$ 150,00' },
-      { name: 'Exame Clínico', price: 'R$ 100,00' },
-      { name: 'Procedimento Simples', price: 'R$ 200,00' },
-    ]
-  },
-  { 
-    id: 'advocacia', 
-    name: 'Escritório Advocacia', 
-    icon: Scale,
-    color: 'bg-slate-600',
-    description: 'Consultoria jurídica e processos',
-    services: [
-      { name: 'Consulta Jurídica', price: 'R$ 300,00' },
-      { name: 'Elaboração de Contrato', price: 'R$ 500,00' },
-      { name: 'Assessoria Mensal', price: 'R$ 1.500,00' },
-      { name: 'Acompanhamento Processual', price: 'R$ 2.000,00' },
-    ]
-  },
-  { 
-    id: 'imobiliaria', 
-    name: 'Imobiliária', 
-    icon: Building2,
-    color: 'bg-cyan-600',
-    description: 'Venda e locação de imóveis',
-    services: [
-      { name: 'Avaliação de Imóvel', price: 'R$ 500,00' },
-      { name: 'Taxa de Administração', price: '10% do aluguel' },
-      { name: 'Consultoria Imobiliária', price: 'R$ 200,00' },
-      { name: 'Documentação', price: 'R$ 300,00' },
-    ]
-  },
-];
+const TEMPLATES = CATALOG_TEMPLATES;
 
-const CatalogAIGenerator = ({ onGenerate }: CatalogAIGeneratorProps) => {
+const CatalogAIGenerator = ({ onGenerate, initialTemplate }: CatalogAIGeneratorProps) => {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [businessName, setBusinessName] = useState("");
-  const [businessDescription, setBusinessDescription] = useState("");
-  const [services, setServices] = useState<ServiceInput[]>([
-    { id: crypto.randomUUID(), name: '', price: '' }
-  ]);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(initialTemplate?.id || null);
+  const [businessName, setBusinessName] = useState(initialTemplate?.name || "");
+  const [businessDescription, setBusinessDescription] = useState(initialTemplate?.description || "");
+  const [services, setServices] = useState<ServiceInput[]>(
+    initialTemplate?.services.map(s => ({
+      id: crypto.randomUUID(),
+      name: s.name,
+      price: s.price
+    })) || [{ id: crypto.randomUUID(), name: '', price: '' }]
+  );
+
+  useEffect(() => {
+    if (initialTemplate) {
+      setSelectedTemplate(initialTemplate.id);
+      setBusinessName(initialTemplate.name);
+      setBusinessDescription(initialTemplate.description);
+      setServices(initialTemplate.services.map(s => ({
+        id: crypto.randomUUID(),
+        name: s.name,
+        price: s.price
+      })));
+    }
+  }, [initialTemplate]);
 
   const addService = () => {
     setServices([...services, { id: crypto.randomUUID(), name: '', price: '' }]);
