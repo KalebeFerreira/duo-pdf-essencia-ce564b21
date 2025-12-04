@@ -1,8 +1,9 @@
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Phone, Mail, Instagram, Facebook } from "lucide-react";
+import { Loader2, Phone, Mail, Instagram, Facebook, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { QRCodeSVG } from "qrcode.react";
 import type { CatalogProduct, CatalogPriceItem, CatalogTestimonial } from "@/hooks/useCatalogs";
 
 interface PublicCatalogData {
@@ -262,9 +263,50 @@ const PublicCatalog = () => {
                 >
                   <Facebook className="w-4 h-4" />
                   Facebook
-                </Button>
+              </Button>
               )}
             </div>
+            
+            {/* QR Code for sharing */}
+            <div className="mt-10 flex flex-col items-center">
+              <div className="bg-white p-4 rounded-xl shadow-lg">
+                <QRCodeSVG 
+                  value={window.location.href}
+                  size={150}
+                  level="H"
+                  includeMargin={true}
+                  fgColor={primaryColor}
+                />
+              </div>
+              <p className="mt-3 text-white/80 text-sm flex items-center gap-2">
+                <QrCode className="w-4 h-4" />
+                Escaneie para compartilhar
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* QR Code Section (if no contact section) */}
+      {!(catalog.contact_whatsapp || catalog.contact_email || catalog.contact_instagram || catalog.contact_facebook) && (
+        <section className="py-16 px-4 bg-muted/30">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-2xl font-bold mb-6" style={{ color: primaryColor }}>
+              Compartilhe este catálogo
+            </h2>
+            <div className="inline-block bg-white p-4 rounded-xl shadow-lg">
+              <QRCodeSVG 
+                value={window.location.href}
+                size={180}
+                level="H"
+                includeMargin={true}
+                fgColor={primaryColor}
+              />
+            </div>
+            <p className="mt-4 text-muted-foreground text-sm flex items-center justify-center gap-2">
+              <QrCode className="w-4 h-4" />
+              Escaneie o QR Code para acessar
+            </p>
           </div>
         </section>
       )}
