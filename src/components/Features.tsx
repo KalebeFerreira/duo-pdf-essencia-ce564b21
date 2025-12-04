@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { motion } from "framer-motion";
 import { 
   FileText, 
   User, 
@@ -97,10 +98,50 @@ const Features = () => {
     }
   ];
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.08
+      }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 40 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: "easeOut" as const
+      }
+    }
+  };
+
+  const headerVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        ease: "easeOut" as const
+      }
+    }
+  };
+
   return (
     <section id="features" className="py-24 bg-muted/30">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <motion.div 
+          className="text-center max-w-3xl mx-auto mb-16"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={headerVariants}
+        >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4">
             Todas as Ferramentas Que Você{" "}
             <span className="bg-gradient-secondary bg-clip-text text-transparent">
@@ -110,39 +151,52 @@ const Features = () => {
           <p className="text-lg text-muted-foreground">
             Da criação à publicação: PDFs, currículos, ebooks, artes e catálogos com IA avançada
           </p>
-        </div>
+        </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <motion.div 
+          className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
+          variants={containerVariants}
+        >
           {features.map((feature, index) => (
-            <Card 
-              key={index}
-              className="group hover:shadow-lg transition-all hover:-translate-y-1 border-border/50"
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`p-3 rounded-xl bg-gradient-to-br ${feature.gradient} shadow-md`}>
-                    <feature.icon className="w-6 h-6 text-white" />
+            <motion.div key={index} variants={cardVariants}>
+              <Card 
+                className="group hover:shadow-lg transition-all hover:-translate-y-1 border-border/50 h-full"
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between mb-4">
+                    <motion.div 
+                      className={`p-3 rounded-xl bg-gradient-to-br ${feature.gradient} shadow-md`}
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <feature.icon className="w-6 h-6 text-white" />
+                    </motion.div>
+                    {feature.image && (
+                      <motion.img 
+                        src={feature.image} 
+                        alt={feature.title}
+                        className="w-16 h-16 rounded-lg object-cover"
+                        whileHover={{ scale: 1.1 }}
+                        transition={{ duration: 0.2 }}
+                      />
+                    )}
                   </div>
-                  {feature.image && (
-                    <img 
-                      src={feature.image} 
-                      alt={feature.title}
-                      className="w-16 h-16 rounded-lg object-cover"
-                    />
-                  )}
-                </div>
-                <CardTitle className="text-xl text-foreground group-hover:text-primary transition-colors duration-300">
-                  {feature.title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-muted-foreground">
-                  {feature.description}
-                </CardDescription>
-              </CardContent>
-            </Card>
+                  <CardTitle className="text-xl text-foreground group-hover:text-primary transition-colors duration-300">
+                    {feature.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-muted-foreground">
+                    {feature.description}
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );
