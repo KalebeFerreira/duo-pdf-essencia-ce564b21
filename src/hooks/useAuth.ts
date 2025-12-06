@@ -66,7 +66,7 @@ export const useAuth = () => {
     };
   }, []);
 
-  const signUp = async (email: string, password: string, nomeCompleto: string) => {
+  const signUp = async (email: string, password: string, nomeCompleto: string, captchaToken?: string) => {
     try {
       const redirectUrl = `${window.location.origin}/dashboard`;
       
@@ -77,7 +77,8 @@ export const useAuth = () => {
           emailRedirectTo: redirectUrl,
           data: {
             nome_completo: nomeCompleto
-          }
+          },
+          captchaToken: captchaToken,
         }
       });
 
@@ -99,11 +100,12 @@ export const useAuth = () => {
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, captchaToken?: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
+        options: captchaToken ? { captchaToken } : undefined,
       });
 
       if (error) throw error;
