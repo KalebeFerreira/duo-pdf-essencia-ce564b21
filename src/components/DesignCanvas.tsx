@@ -175,77 +175,106 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
   };
 
   const generateWithAI = async () => {
+    const maxRetries = 3;
     if (!aiPrompt.trim()) {
       toast({ title: "Digite uma descrição", variant: "destructive" });
       return;
     }
 
     setIsGenerating(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-design-ai", {
-        body: { prompt: aiPrompt, template: selectedTemplate || "flyer" },
-      });
+    
+    const attemptGeneration = async (): Promise<boolean> => {
+      try {
+        const { data, error } = await supabase.functions.invoke("generate-design-ai", {
+          body: { prompt: aiPrompt, template: selectedTemplate || "flyer" },
+        });
 
-      // Check for error responses from the edge function (in data or error)
-      const errorData = data?.error ? data : (error && typeof error === 'object' && 'error' in error) ? error : null;
-      
-      if (errorData?.error || errorData?.code) {
-        if (errorData.code === "NO_CREDITS") {
+        // Check for error responses from the edge function (in data or error)
+        const errorData = data?.error ? data : (error && typeof error === 'object' && 'error' in error) ? error : null;
+        
+        if (errorData?.error || errorData?.code) {
+          if (errorData.code === "NO_CREDITS") {
+            toast({
+              title: "Créditos Esgotados",
+              description: "Você precisa adicionar créditos na sua conta Lovable para usar a IA. Acesse Settings → Workspace → Usage",
+              variant: "destructive",
+            });
+            return true; // Don't retry for credit issues
+          } else if (errorData.code === "RATE_LIMIT") {
+            toast({
+              title: "Limite Excedido",
+              description: "Aguarde alguns instantes antes de tentar novamente",
+              variant: "destructive",
+            });
+            return true; // Don't retry for rate limit
+          } else {
+            // Other errors - can retry
+            return false;
+          }
+        }
+
+        if (error && !errorData) {
+          return false; // Can retry
+        }
+
+        if (data?.imageUrl) {
+          FabricImage.fromURL(data.imageUrl).then((img) => {
+            if (!fabricCanvas) return;
+            img.scaleToWidth(fabricCanvas.width! - 40);
+            img.set({ left: 20, top: 20 });
+            fabricCanvas.add(img);
+            toast({ title: "Arte gerada com sucesso!" });
+          });
+          return true; // Success
+        }
+        
+        return false; // No image, can retry
+      } catch (error: any) {
+        console.error("Erro ao gerar arte:", error);
+        
+        // Parse error message for specific codes
+        const errorMessage = error.message || String(error);
+        if (errorMessage.includes("NO_CREDITS") || errorMessage.includes("Créditos")) {
           toast({
             title: "Créditos Esgotados",
-            description: "Você precisa adicionar créditos na sua conta Lovable para usar a IA. Acesse Settings → Workspace → Usage",
+            description: "Você precisa adicionar créditos na sua conta Lovable. Acesse Settings → Workspace → Usage",
             variant: "destructive",
           });
-        } else if (errorData.code === "RATE_LIMIT") {
+          return true; // Don't retry for credit issues
+        } else if (errorMessage.includes("RATE_LIMIT")) {
           toast({
             title: "Limite Excedido",
             description: "Aguarde alguns instantes antes de tentar novamente",
             variant: "destructive",
           });
-        } else {
-          toast({
-            title: "Erro ao gerar arte",
-            description: errorData.error || errorData.message || "Ocorreu um erro. Tente novamente",
-            variant: "destructive",
-          });
+          return true; // Don't retry for rate limit
         }
-        return;
+        
+        return false; // Can retry for other errors
       }
+    };
 
-      if (error && !errorData) {
-        throw error;
-      }
-
-      if (data?.imageUrl) {
-        FabricImage.fromURL(data.imageUrl).then((img) => {
-          if (!fabricCanvas) return;
-          img.scaleToWidth(fabricCanvas.width! - 40);
-          img.set({ left: 20, top: 20 });
-          fabricCanvas.add(img);
-          toast({ title: "Arte gerada com sucesso!" });
-        });
-      }
-    } catch (error: any) {
-      console.error("Erro ao gerar arte:", error);
+    try {
+      let success = await attemptGeneration();
+      let currentRetry = 0;
       
-      // Parse error message for specific codes
-      const errorMessage = error.message || String(error);
-      if (errorMessage.includes("NO_CREDITS") || errorMessage.includes("Créditos")) {
+      while (!success && currentRetry < maxRetries) {
+        currentRetry++;
+        const delay = Math.pow(2, currentRetry) * 1000; // Exponential backoff: 2s, 4s, 8s
+        
         toast({
-          title: "Créditos Esgotados",
-          description: "Você precisa adicionar créditos na sua conta Lovable. Acesse Settings → Workspace → Usage",
-          variant: "destructive",
+          title: `Tentativa ${currentRetry + 1} de ${maxRetries + 1}`,
+          description: `Aguardando ${delay / 1000}s antes de tentar novamente...`,
         });
-      } else if (errorMessage.includes("RATE_LIMIT")) {
-        toast({
-          title: "Limite Excedido",
-          description: "Aguarde alguns instantes antes de tentar novamente",
-          variant: "destructive",
-        });
-      } else {
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+        success = await attemptGeneration();
+      }
+      
+      if (!success) {
         toast({
           title: "Erro ao gerar arte",
-          description: "Ocorreu um erro inesperado. Tente novamente",
+          description: `Não foi possível gerar após ${maxRetries + 1} tentativas. Tente novamente mais tarde.`,
           variant: "destructive",
         });
       }
