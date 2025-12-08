@@ -74,7 +74,7 @@ serve(async (req) => {
     
     const enhancedPrompt = `Create a professional print-ready design for ${templateContext}. ${prompt}. The design should be high-quality, print-ready with proper margins, and visually appealing. Ultra high resolution.`;
 
-    logStep('Generating design', { userId: user.id, template });
+    logStep('Generating design', { userId: user.id, template, prompt: enhancedPrompt });
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -128,18 +128,44 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    logStep('AI response received', { userId: user.id });
+    logStep('AI response received', { 
+      userId: user.id,
+      hasChoices: !!data.choices,
+      choicesLength: data.choices?.length,
+      messageKeys: data.choices?.[0]?.message ? Object.keys(data.choices[0].message) : [],
+      fullResponse: JSON.stringify(data).substring(0, 500)
+    });
 
-    // Extract image from response
-    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    // Extract image from response - check multiple possible locations
+    let imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    
+    // Alternative: check if image is directly in content
+    if (!imageUrl && data.choices?.[0]?.message?.content) {
+      const content = data.choices[0].message.content;
+      // Check if content is an array with image objects
+      if (Array.isArray(content)) {
+        const imageContent = content.find((c: any) => c.type === 'image_url' || c.type === 'image');
+        if (imageContent) {
+          imageUrl = imageContent.image_url?.url || imageContent.url;
+        }
+      }
+    }
+
+    // Alternative: check inline_data format
+    if (!imageUrl && data.choices?.[0]?.message?.images?.[0]?.inline_data) {
+      const inlineData = data.choices[0].message.images[0].inline_data;
+      imageUrl = `data:${inlineData.mime_type};base64,${inlineData.data}`;
+    }
 
     if (!imageUrl) {
-      console.error('Nenhuma imagem retornada pela IA');
+      console.error('Nenhuma imagem retornada pela IA. Response:', JSON.stringify(data));
       return new Response(
-        JSON.stringify({ error: "Nenhuma imagem gerada" }),
+        JSON.stringify({ error: "Nenhuma imagem gerada. Tente novamente com outro prompt." }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    logStep('Image extracted successfully', { userId: user.id, imageUrlLength: imageUrl.length });
 
     return new Response(
       JSON.stringify({ imageUrl }),
