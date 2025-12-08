@@ -51,17 +51,9 @@ const Auth = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!loginCaptchaToken) {
-      toast({
-        title: "Verificação necessária",
-        description: "Por favor, complete a verificação de segurança.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
+    // Allow login even without CAPTCHA token (will be handled in useAuth)
     setIsLoading(true);
-    const result = await signIn(loginEmail, loginPassword, loginCaptchaToken);
+    const result = await signIn(loginEmail, loginPassword, loginCaptchaToken || undefined);
     setIsLoading(false);
     
     // Reset captcha after attempt
@@ -83,17 +75,9 @@ const Auth = () => {
       return;
     }
     
-    if (!signupCaptchaToken) {
-      toast({
-        title: "Verificação necessária",
-        description: "Por favor, complete a verificação de segurança.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    // Allow signup even without CAPTCHA token (will be handled in useAuth)
     setIsLoading(true);
-    const result = await signUp(signupEmail, signupPassword, signupName, signupCaptchaToken);
+    const result = await signUp(signupEmail, signupPassword, signupName, signupCaptchaToken || undefined);
     setIsLoading(false);
 
     if (result.data?.user) {
@@ -243,7 +227,7 @@ const Auth = () => {
                   <Button
                     type="submit"
                     className="w-full bg-gradient-primary shadow-glow hover:shadow-xl transition-all"
-                    disabled={isLoading || !loginCaptchaToken}
+                    disabled={isLoading}
                   >
                     {isLoading ? "Entrando..." : "Entrar"}
                   </Button>
@@ -401,7 +385,7 @@ const Auth = () => {
                   <Button
                     type="submit"
                     className="w-full bg-gradient-primary shadow-glow hover:shadow-xl transition-all"
-                    disabled={isLoading || !signupCaptchaToken}
+                    disabled={isLoading}
                   >
                     {isLoading ? "Criando conta..." : "Criar Conta Grátis"}
                   </Button>
