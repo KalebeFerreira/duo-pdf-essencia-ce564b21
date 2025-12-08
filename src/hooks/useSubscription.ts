@@ -40,9 +40,57 @@ export const useSubscription = () => {
     try {
       setStatus(prev => ({ ...prev, isLoading: true, error: null }));
 
+      // Refresh session before making the request to ensure valid JWT
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData.session) {
+        // Session expired or invalid, reset to free plan without error
+        setStatus({
+          subscribed: false,
+          plan: 'free',
+          product_id: null,
+          subscription_end: null,
+          isLoading: false,
+          error: null,
+        });
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('check-subscription');
 
-      if (error) throw error;
+      if (error) {
+        // Handle 401 errors gracefully - session may have expired
+        if (error.message?.includes('401') || error.message?.includes('JWT')) {
+          // Try to refresh the session
+          const { error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError) {
+            // Session truly expired, reset to defaults
+            setStatus({
+              subscribed: false,
+              plan: 'free',
+              product_id: null,
+              subscription_end: null,
+              isLoading: false,
+              error: null,
+            });
+            return;
+          }
+          // Retry after refresh
+          const { data: retryData, error: retryError } = await supabase.functions.invoke('check-subscription');
+          if (retryError) throw retryError;
+          
+          setStatus({
+            subscribed: retryData.subscribed,
+            plan: retryData.plan,
+            product_id: retryData.product_id,
+            subscription_end: retryData.subscription_end,
+            isLoading: false,
+            error: null,
+          });
+          return;
+        }
+        throw error;
+      }
 
       setStatus({
         subscribed: data.subscribed,
