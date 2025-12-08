@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, ArrowLeft, Eye, EyeOff, Gift } from "lucide-react";
+import { FileText, ArrowLeft, Eye, EyeOff, Gift, Check, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import PlanSelectionDialog from "@/components/PlanSelectionDialog";
@@ -14,6 +14,20 @@ import { Badge } from "@/components/ui/badge";
 import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 import { toast } from "@/hooks/use-toast";
 
+// Password validation requirements
+const validatePassword = (password: string) => {
+  return {
+    minLength: password.length >= 8,
+    hasUppercase: /[A-Z]/.test(password),
+    hasLowercase: /[a-z]/.test(password),
+    hasNumber: /[0-9]/.test(password),
+  };
+};
+
+const isPasswordValid = (password: string) => {
+  const validation = validatePassword(password);
+  return validation.minLength && validation.hasUppercase && validation.hasLowercase && validation.hasNumber;
+};
 // Turnstile site key - using Cloudflare's test key for development
 // Replace with your actual site key from Cloudflare dashboard
 const TURNSTILE_SITE_KEY = "0x4AAAAAABPYMDjNaQSVJe3a";
@@ -66,8 +80,22 @@ const Auth = () => {
     }
   };
 
+  // Password validation state
+  const passwordValidation = useMemo(() => validatePassword(signupPassword), [signupPassword]);
+  const isSignupPasswordValid = useMemo(() => isPasswordValid(signupPassword), [signupPassword]);
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate password strength
+    if (!isSignupPasswordValid) {
+      toast({
+        title: "Senha fraca",
+        description: "A senha deve ter no mínimo 8 caracteres, incluindo maiúsculas, minúsculas e números.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (signupPassword !== signupConfirm) {
       toast({
@@ -384,6 +412,27 @@ const Auth = () => {
                         )}
                       </Button>
                     </div>
+                    {/* Password strength indicator */}
+                    {signupPassword && (
+                      <div className="mt-2 space-y-1 text-xs">
+                        <div className={`flex items-center gap-1 ${passwordValidation.minLength ? 'text-green-600' : 'text-muted-foreground'}`}>
+                          {passwordValidation.minLength ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                          Mínimo 8 caracteres
+                        </div>
+                        <div className={`flex items-center gap-1 ${passwordValidation.hasUppercase ? 'text-green-600' : 'text-muted-foreground'}`}>
+                          {passwordValidation.hasUppercase ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                          Uma letra maiúscula
+                        </div>
+                        <div className={`flex items-center gap-1 ${passwordValidation.hasLowercase ? 'text-green-600' : 'text-muted-foreground'}`}>
+                          {passwordValidation.hasLowercase ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                          Uma letra minúscula
+                        </div>
+                        <div className={`flex items-center gap-1 ${passwordValidation.hasNumber ? 'text-green-600' : 'text-muted-foreground'}`}>
+                          {passwordValidation.hasNumber ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                          Um número
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-confirm">Confirmar Senha</Label>

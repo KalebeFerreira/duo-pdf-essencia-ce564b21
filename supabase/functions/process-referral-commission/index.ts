@@ -16,32 +16,69 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseAdmin = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
-
   try {
     logStep("Function started");
 
-    const { user_id, payment_amount, plan_name } = await req.json();
+    // Extract and verify the user from the JWT token
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      logStep("No authorization header");
+      return new Response(JSON.stringify({ error: "Authorization header required" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+
+    // Create a client with the user's JWT to verify identity
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      {
+        global: { headers: { Authorization: authHeader } },
+        auth: { persistSession: false },
+      }
+    );
+
+    // Get the authenticated user from the JWT - this is the trusted identity
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     
-    if (!user_id || !payment_amount) {
-      throw new Error("user_id and payment_amount are required");
+    if (userError || !user) {
+      logStep("Invalid or expired token", { error: userError?.message });
+      return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+
+    // Use the authenticated user's ID - NOT from request body
+    const authenticatedUserId = user.id;
+    logStep("Authenticated user", { user_id: authenticatedUserId });
+
+    // Get payment_amount and plan_name from request body (these are ok to come from client)
+    const { payment_amount, plan_name } = await req.json();
+    
+    if (!payment_amount) {
+      throw new Error("payment_amount is required");
     }
     
-    logStep("Processing commission", { user_id, payment_amount, plan_name });
+    logStep("Processing commission", { user_id: authenticatedUserId, payment_amount, plan_name });
+
+    // Create admin client for database operations
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
 
     // Verificar se o usuário foi indicado por alguém
     const { data: referral, error: referralError } = await supabaseAdmin
       .from('referrals')
       .select('*, referral_codes!inner(*)')
-      .eq('referred_id', user_id)
+      .eq('referred_id', authenticatedUserId)
       .single();
 
     if (referralError || !referral) {
-      logStep("User was not referred by anyone", { user_id });
+      logStep("User was not referred by anyone", { user_id: authenticatedUserId });
       return new Response(JSON.stringify({ message: "No referral found" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
