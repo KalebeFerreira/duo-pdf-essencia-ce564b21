@@ -40,10 +40,10 @@ export const useSubscription = () => {
     try {
       setStatus(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Refresh session before making the request to ensure valid JWT
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      // Force refresh session to ensure we have a valid JWT before calling edge function
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
       
-      if (sessionError || !sessionData.session) {
+      if (refreshError || !refreshData.session) {
         // Session expired or invalid, reset to free plan without error
         setStatus({
           subscribed: false,
