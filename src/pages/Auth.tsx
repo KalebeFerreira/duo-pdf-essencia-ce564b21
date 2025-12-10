@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import PlanSelectionDialog from "@/components/PlanSelectionDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
+
 import { toast } from "@/hooks/use-toast";
 
 // Password validation requirements
@@ -28,9 +28,6 @@ const isPasswordValid = (password: string) => {
   const validation = validatePassword(password);
   return validation.minLength && validation.hasUppercase && validation.hasLowercase && validation.hasNumber;
 };
-// Turnstile site key - using Cloudflare's test key for development
-// Replace with your actual site key from Cloudflare dashboard
-const TURNSTILE_SITE_KEY = "0x4AAAAAABPYMDjNaQSVJe3a";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -45,14 +42,10 @@ const Auth = () => {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showSignupConfirm, setShowSignupConfirm] = useState(false);
-  const [loginCaptchaToken, setLoginCaptchaToken] = useState<string | null>(null);
-  const [signupCaptchaToken, setSignupCaptchaToken] = useState<string | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   
-  const loginTurnstileRef = useRef<TurnstileInstance>(null);
-  const signupTurnstileRef = useRef<TurnstileInstance>(null);
   
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
@@ -68,16 +61,9 @@ const Auth = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Allow login even without CAPTCHA token (will be handled in useAuth)
     setIsLoading(true);
-    const result = await signIn(loginEmail, loginPassword, loginCaptchaToken || undefined);
+    await signIn(loginEmail, loginPassword);
     setIsLoading(false);
-    
-    // Reset captcha after attempt
-    if (!result.data) {
-      loginTurnstileRef.current?.reset();
-      setLoginCaptchaToken(null);
-    }
   };
 
   // Password validation state
@@ -106,9 +92,8 @@ const Auth = () => {
       return;
     }
     
-    // Allow signup even without CAPTCHA token (will be handled in useAuth)
     setIsLoading(true);
-    const result = await signUp(signupEmail, signupPassword, signupName, signupCaptchaToken || undefined);
+    const result = await signUp(signupEmail, signupPassword, signupName);
     setIsLoading(false);
 
     if (result.data?.user) {
@@ -129,10 +114,6 @@ const Auth = () => {
       }
       
       setShowPlanDialog(true);
-    } else {
-      // Reset captcha after failed attempt
-      signupTurnstileRef.current?.reset();
-      setSignupCaptchaToken(null);
     }
   };
 
@@ -279,18 +260,6 @@ const Auth = () => {
                     </div>
                   </div>
                   
-                  <div className="flex justify-center">
-                    <Turnstile
-                      ref={loginTurnstileRef}
-                      siteKey={TURNSTILE_SITE_KEY}
-                      onSuccess={(token) => setLoginCaptchaToken(token)}
-                      onError={() => setLoginCaptchaToken(null)}
-                      onExpire={() => setLoginCaptchaToken(null)}
-                      options={{
-                        theme: 'auto',
-                      }}
-                    />
-                  </div>
                   
                   <Button
                     type="submit"
@@ -462,18 +431,6 @@ const Auth = () => {
                     </div>
                   </div>
                   
-                  <div className="flex justify-center">
-                    <Turnstile
-                      ref={signupTurnstileRef}
-                      siteKey={TURNSTILE_SITE_KEY}
-                      onSuccess={(token) => setSignupCaptchaToken(token)}
-                      onError={() => setSignupCaptchaToken(null)}
-                      onExpire={() => setSignupCaptchaToken(null)}
-                      options={{
-                        theme: 'auto',
-                      }}
-                    />
-                  </div>
                   
                   <Button
                     type="submit"

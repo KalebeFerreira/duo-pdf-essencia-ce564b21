@@ -66,55 +66,22 @@ export const useAuth = () => {
     };
   }, []);
 
-  const signUp = async (email: string, password: string, nomeCompleto: string, captchaToken?: string) => {
+  const signUp = async (email: string, password: string, nomeCompleto: string) => {
     try {
       const redirectUrl = `${window.location.origin}/dashboard`;
-      
-      // Build options conditionally
-      const signUpOptions: any = {
-        emailRedirectTo: redirectUrl,
-        data: {
-          nome_completo: nomeCompleto
-        },
-      };
-      
-      // Only include captchaToken if provided
-      if (captchaToken) {
-        signUpOptions.captchaToken = captchaToken;
-      }
       
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: signUpOptions
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            nome_completo: nomeCompleto
+          },
+        }
       });
 
-      if (error) {
-        // Check if error is CAPTCHA related - try without CAPTCHA
-        if (error.message?.includes('captcha') && captchaToken) {
-          console.log('CAPTCHA error, trying without CAPTCHA token');
-          const { data: retryData, error: retryError } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              emailRedirectTo: redirectUrl,
-              data: {
-                nome_completo: nomeCompleto
-              },
-            }
-          });
-          
-          if (retryError) throw retryError;
-          
-          toast({
-            title: "Conta criada!",
-            description: "Verifique seu email para confirmar o cadastro.",
-          });
-          
-          return { data: retryData, error: null };
-        }
-        throw error;
-      }
+      if (error) throw error;
 
       toast({
         title: "Conta criada!",
@@ -132,35 +99,14 @@ export const useAuth = () => {
     }
   };
 
-  const signIn = async (email: string, password: string, captchaToken?: string) => {
+  const signIn = async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
-        options: captchaToken ? { captchaToken } : undefined,
       });
 
-      if (error) {
-        // Check if error is CAPTCHA related - try without CAPTCHA
-        if (error.message?.includes('captcha') && captchaToken) {
-          console.log('CAPTCHA error, trying without CAPTCHA token');
-          const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-          
-          if (retryError) throw retryError;
-          
-          toast({
-            title: "Login realizado!",
-            description: "Redirecionando para o dashboard...",
-          });
-          
-          navigate('/dashboard');
-          return { data: retryData, error: null };
-        }
-        throw error;
-      }
+      if (error) throw error;
 
       toast({
         title: "Login realizado!",
