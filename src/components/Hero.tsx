@@ -160,18 +160,7 @@ const Hero = () => {
             initial="hidden"
             animate="visible"
           >
-            <motion.div 
-              className="absolute -inset-4 bg-gradient-secondary opacity-20 blur-3xl rounded-full"
-              animate={{ 
-                scale: [1, 1.1, 1],
-                opacity: [0.2, 0.3, 0.2]
-              }}
-              transition={{ 
-                duration: 4,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
+            <div className="absolute -inset-4 bg-gradient-secondary opacity-20 blur-3xl rounded-full" />
             <motion.img
               src={heroImage}
               alt="Essência-duo - Plataforma completa para criação de documentos com IA"
@@ -184,31 +173,9 @@ const Hero = () => {
         </div>
       </div>
       
-      {/* Decorative Elements */}
-      <motion.div 
-        className="absolute top-1/4 left-10 w-72 h-72 bg-secondary/10 rounded-full blur-3xl"
-        animate={{ 
-          x: [0, 30, 0],
-          y: [0, -20, 0]
-        }}
-        transition={{ 
-          duration: 8,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-      />
-      <motion.div 
-        className="absolute bottom-1/4 right-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl"
-        animate={{ 
-          x: [0, -30, 0],
-          y: [0, 20, 0]
-        }}
-        transition={{ 
-          duration: 10,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-      />
+      {/* Decorative Elements - Static for performance */}
+      <div className="absolute top-1/4 left-10 w-72 h-72 bg-secondary/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 right-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
     </section>
   );
 };

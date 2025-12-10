@@ -21,6 +21,8 @@ export const useUserProfile = () => {
       return data;
     },
     enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5, // 5 minutos - evita re-fetches desnecessários
+    gcTime: 1000 * 60 * 10, // 10 minutos no cache
   });
 
   const updateProfile = useMutation({
