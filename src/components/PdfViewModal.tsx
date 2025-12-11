@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText } from "lucide-react";
+import PdfDownloadButton from "@/components/PdfDownloadButton";
 
 interface PdfViewModalProps {
   isOpen: boolean;
@@ -17,6 +18,8 @@ interface PdfViewModalProps {
     content?: string;
     created_at: string;
     photo_url?: string;
+    signature_url?: string;
+    template?: string;
   } | null;
 }
 
@@ -35,14 +38,25 @@ const PdfViewModal = ({ isOpen, onClose, document }: PdfViewModalProps) => {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh]">
         <DialogHeader>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
-              <FileText className="w-5 h-5 text-primary-foreground" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
+                <FileText className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl">{document.title}</DialogTitle>
+                <DialogDescription>Criado em {formattedDate}</DialogDescription>
+              </div>
             </div>
-            <div>
-              <DialogTitle className="text-xl">{document.title}</DialogTitle>
-              <DialogDescription>Criado em {formattedDate}</DialogDescription>
-            </div>
+            <PdfDownloadButton
+              content={document.content || ""}
+              title={document.title}
+              photoUrl={document.photo_url}
+              signatureUrl={document.signature_url}
+              template={document.template || "modern"}
+              variant="default"
+              size="sm"
+            />
           </div>
         </DialogHeader>
         
