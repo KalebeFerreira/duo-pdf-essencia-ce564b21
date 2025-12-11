@@ -8,12 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, FileText, Sparkles, Upload, X, Edit } from "lucide-react";
+import { Loader2, FileText, Sparkles, Upload, X, Edit, Eye } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PhotoEditor } from "@/components/PhotoEditor";
 import { SignaturePad } from "@/components/SignaturePad";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import PdfViewModal from "@/components/PdfViewModal";
 
 const templates = [
   { id: "modern", name: "Moderno" },
@@ -35,6 +36,14 @@ export default function CreateResume() {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [tempPhotoFile, setTempPhotoFile] = useState<File | null>(null);
   const [signatureUrl, setSignatureUrl] = useState("");
+  const [generatedResume, setGeneratedResume] = useState<{
+    id: string;
+    title: string;
+    content: string;
+    created_at: string;
+    photo_url?: string;
+  } | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -179,7 +188,7 @@ export default function CreateResume() {
       const base64Content = btoa(unescape(encodeURIComponent(resumeContent)));
 
       // Salvar no banco de dados com a URL da foto, template e assinatura
-      const { error: insertError } = await supabase
+      const { data: insertedDoc, error: insertError } = await supabase
         .from("documents")
         .insert({
           user_id: user?.id,
@@ -189,9 +198,20 @@ export default function CreateResume() {
           photo_url: photoUrl || null,
           template: template,
           signature_url: signatureUrl || null,
-        } as any);
+        } as any)
+        .select()
+        .single();
 
       if (insertError) throw insertError;
+
+      // Salvar currículo gerado para visualização
+      setGeneratedResume({
+        id: insertedDoc?.id || '',
+        title: `Currículo ${selectedTemplate?.name} - ${formData.fullName}`,
+        content: resumeContent,
+        created_at: new Date().toISOString(),
+        photo_url: photoUrl || undefined,
+      });
 
       // Atualizar contadores do usuário
       const { data: profile } = await supabase
@@ -212,7 +232,7 @@ export default function CreateResume() {
 
       toast({
         title: "✨ Currículo profissional criado!",
-        description: "Seu currículo foi gerado com IA e está disponível no dashboard.",
+        description: "Clique em 'Ver Currículo' para visualizar.",
       });
     } catch (error: any) {
       console.error("Erro ao gerar currículo:", error);
@@ -449,7 +469,7 @@ export default function CreateResume() {
 
             {/* Botão de Gerar */}
             <Card className="md:col-span-2">
-              <CardContent className="pt-6">
+              <CardContent className="pt-6 space-y-4">
                 <Button
                   onClick={handleGenerate}
                   disabled={isGenerating}
@@ -468,6 +488,18 @@ export default function CreateResume() {
                     </>
                   )}
                 </Button>
+                
+                {generatedResume && (
+                  <Button
+                    onClick={() => setIsViewModalOpen(true)}
+                    variant="outline"
+                    className="w-full"
+                    size="lg"
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                    Ver Currículo Gerado
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -480,6 +512,13 @@ export default function CreateResume() {
         onClose={() => setIsEditorOpen(false)}
         imageFile={tempPhotoFile}
         onSave={handlePhotoEdited}
+      />
+
+      {/* View Resume Modal */}
+      <PdfViewModal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        document={generatedResume}
       />
     </div>
   );
