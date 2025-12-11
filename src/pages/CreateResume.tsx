@@ -214,8 +214,6 @@ export default function CreateResume() {
         title: "✨ Currículo profissional criado!",
         description: "Seu currículo foi gerado com IA e está disponível no dashboard.",
       });
-
-      navigate("/dashboard");
     } catch (error: any) {
       console.error("Erro ao gerar currículo:", error);
       
