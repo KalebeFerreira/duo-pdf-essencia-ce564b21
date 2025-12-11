@@ -141,6 +141,7 @@ export type Database = {
           id: string
           photo_url: string | null
           signature_url: string | null
+          template: string | null
           title: string | null
           user_id: string | null
         }
@@ -151,6 +152,7 @@ export type Database = {
           id?: string
           photo_url?: string | null
           signature_url?: string | null
+          template?: string | null
           title?: string | null
           user_id?: string | null
         }
@@ -161,6 +163,7 @@ export type Database = {
           id?: string
           photo_url?: string | null
           signature_url?: string | null
+          template?: string | null
           title?: string | null
           user_id?: string | null
         }
