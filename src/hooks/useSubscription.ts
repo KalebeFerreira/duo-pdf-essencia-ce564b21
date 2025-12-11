@@ -40,11 +40,11 @@ export const useSubscription = () => {
     try {
       setStatus(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Force refresh session to ensure we have a valid JWT before calling edge function
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      // Get current session to include the access token
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (refreshError || !refreshData.session) {
-        // Session expired or invalid, reset to free plan without error
+      if (!session?.access_token) {
+        // No valid session, reset to free plan
         setStatus({
           subscribed: false,
           plan: 'free',
@@ -56,14 +56,18 @@ export const useSubscription = () => {
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke('check-subscription');
+      const { data, error } = await supabase.functions.invoke('check-subscription', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
       if (error) {
         // Handle 401 errors gracefully - session may have expired
         if (error.message?.includes('401') || error.message?.includes('JWT')) {
           // Try to refresh the session
-          const { error: refreshError } = await supabase.auth.refreshSession();
-          if (refreshError) {
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError || !refreshData.session) {
             // Session truly expired, reset to defaults
             setStatus({
               subscribed: false,
@@ -75,8 +79,12 @@ export const useSubscription = () => {
             });
             return;
           }
-          // Retry after refresh
-          const { data: retryData, error: retryError } = await supabase.functions.invoke('check-subscription');
+          // Retry after refresh with new token
+          const { data: retryData, error: retryError } = await supabase.functions.invoke('check-subscription', {
+            headers: {
+              Authorization: `Bearer ${refreshData.session.access_token}`,
+            },
+          });
           if (retryError) throw retryError;
           
           setStatus({
