@@ -97,8 +97,6 @@ const Auth = () => {
     setIsLoading(false);
 
     if (result.data?.user) {
-      setPendingUserId(result.data.user.id);
-      
       // Registrar indicação se houver código
       if (referralCode) {
         try {
@@ -113,25 +111,24 @@ const Auth = () => {
         }
       }
       
-      setShowPlanDialog(true);
+      // Mostrar mensagem de sucesso - usuário precisa confirmar email
+      toast({
+        title: "Conta criada com sucesso!",
+        description: "Verifique seu email para confirmar o cadastro antes de fazer login.",
+      });
+      
+      // Limpar campos e voltar para aba de login
+      setSignupName("");
+      setSignupEmail("");
+      setSignupPassword("");
+      setSignupConfirm("");
     }
   };
 
   const handlePlanSelection = async (plan: "free" | "basic" | "complete") => {
-    if (!pendingUserId) return;
-
-    try {
-      // Update the user's plan
-      await supabase
-        .from('profiles')
-        .update({ plan })
-        .eq('id', pendingUserId);
-
-      setShowPlanDialog(false);
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Error updating plan:', error);
-    }
+    // Esta função não é mais usada no fluxo de cadastro
+    // O plano é definido como 'free' automaticamente no trigger do banco
+    setShowPlanDialog(false);
   };
 
   const handleGoogleSignIn = async () => {
