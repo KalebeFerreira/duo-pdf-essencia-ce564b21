@@ -106,7 +106,18 @@ export const useAuth = () => {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Tratamento específico para email não confirmado
+        if (error.message.includes('Email not confirmed') || error.code === 'email_not_confirmed') {
+          toast({
+            title: "Email não confirmado",
+            description: "Verifique sua caixa de entrada e clique no link de confirmação antes de fazer login.",
+            variant: "destructive",
+          });
+          return { data: null, error };
+        }
+        throw error;
+      }
 
       toast({
         title: "Login realizado!",
@@ -118,7 +129,9 @@ export const useAuth = () => {
     } catch (error: any) {
       toast({
         title: "Erro ao fazer login",
-        description: error.message,
+        description: error.message === "Invalid login credentials" 
+          ? "Email ou senha incorretos" 
+          : error.message,
         variant: "destructive",
       });
       return { data: null, error };
