@@ -27,17 +27,18 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase client with user's token
+    // Extract token and create Supabase client
+    const token = authHeader.replace("Bearer ", "");
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
-    // Verify user
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    // Verify user with explicit token
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !user) {
-      logStep('Error: Invalid user', { error: userError?.message });
+      logStep('Error: Invalid user', { error: userError?.message, tokenLength: token.length });
       return new Response(
         JSON.stringify({ error: "Usuário não autenticado" }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
