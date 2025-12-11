@@ -7,7 +7,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.generate-resume]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-ebook-chapter]
 verify_jwt = true
