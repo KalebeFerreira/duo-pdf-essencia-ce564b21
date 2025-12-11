@@ -40,7 +40,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.generate-catalog-content]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-catalog-image]
-verify_jwt = true
+verify_jwt = false
