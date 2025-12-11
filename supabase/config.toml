@@ -13,7 +13,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.generate-complete-ebook]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-design-ai]
 verify_jwt = false
