@@ -185,8 +185,22 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
     
     const attemptGeneration = async (): Promise<boolean> => {
       try {
+        // Get the current session to include the access token
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          toast({
+            title: "Sessão expirada",
+            description: "Faça login novamente para gerar designs",
+            variant: "destructive",
+          });
+          return true; // Don't retry - need to login
+        }
+
         const { data, error } = await supabase.functions.invoke("generate-design-ai", {
           body: { prompt: aiPrompt, template: selectedTemplate || "flyer" },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
         });
 
         // Check for error responses from the edge function (in data or error)
