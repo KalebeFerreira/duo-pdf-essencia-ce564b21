@@ -7,7 +7,8 @@ const corsHeaders = {
 };
 
 const logStep = (step: string, details?: any) => {
-  console.log(`[GENERATE-DESIGN-AI] ${step}`, details ? JSON.stringify(details) : '');
+  const timestamp = new Date().toISOString();
+  console.log(`[GENERATE-DESIGN-AI ${timestamp}] ${step}`, details ? JSON.stringify(details) : '');
 };
 
 serve(async (req) => {
