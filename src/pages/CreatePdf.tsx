@@ -31,7 +31,7 @@ const CreatePdf = () => {
       title: "PDF Criado!",
       description: "Seu PDF foi criado com sucesso. Você pode encontrá-lo na biblioteca do dashboard.",
     });
-    navigate("/dashboard");
+    // Permanece na página ao invés de redirecionar
   };
 
   return (

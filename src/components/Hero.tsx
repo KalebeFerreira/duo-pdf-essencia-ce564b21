@@ -58,10 +58,10 @@ const Hero = () => {
           >
             <motion.div 
               variants={itemVariants}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-secondary/10 rounded-full border border-secondary/20"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full border border-primary/30"
             >
-              <Sparkles className="w-4 h-4 text-secondary" />
-              <span className="text-sm font-medium text-secondary">Automação com IA Avançada</span>
+              <Sparkles className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">Automação com IA Avançada</span>
             </motion.div>
             
             <motion.h1 
@@ -69,7 +69,7 @@ const Hero = () => {
               className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground leading-tight"
             >
               Crie Documentos Profissionais com{" "}
-              <span className="bg-gradient-secondary bg-clip-text text-transparent">
+              <span className="bg-gradient-primary bg-clip-text text-transparent">
                 Inteligência Artificial
               </span>
             </motion.h1>
@@ -113,7 +113,7 @@ const Hero = () => {
               <Button 
                 asChild 
                 size="lg"
-                className="bg-gradient-secondary shadow-glow hover:shadow-xl transition-all group"
+                className="bg-gradient-primary shadow-glow hover:shadow-xl transition-all group"
               >
                 <Link to="/auth">
                   Começar Grátis
@@ -125,7 +125,7 @@ const Hero = () => {
                 asChild 
                 size="lg"
                 variant="outline"
-                className="border-2 border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground transition-all"
+                className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all"
               >
                 <Link to="/#features">
                   Explorar Recursos
@@ -160,7 +160,7 @@ const Hero = () => {
             initial="hidden"
             animate="visible"
           >
-            <div className="absolute -inset-4 bg-gradient-secondary opacity-20 blur-3xl rounded-full" />
+            <div className="absolute -inset-4 bg-gradient-primary opacity-20 blur-3xl rounded-full" />
             <motion.img
               src={heroImage}
               alt="Essência-duo - Plataforma completa para criação de documentos com IA"
@@ -174,8 +174,8 @@ const Hero = () => {
       </div>
       
       {/* Decorative Elements - Static for performance */}
-      <div className="absolute top-1/4 left-10 w-72 h-72 bg-secondary/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 right-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
+      <div className="absolute top-1/4 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 right-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
     </section>
   );
 };
