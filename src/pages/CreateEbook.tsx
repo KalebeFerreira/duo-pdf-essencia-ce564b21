@@ -80,6 +80,17 @@ export default function CreateEbook() {
     setIsGenerating(true);
 
     try {
+      // Get the current session to include the access token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast({
+          title: "Sessão expirada",
+          description: "Faça login novamente para gerar ebooks",
+          variant: "destructive",
+        });
+        return;
+      }
+
       toast({
         title: "Gerando seu ebook...",
         description: "A IA está criando conteúdo conciso com múltiplas imagens. Isso leva cerca de 40-70 segundos.",
@@ -92,7 +103,9 @@ export default function CreateEbook() {
           colorPalette: selectedColorPalette,
           numPages: numPages || 10
         },
-        timeout: 300000
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (error) {
