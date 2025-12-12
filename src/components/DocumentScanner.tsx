@@ -265,81 +265,135 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
   };
 
   const startCamera = async () => {
+    console.log("Starting camera...");
+    
+    // Check HTTPS requirement (except localhost)
+    const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+    if (!isSecure) {
+      toast({
+        title: "Erro",
+        description: "O acesso à câmera requer conexão segura (HTTPS).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if getUserMedia is supported
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.error("getUserMedia not supported");
+      toast({
+        title: "Câmera não suportada",
+        description: "Seu navegador não suporta acesso à câmera. Tente usar o Chrome, Safari ou Firefox.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      // Check if getUserMedia is supported
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast({
-          title: "Erro",
-          description: "Seu navegador não suporta acesso à câmera. Use um navegador mais recente.",
-          variant: "destructive",
-        });
-        return;
+      // First, try to get camera with environment facing mode (back camera)
+      let stream: MediaStream | null = null;
+      
+      const constraints = [
+        // Try back camera first
+        { video: { facingMode: { exact: "environment" } }, audio: false },
+        // Fallback to ideal back camera
+        { video: { facingMode: { ideal: "environment" } }, audio: false },
+        // Fallback to any camera
+        { video: true, audio: false }
+      ];
+
+      for (const constraint of constraints) {
+        try {
+          console.log("Trying constraint:", constraint);
+          stream = await navigator.mediaDevices.getUserMedia(constraint);
+          console.log("Got stream with constraint:", constraint);
+          break;
+        } catch (err) {
+          console.log("Failed with constraint:", constraint, err);
+          continue;
+        }
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: { ideal: "environment" }, 
-          width: { ideal: 1920 }, 
-          height: { ideal: 1080 } 
-        },
-        audio: false
-      });
-      
+      if (!stream) {
+        throw new Error("Não foi possível acessar nenhuma câmera");
+      }
+
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        // Required for iOS Safari - must play after setting srcObject
-        videoRef.current.setAttribute('playsinline', 'true');
-        videoRef.current.setAttribute('muted', 'true');
-        videoRef.current.muted = true;
+        const video = videoRef.current;
         
-        // Wait for video to be ready before setting camera active
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play().then(() => {
-            streamRef.current = stream;
+        // CRITICAL: Set these attributes BEFORE assigning srcObject for iOS
+        video.setAttribute('autoplay', '');
+        video.setAttribute('muted', '');
+        video.setAttribute('playsinline', '');
+        video.autoplay = true;
+        video.muted = true;
+        video.playsInline = true;
+        
+        // Assign stream
+        video.srcObject = stream;
+        streamRef.current = stream;
+        
+        // For iOS, we need to handle the play promise carefully
+        const playVideo = async () => {
+          try {
+            await video.play();
+            console.log("Video playing successfully");
             setIsCameraActive(true);
-          }).catch((playError) => {
-            console.error("Error playing video:", playError);
-            toast({
-              title: "Erro",
-              description: "Não foi possível iniciar a câmera. Toque na tela para permitir.",
-              variant: "destructive",
-            });
-          });
+          } catch (playError: any) {
+            console.error("Play error:", playError);
+            // On iOS, sometimes play() fails but video still works
+            if (video.readyState >= 2) {
+              setIsCameraActive(true);
+            } else {
+              // Add click handler as fallback for iOS
+              const handleClick = async () => {
+                try {
+                  await video.play();
+                  setIsCameraActive(true);
+                } catch (e) {
+                  console.error("Click play failed:", e);
+                }
+                video.removeEventListener('click', handleClick);
+              };
+              video.addEventListener('click', handleClick);
+              
+              toast({
+                title: "Toque no vídeo",
+                description: "Toque na área de vídeo para iniciar a câmera.",
+              });
+              setIsCameraActive(true);
+            }
+          }
         };
+
+        // Wait for metadata to load before playing
+        if (video.readyState >= 1) {
+          await playVideo();
+        } else {
+          video.onloadedmetadata = async () => {
+            await playVideo();
+          };
+        }
       }
     } catch (error: any) {
-      console.error("Error accessing camera:", error);
-      let errorMessage = "Não foi possível acessar a câmera. Verifique as permissões.";
+      console.error("Camera error:", error);
       
-      if (error.name === 'NotAllowedError') {
-        errorMessage = "Permissão de câmera negada. Permita o acesso à câmera nas configurações do navegador.";
-      } else if (error.name === 'NotFoundError') {
+      let errorMessage = "Não foi possível acessar a câmera.";
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorMessage = "Permissão negada. Permita o acesso à câmera nas configurações do navegador ou do dispositivo.";
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
         errorMessage = "Nenhuma câmera encontrada no dispositivo.";
-      } else if (error.name === 'NotReadableError') {
-        errorMessage = "A câmera está sendo usada por outro aplicativo.";
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        errorMessage = "A câmera está sendo usada por outro aplicativo. Feche outros apps e tente novamente.";
       } else if (error.name === 'OverconstrainedError') {
-        // Try again with simpler constraints
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: false
-          });
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            videoRef.current.setAttribute('playsinline', 'true');
-            videoRef.current.muted = true;
-            await videoRef.current.play();
-            streamRef.current = stream;
-            setIsCameraActive(true);
-            return;
-          }
-        } catch {
-          errorMessage = "Não foi possível configurar a câmera.";
-        }
+        errorMessage = "Configurações de câmera não suportadas pelo seu dispositivo.";
+      } else if (error.name === 'SecurityError') {
+        errorMessage = "Acesso à câmera bloqueado por segurança. Verifique se está usando HTTPS.";
       }
       
       toast({
-        title: "Erro",
+        title: "Erro de Câmera",
         description: errorMessage,
         variant: "destructive",
       });
@@ -580,13 +634,16 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="relative rounded-lg overflow-hidden bg-black">
+                <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
                   <video
                     ref={videoRef}
                     autoPlay
                     playsInline
                     muted
-                    className="w-full max-h-[400px] object-contain"
+                    webkit-playsinline="true"
+                    x-webkit-airplay="allow"
+                    className="w-full h-full object-cover"
+                    style={{ transform: 'scaleX(1)' }}
                   />
                   <div className="absolute inset-0 border-4 border-primary/30 pointer-events-none">
                     <div className="absolute top-4 left-4 w-8 h-8 border-t-4 border-l-4 border-primary" />
@@ -594,6 +651,11 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
                     <div className="absolute bottom-4 left-4 w-8 h-8 border-b-4 border-l-4 border-primary" />
                     <div className="absolute bottom-4 right-4 w-8 h-8 border-b-4 border-r-4 border-primary" />
                   </div>
+                  {/* Tap overlay for iOS */}
+                  <div 
+                    className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-0"
+                    onClick={() => videoRef.current?.play()}
+                  />
                 </div>
                 <canvas ref={canvasRef} className="hidden" />
                 <div className="flex gap-2">
