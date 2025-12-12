@@ -190,20 +190,81 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
 
   const startCamera = async () => {
     try {
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast({
+          title: "Erro",
+          description: "Seu navegador não suporta acesso à câmera. Use um navegador mais recente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }
+        video: { 
+          facingMode: { ideal: "environment" }, 
+          width: { ideal: 1920 }, 
+          height: { ideal: 1080 } 
+        },
+        audio: false
       });
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-        setIsCameraActive(true);
+        // Required for iOS Safari - must play after setting srcObject
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.setAttribute('muted', 'true');
+        videoRef.current.muted = true;
+        
+        // Wait for video to be ready before setting camera active
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play().then(() => {
+            streamRef.current = stream;
+            setIsCameraActive(true);
+          }).catch((playError) => {
+            console.error("Error playing video:", playError);
+            toast({
+              title: "Erro",
+              description: "Não foi possível iniciar a câmera. Toque na tela para permitir.",
+              variant: "destructive",
+            });
+          });
+        };
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error accessing camera:", error);
+      let errorMessage = "Não foi possível acessar a câmera. Verifique as permissões.";
+      
+      if (error.name === 'NotAllowedError') {
+        errorMessage = "Permissão de câmera negada. Permita o acesso à câmera nas configurações do navegador.";
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = "Nenhuma câmera encontrada no dispositivo.";
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = "A câmera está sendo usada por outro aplicativo.";
+      } else if (error.name === 'OverconstrainedError') {
+        // Try again with simpler constraints
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false
+          });
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.setAttribute('playsinline', 'true');
+            videoRef.current.muted = true;
+            await videoRef.current.play();
+            streamRef.current = stream;
+            setIsCameraActive(true);
+            return;
+          }
+        } catch {
+          errorMessage = "Não foi possível configurar a câmera.";
+        }
+      }
+      
       toast({
         title: "Erro",
-        description: "Não foi possível acessar a câmera. Verifique as permissões.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -448,6 +509,7 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
                     ref={videoRef}
                     autoPlay
                     playsInline
+                    muted
                     className="w-full max-h-[400px] object-contain"
                   />
                   <div className="absolute inset-0 border-4 border-primary/30 pointer-events-none">
