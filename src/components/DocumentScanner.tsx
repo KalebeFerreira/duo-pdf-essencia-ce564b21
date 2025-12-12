@@ -2,15 +2,18 @@ import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, X, FileText, Camera, Image as ImageIcon, ScanText, Loader2, Copy, Check } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Upload, X, FileText, Camera, Image as ImageIcon, ScanText, Loader2, Copy, Check, Download, Trash2, Eye, FolderOpen } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePdfLimit } from "@/hooks/usePdfLimit";
+import { useDocuments } from "@/hooks/useDocuments";
+import PdfViewModal from "@/components/PdfViewModal";
 import jsPDF from "jspdf";
 
 interface ScannedPage {
@@ -27,6 +30,7 @@ interface DocumentScannerProps {
 const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
   const { user } = useAuth();
   const { checkLimit } = usePdfLimit();
+  const { documents, isLoading: isLoadingDocs, deleteDocument } = useDocuments();
   const [pages, setPages] = useState<ScannedPage[]>([]);
   const [title, setTitle] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -37,6 +41,7 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
   const [ocrText, setOcrText] = useState("");
   const [ocrPageId, setOcrPageId] = useState<string | null>(null);
   const [copiedOcr, setCopiedOcr] = useState(false);
+  const [viewingDocument, setViewingDocument] = useState<{ title: string; content: string } | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -44,6 +49,49 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
   const streamRef = useRef<MediaStream | null>(null);
 
   const generateId = () => Math.random().toString(36).substr(2, 9);
+
+  // Export all extracted text as TXT
+  const exportAllTextAsTxt = () => {
+    const pagesWithText = pages.filter(p => p.extractedText);
+    
+    if (pagesWithText.length === 0) {
+      toast({
+        title: "Nenhum texto para exportar",
+        description: "Extraia o texto de pelo menos uma página primeiro usando o botão OCR.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const allText = pagesWithText
+      .map((page, index) => `--- Página ${index + 1}: ${page.name} ---\n\n${page.extractedText}`)
+      .join('\n\n\n');
+
+    const blob = new Blob([allText], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${title || 'documento'}_texto_extraido.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Texto exportado!",
+      description: `${pagesWithText.length} página(s) exportada(s) como TXT.`,
+    });
+  };
+
+  const handleDeleteDocument = (docId: string) => {
+    if (window.confirm('Tem certeza que deseja excluir este documento?')) {
+      deleteDocument(docId);
+      toast({
+        title: "Documento excluído",
+        description: "O documento foi removido com sucesso.",
+      });
+    }
+  };
 
   const extractTextFromPage = async (pageId: string) => {
     const page = pages.find(p => p.id === pageId);
@@ -500,6 +548,17 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
         </div>
       )}
 
+      {pages.some(p => p.extractedText) && (
+        <Button
+          onClick={exportAllTextAsTxt}
+          variant="outline"
+          className="w-full"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Exportar Todo Texto Extraído (TXT)
+        </Button>
+      )}
+
       <Button
         onClick={generatePdf}
         disabled={isGenerating || pages.length === 0 || !title.trim()}
@@ -518,6 +577,72 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
           </>
         )}
       </Button>
+
+      {/* Saved Documents Section */}
+      {user && (
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FolderOpen className="w-5 h-5" />
+              Documentos Salvos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoadingDocs ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : documents && documents.length > 0 ? (
+              <ScrollArea className="h-[300px]">
+                <div className="space-y-2">
+                  {documents.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <FileText className="w-5 h-5 text-primary flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{doc.title || 'Sem título'}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(doc.created_at || '').toLocaleDateString('pt-BR')}
+                            {doc.file_size && ` • ${(doc.file_size / 1024).toFixed(1)} KB`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setViewingDocument({ title: doc.title || '', content: doc.file_url || '' })}
+                          title="Visualizar"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteDocument(doc.id)}
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>Nenhum documento salvo ainda</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* OCR Dialog */}
       <Dialog open={ocrDialogOpen} onOpenChange={setOcrDialogOpen}>
@@ -565,6 +690,20 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* PDF View Modal */}
+      {viewingDocument && (
+        <PdfViewModal
+          isOpen={!!viewingDocument}
+          onClose={() => setViewingDocument(null)}
+          document={{
+            id: 'preview',
+            title: viewingDocument.title,
+            content: viewingDocument.content,
+            created_at: new Date().toISOString(),
+          }}
+        />
+      )}
     </div>
   );
 };
