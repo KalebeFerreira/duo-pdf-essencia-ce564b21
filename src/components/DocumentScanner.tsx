@@ -217,6 +217,72 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
     }
   };
 
+  const [isExtractingAll, setIsExtractingAll] = useState(false);
+
+  const extractTextFromAllPages = async () => {
+    const pagesToExtract = pages.filter(p => !p.extractedText);
+    
+    if (pagesToExtract.length === 0 && pages.length > 0) {
+      toast({
+        title: "Texto já extraído",
+        description: "Todas as páginas já tiveram seu texto extraído.",
+      });
+      return;
+    }
+
+    if (pages.length === 0) {
+      toast({
+        title: "Nenhuma página",
+        description: "Adicione páginas antes de extrair o texto.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsExtractingAll(true);
+
+    try {
+      let extractedCount = 0;
+      
+      for (const page of pagesToExtract) {
+        try {
+          const { data, error } = await supabase.functions.invoke('extract-text-ocr', {
+            body: { imageDataUrl: page.dataUrl, language: 'pt' }
+          });
+
+          if (error) throw error;
+
+          const extractedText = data?.text || '';
+          
+          setPages(prev => prev.map(p => 
+            p.id === page.id ? { ...p, extractedText } : p
+          ));
+
+          if (extractedText.length > 0) {
+            extractedCount++;
+          }
+        } catch (pageError) {
+          console.error(`OCR error for page ${page.name}:`, pageError);
+        }
+      }
+
+      toast({
+        title: "Extração concluída!",
+        description: `Texto extraído de ${extractedCount} de ${pagesToExtract.length} página(s).`,
+      });
+
+    } catch (error: any) {
+      console.error('Batch OCR extraction error:', error);
+      toast({
+        title: "Erro na extração",
+        description: error.message || "Ocorreu um erro ao extrair o texto.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExtractingAll(false);
+    }
+  };
+
   const copyOcrText = async () => {
     try {
       await navigator.clipboard.writeText(ocrText);
@@ -580,15 +646,38 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
         </div>
       )}
 
-      {pages.some(p => p.extractedText) && (
-        <Button
-          onClick={exportAllTextAsTxt}
-          variant="outline"
-          className="w-full"
-        >
-          <Download className="w-4 h-4 mr-2" />
-          Exportar Todo Texto Extraído (TXT)
-        </Button>
+      {pages.length > 0 && (
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button
+            onClick={extractTextFromAllPages}
+            disabled={isExtractingAll}
+            variant="secondary"
+            className="flex-1"
+          >
+            {isExtractingAll ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Extraindo...
+              </>
+            ) : (
+              <>
+                <ScanText className="w-4 h-4 mr-2" />
+                Extrair Texto de Todas
+              </>
+            )}
+          </Button>
+          
+          {pages.some(p => p.extractedText) && (
+            <Button
+              onClick={exportAllTextAsTxt}
+              variant="outline"
+              className="flex-1"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Exportar Texto (TXT)
+            </Button>
+          )}
+        </div>
       )}
 
       <Button
