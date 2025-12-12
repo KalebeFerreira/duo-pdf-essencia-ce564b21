@@ -1,4 +1,4 @@
-import { Home, FileText, Zap, User, BookOpen, Palette, Settings, CreditCard, ShoppingBag, ScanLine } from "lucide-react";
+import { Home, FileText, Zap, User, BookOpen, Palette, Settings, CreditCard, ShoppingBag, ScanLine, FileType } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -19,6 +19,7 @@ const items = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
   { title: "Criar PDF", url: "/create-pdf", icon: FileText },
   { title: "Escanear Documento", url: "/scan-document", icon: ScanLine },
+  { title: "Conversor de Arquivos", url: "/convert-file", icon: FileType },
   { title: "Criar Currículo", url: "/create-resume", icon: User },
   { title: "Criar Ebook", url: "/create-ebook", icon: BookOpen },
   { title: "Editor de Artes", url: "/create-design", icon: Palette },

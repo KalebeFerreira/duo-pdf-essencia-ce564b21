@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.extract-text-ocr]
 verify_jwt = false
+
+[functions.convert-file]
+verify_jwt = false

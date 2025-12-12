@@ -22,6 +22,7 @@ import Catalogs from "./pages/Catalogs";
 import CreateCatalog from "./pages/CreateCatalog";
 import PublicCatalog from "./pages/PublicCatalog";
 import ScanDocument from "./pages/ScanDocument";
+import ConvertFile from "./pages/ConvertFile";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -58,6 +59,7 @@ const App = () => (
               <Route path="/create-ebook" element={<CreateEbook />} />
               <Route path="/create-design" element={<CreateDesign />} />
               <Route path="/scan-document" element={<ScanDocument />} />
+              <Route path="/convert-file" element={<ConvertFile />} />
               <Route path="/automations" element={<Automations />} />
               <Route path="/catalogs" element={<Catalogs />} />
               <Route path="/catalog/new" element={<CreateCatalog />} />
