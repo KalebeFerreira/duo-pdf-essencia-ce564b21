@@ -8,13 +8,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
-import { Upload, X, FileText, Camera, Image as ImageIcon, ScanText, Loader2, Copy, Check, Download, Trash2, Eye, FolderOpen, Sliders, RotateCw } from "lucide-react";
+import { Upload, X, FileText, Camera, Image as ImageIcon, ScanText, Loader2, Copy, Check, Download, Trash2, Eye, FolderOpen, Sliders, RotateCw, Lock } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePdfLimit } from "@/hooks/usePdfLimit";
 import { useDocuments } from "@/hooks/useDocuments";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import PdfViewModal from "@/components/PdfViewModal";
+import { addWatermarkToPdf } from "@/utils/pdfWatermark";
+import { Link } from "react-router-dom";
 import jsPDF from "jspdf";
 
 interface ImageFilters {
@@ -35,10 +38,27 @@ interface DocumentScannerProps {
   onPdfCreated?: () => void;
 }
 
+const MONTHLY_SCAN_LIMIT_FREE = 10;
+
 const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
   const { user } = useAuth();
   const { checkLimit } = usePdfLimit();
   const { documents, isLoading: isLoadingDocs, deleteDocument } = useDocuments();
+  const { profile } = useUserProfile();
+  
+  // Check if user is on free plan
+  const isFreePlan = !profile?.plan || profile.plan === 'free';
+  
+  // Count scanned documents this month
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const scannedThisMonth = documents?.filter(doc => {
+    const docDate = new Date(doc.created_at || '');
+    return docDate.getMonth() === currentMonth && docDate.getFullYear() === currentYear;
+  }).length || 0;
+  
+  const remainingScans = Math.max(0, MONTHLY_SCAN_LIMIT_FREE - scannedThisMonth);
+  const hasReachedLimit = isFreePlan && scannedThisMonth >= MONTHLY_SCAN_LIMIT_FREE;
   const [pages, setPages] = useState<ScannedPage[]>([]);
   const [title, setTitle] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -394,6 +414,16 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
       return;
     }
 
+    // Check monthly limit for free plan
+    if (hasReachedLimit) {
+      toast({
+        title: "Limite Mensal Atingido",
+        description: "Você atingiu o limite de 10 documentos escaneados por mês. Faça upgrade para continuar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!checkLimit()) {
       return;
     }
@@ -435,6 +465,9 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
 
         pdf.addImage(imgData, "JPEG", x, y, width, height);
       }
+
+      // Add watermark for free plan users
+      addWatermarkToPdf(pdf, isFreePlan);
 
       const pdfBlob = pdf.output("blob");
       const pdfContent = await pdf.output("datauristring");
@@ -493,6 +526,42 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Limite indicator for free plan */}
+      {isFreePlan && (
+        <Card className={`border ${hasReachedLimit ? 'border-destructive bg-destructive/5' : 'border-amber-500/50 bg-amber-500/5'}`}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                {hasReachedLimit ? (
+                  <Lock className="w-5 h-5 text-destructive" />
+                ) : (
+                  <FileText className="w-5 h-5 text-amber-600" />
+                )}
+                <div>
+                  <p className="font-medium text-sm">
+                    {hasReachedLimit 
+                      ? "Limite Mensal Atingido" 
+                      : `${remainingScans} de ${MONTHLY_SCAN_LIMIT_FREE} escaneamentos restantes`
+                    }
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {hasReachedLimit 
+                      ? "Faça upgrade para continuar escaneando documentos"
+                      : "Plano gratuito - PDFs incluem marca d'água 'Essência Duo'"
+                    }
+                  </p>
+                </div>
+              </div>
+              <Link to="/pricing">
+                <Button size="sm" variant={hasReachedLimit ? "default" : "outline"}>
+                  {hasReachedLimit ? "Fazer Upgrade" : "Ver Planos"}
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="pdf-title">Título do Documento</Label>
         <Input
@@ -500,6 +569,7 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
           placeholder="Digite o título do seu documento..."
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          disabled={hasReachedLimit}
         />
       </div>
 
