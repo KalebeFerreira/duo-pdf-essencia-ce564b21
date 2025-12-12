@@ -520,7 +520,8 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
                     alt={`Página ${index + 1}`}
                     className="w-full h-32 object-cover rounded"
                   />
-                  <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {/* Actions always visible on mobile, hover on desktop */}
+                  <div className="absolute top-1 right-1 flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                     <Button
                       variant="secondary"
                       size="icon"
