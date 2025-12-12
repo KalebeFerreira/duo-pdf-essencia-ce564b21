@@ -42,7 +42,6 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
   const [pages, setPages] = useState<ScannedPage[]>([]);
   const [title, setTitle] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isCameraActive, setIsCameraActive] = useState(false);
   const [activeTab, setActiveTab] = useState("upload");
   const [isExtractingOcr, setIsExtractingOcr] = useState(false);
   const [ocrDialogOpen, setOcrDialogOpen] = useState(false);
@@ -55,9 +54,7 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
   const filterCanvasRef = useRef<HTMLCanvasElement>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -264,179 +261,37 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
     }
   };
 
-  const startCamera = async () => {
-    console.log("Starting camera...");
-    
-    // Check HTTPS requirement (except localhost)
-    const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
-    if (!isSecure) {
+  // Handle camera capture using native input - works reliably on all mobile devices
+  const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      const pageNumber = pages.length + 1;
+      
+      setPages((prev) => [...prev, { 
+        id: generateId(), 
+        dataUrl, 
+        name: `Página ${pageNumber} (Escaneada)` 
+      }]);
+
       toast({
-        title: "Erro",
-        description: "O acesso à câmera requer conexão segura (HTTPS).",
-        variant: "destructive",
+        title: "Página capturada!",
+        description: `Página ${pageNumber} adicionada ao documento.`,
       });
-      return;
-    }
+    };
+    reader.readAsDataURL(file);
 
-    // Check if getUserMedia is supported
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      console.error("getUserMedia not supported");
-      toast({
-        title: "Câmera não suportada",
-        description: "Seu navegador não suporta acesso à câmera. Tente usar o Chrome, Safari ou Firefox.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      // First, try to get camera with environment facing mode (back camera)
-      let stream: MediaStream | null = null;
-      
-      const constraints = [
-        // Try back camera first
-        { video: { facingMode: { exact: "environment" } }, audio: false },
-        // Fallback to ideal back camera
-        { video: { facingMode: { ideal: "environment" } }, audio: false },
-        // Fallback to any camera
-        { video: true, audio: false }
-      ];
-
-      for (const constraint of constraints) {
-        try {
-          console.log("Trying constraint:", constraint);
-          stream = await navigator.mediaDevices.getUserMedia(constraint);
-          console.log("Got stream with constraint:", constraint);
-          break;
-        } catch (err) {
-          console.log("Failed with constraint:", constraint, err);
-          continue;
-        }
-      }
-
-      if (!stream) {
-        throw new Error("Não foi possível acessar nenhuma câmera");
-      }
-
-      if (videoRef.current) {
-        const video = videoRef.current;
-        
-        // CRITICAL: Set these attributes BEFORE assigning srcObject for iOS
-        video.setAttribute('autoplay', '');
-        video.setAttribute('muted', '');
-        video.setAttribute('playsinline', '');
-        video.autoplay = true;
-        video.muted = true;
-        video.playsInline = true;
-        
-        // Assign stream
-        video.srcObject = stream;
-        streamRef.current = stream;
-        
-        // For iOS, we need to handle the play promise carefully
-        const playVideo = async () => {
-          try {
-            await video.play();
-            console.log("Video playing successfully");
-            setIsCameraActive(true);
-          } catch (playError: any) {
-            console.error("Play error:", playError);
-            // On iOS, sometimes play() fails but video still works
-            if (video.readyState >= 2) {
-              setIsCameraActive(true);
-            } else {
-              // Add click handler as fallback for iOS
-              const handleClick = async () => {
-                try {
-                  await video.play();
-                  setIsCameraActive(true);
-                } catch (e) {
-                  console.error("Click play failed:", e);
-                }
-                video.removeEventListener('click', handleClick);
-              };
-              video.addEventListener('click', handleClick);
-              
-              toast({
-                title: "Toque no vídeo",
-                description: "Toque na área de vídeo para iniciar a câmera.",
-              });
-              setIsCameraActive(true);
-            }
-          }
-        };
-
-        // Wait for metadata to load before playing
-        if (video.readyState >= 1) {
-          await playVideo();
-        } else {
-          video.onloadedmetadata = async () => {
-            await playVideo();
-          };
-        }
-      }
-    } catch (error: any) {
-      console.error("Camera error:", error);
-      
-      let errorMessage = "Não foi possível acessar a câmera.";
-      
-      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        errorMessage = "Permissão negada. Permita o acesso à câmera nas configurações do navegador ou do dispositivo.";
-      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-        errorMessage = "Nenhuma câmera encontrada no dispositivo.";
-      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-        errorMessage = "A câmera está sendo usada por outro aplicativo. Feche outros apps e tente novamente.";
-      } else if (error.name === 'OverconstrainedError') {
-        errorMessage = "Configurações de câmera não suportadas pelo seu dispositivo.";
-      } else if (error.name === 'SecurityError') {
-        errorMessage = "Acesso à câmera bloqueado por segurança. Verifique se está usando HTTPS.";
-      }
-      
-      toast({
-        title: "Erro de Câmera",
-        description: errorMessage,
-        variant: "destructive",
-      });
+    // Reset input to allow capturing the same image again
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = "";
     }
   };
 
-  const stopCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    setIsCameraActive(false);
-  }, []);
-
-  const capturePhoto = () => {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-
-    if (!ctx) return;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0);
-
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
-    const pageNumber = pages.length + 1;
-    
-    setPages((prev) => [...prev, { 
-      id: generateId(), 
-      dataUrl, 
-      name: `Página ${pageNumber} (Escaneada)` 
-    }]);
-
-    toast({
-      title: "Página capturada!",
-      description: `Página ${pageNumber} adicionada ao documento.`,
-    });
+  const openCamera = () => {
+    cameraInputRef.current?.click();
   };
 
   const removePage = (id: string) => {
@@ -552,7 +407,6 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
 
       setPages([]);
       setTitle("");
-      stopCamera();
 
       onPdfCreated?.();
     } catch (error) {
@@ -568,9 +422,6 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
   };
 
   const handleTabChange = (value: string) => {
-    if (value !== "camera" && isCameraActive) {
-      stopCamera();
-    }
     setActiveTab(value);
   };
 
@@ -620,55 +471,26 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
         </TabsContent>
 
         <TabsContent value="camera" className="mt-4">
-          <div className="space-y-4">
-            {!isCameraActive ? (
-              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-                <Camera className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground mb-4">
-                  Use a câmera do seu dispositivo para escanear documentos
-                </p>
-                <Button onClick={startCamera}>
-                  <Camera className="w-4 h-4 mr-2" />
-                  Abrir Câmera
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    webkit-playsinline="true"
-                    x-webkit-airplay="allow"
-                    className="w-full h-full object-cover"
-                    style={{ transform: 'scaleX(1)' }}
-                  />
-                  <div className="absolute inset-0 border-4 border-primary/30 pointer-events-none">
-                    <div className="absolute top-4 left-4 w-8 h-8 border-t-4 border-l-4 border-primary" />
-                    <div className="absolute top-4 right-4 w-8 h-8 border-t-4 border-r-4 border-primary" />
-                    <div className="absolute bottom-4 left-4 w-8 h-8 border-b-4 border-l-4 border-primary" />
-                    <div className="absolute bottom-4 right-4 w-8 h-8 border-b-4 border-r-4 border-primary" />
-                  </div>
-                  {/* Tap overlay for iOS */}
-                  <div 
-                    className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-0"
-                    onClick={() => videoRef.current?.play()}
-                  />
-                </div>
-                <canvas ref={canvasRef} className="hidden" />
-                <div className="flex gap-2">
-                  <Button onClick={capturePhoto} className="flex-1">
-                    <Camera className="w-4 h-4 mr-2" />
-                    Capturar Página
-                  </Button>
-                  <Button variant="outline" onClick={stopCamera}>
-                    Fechar Câmera
-                  </Button>
-                </div>
-              </div>
-            )}
+          <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+            <Camera className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground mb-4">
+              Toque no botão para abrir a câmera do seu dispositivo e tirar uma foto do documento
+            </p>
+            <Button onClick={openCamera}>
+              <Camera className="w-4 h-4 mr-2" />
+              Tirar Foto
+            </Button>
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleCameraCapture}
+              className="hidden"
+            />
+            <p className="text-xs text-muted-foreground mt-4">
+              A câmera traseira será usada automaticamente para escanear documentos
+            </p>
           </div>
         </TabsContent>
       </Tabs>
