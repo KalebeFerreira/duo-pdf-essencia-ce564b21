@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Upload, X, FileText, Camera, Image as ImageIcon, ScanText, Loader2, Copy, Check, Download, Trash2, Eye, FolderOpen } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Upload, X, FileText, Camera, Image as ImageIcon, ScanText, Loader2, Copy, Check, Download, Trash2, Eye, FolderOpen, Sliders, RotateCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,11 +17,18 @@ import { useDocuments } from "@/hooks/useDocuments";
 import PdfViewModal from "@/components/PdfViewModal";
 import jsPDF from "jspdf";
 
+interface ImageFilters {
+  brightness: number;
+  contrast: number;
+  saturation: number;
+}
+
 interface ScannedPage {
   id: string;
   dataUrl: string;
   name: string;
   extractedText?: string;
+  filters?: ImageFilters;
 }
 
 interface DocumentScannerProps {
@@ -42,6 +50,9 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
   const [ocrPageId, setOcrPageId] = useState<string | null>(null);
   const [copiedOcr, setCopiedOcr] = useState(false);
   const [viewingDocument, setViewingDocument] = useState<{ title: string; content: string } | null>(null);
+  const [editingPageId, setEditingPageId] = useState<string | null>(null);
+  const [tempFilters, setTempFilters] = useState<ImageFilters>({ brightness: 100, contrast: 100, saturation: 100 });
+  const filterCanvasRef = useRef<HTMLCanvasElement>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -92,6 +103,71 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
       });
     }
   };
+
+  const defaultFilters: ImageFilters = { brightness: 100, contrast: 100, saturation: 100 };
+
+  const openFilterEditor = (pageId: string) => {
+    const page = pages.find(p => p.id === pageId);
+    if (page) {
+      setTempFilters(page.filters || defaultFilters);
+      setEditingPageId(pageId);
+    }
+  };
+
+  const applyFiltersToImage = useCallback((dataUrl: string, filters: ImageFilters): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(dataUrl);
+          return;
+        }
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        // Apply CSS filters
+        ctx.filter = `brightness(${filters.brightness}%) contrast(${filters.contrast}%) saturate(${filters.saturation}%)`;
+        ctx.drawImage(img, 0, 0);
+
+        resolve(canvas.toDataURL('image/jpeg', 0.9));
+      };
+      img.src = dataUrl;
+    });
+  }, []);
+
+  const saveFilters = async () => {
+    if (!editingPageId) return;
+
+    const page = pages.find(p => p.id === editingPageId);
+    if (!page) return;
+
+    // Get original image (without filters applied)
+    const originalDataUrl = page.dataUrl;
+    
+    // Apply filters and get new data URL
+    const filteredDataUrl = await applyFiltersToImage(originalDataUrl, tempFilters);
+
+    setPages(prev => prev.map(p => 
+      p.id === editingPageId 
+        ? { ...p, dataUrl: filteredDataUrl, filters: tempFilters }
+        : p
+    ));
+
+    setEditingPageId(null);
+    toast({
+      title: "Filtros aplicados!",
+      description: "A imagem foi atualizada com os novos ajustes.",
+    });
+  };
+
+  const resetFilters = () => {
+    setTempFilters(defaultFilters);
+  };
+
+  const getEditingPage = () => pages.find(p => p.id === editingPageId);
 
   const extractTextFromPage = async (pageId: string) => {
     const page = pages.find(p => p.id === pageId);
@@ -565,6 +641,15 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
                       variant="secondary"
                       size="icon"
                       className="h-6 w-6"
+                      onClick={() => openFilterEditor(page.id)}
+                      title="Ajustar imagem"
+                    >
+                      <Sliders className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-6 w-6"
                       onClick={() => extractTextFromPage(page.id)}
                       disabled={isExtractingOcr && ocrPageId === page.id}
                       title="Extrair texto (OCR)"
@@ -766,6 +851,98 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
           }}
         />
       )}
+
+      {/* Image Filter Editor Dialog */}
+      <Dialog open={!!editingPageId} onOpenChange={(open) => !open && setEditingPageId(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sliders className="w-5 h-5" />
+              Ajustar Imagem
+            </DialogTitle>
+            <DialogDescription>
+              Ajuste o brilho, contraste e saturação da imagem escaneada.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {editingPageId && getEditingPage() && (
+            <div className="space-y-6">
+              {/* Preview */}
+              <div className="relative rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                <img
+                  src={getEditingPage()?.dataUrl}
+                  alt="Preview"
+                  className="max-h-[300px] object-contain"
+                  style={{
+                    filter: `brightness(${tempFilters.brightness}%) contrast(${tempFilters.contrast}%) saturate(${tempFilters.saturation}%)`
+                  }}
+                />
+              </div>
+
+              {/* Sliders */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <Label>Brilho</Label>
+                    <span className="text-sm text-muted-foreground">{tempFilters.brightness}%</span>
+                  </div>
+                  <Slider
+                    value={[tempFilters.brightness]}
+                    onValueChange={([value]) => setTempFilters(prev => ({ ...prev, brightness: value }))}
+                    min={50}
+                    max={150}
+                    step={1}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <Label>Contraste</Label>
+                    <span className="text-sm text-muted-foreground">{tempFilters.contrast}%</span>
+                  </div>
+                  <Slider
+                    value={[tempFilters.contrast]}
+                    onValueChange={([value]) => setTempFilters(prev => ({ ...prev, contrast: value }))}
+                    min={50}
+                    max={150}
+                    step={1}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <Label>Saturação</Label>
+                    <span className="text-sm text-muted-foreground">{tempFilters.saturation}%</span>
+                  </div>
+                  <Slider
+                    value={[tempFilters.saturation]}
+                    onValueChange={([value]) => setTempFilters(prev => ({ ...prev, saturation: value }))}
+                    min={0}
+                    max={200}
+                    step={1}
+                  />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={resetFilters}>
+                  <RotateCw className="w-4 h-4 mr-2" />
+                  Resetar
+                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setEditingPageId(null)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={saveFilters}>
+                    Aplicar Filtros
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
