@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
-import { Upload, X, FileText, Camera, Image as ImageIcon, ScanText, Loader2, Copy, Check, Download, Trash2, Eye, FolderOpen, Sliders, RotateCw, Lock } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Upload, X, FileText, Camera, Image as ImageIcon, ScanText, Loader2, Copy, Check, Download, Trash2, Eye, FolderOpen, Sliders, RotateCw, Lock, FileType, ArrowRight } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,6 +20,16 @@ import PdfViewModal from "@/components/PdfViewModal";
 import { addWatermarkToPdf } from "@/utils/pdfWatermark";
 import { Link } from "react-router-dom";
 import jsPDF from "jspdf";
+
+// PDF conversion formats
+const PDF_OUTPUT_FORMATS = {
+  docx: 'Word (DOCX)',
+  xlsx: 'Excel (XLSX)',
+  pptx: 'PowerPoint (PPTX)',
+  jpg: 'JPG (Imagem)',
+  png: 'PNG (Imagem)',
+  txt: 'Texto (TXT)',
+};
 
 interface ImageFilters {
   brightness: number;
@@ -73,10 +84,82 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
   const [tempFilters, setTempFilters] = useState<ImageFilters>({ brightness: 100, contrast: 100, saturation: 100 });
   const filterCanvasRef = useRef<HTMLCanvasElement>(null);
   
+  // Conversion states
+  const [convertDialogOpen, setConvertDialogOpen] = useState(false);
+  const [convertingDocId, setConvertingDocId] = useState<string | null>(null);
+  const [convertingDocUrl, setConvertingDocUrl] = useState<string | null>(null);
+  const [convertOutputFormat, setConvertOutputFormat] = useState<string>("");
+  const [isConverting, setIsConverting] = useState(false);
+  const [convertDownloadUrl, setConvertDownloadUrl] = useState<string | null>(null);
+  const [convertFileName, setConvertFileName] = useState<string>("");
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const generateId = () => Math.random().toString(36).substr(2, 9);
+  
+  // Convert document to another format
+  const openConvertDialog = (docId: string, docUrl: string) => {
+    setConvertingDocId(docId);
+    setConvertingDocUrl(docUrl);
+    setConvertOutputFormat("");
+    setConvertDownloadUrl(null);
+    setConvertFileName("");
+    setConvertDialogOpen(true);
+  };
+  
+  const handleConvertDocument = async () => {
+    if (!convertingDocUrl || !convertOutputFormat) return;
+    
+    setIsConverting(true);
+    
+    try {
+      // Extract base64 from data URL
+      const base64Data = convertingDocUrl.split(',')[1];
+      
+      const { data, error } = await supabase.functions.invoke('convert-file', {
+        body: {
+          fileName: 'documento.pdf',
+          fileBase64: base64Data,
+          inputFormat: 'pdf',
+          outputFormat: convertOutputFormat,
+        },
+      });
+      
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+      
+      setConvertDownloadUrl(data.downloadUrl);
+      setConvertFileName(data.outputFileName);
+      
+      toast({
+        title: "Conversão concluída!",
+        description: `PDF convertido para ${PDF_OUTPUT_FORMATS[convertOutputFormat as keyof typeof PDF_OUTPUT_FORMATS]}.`,
+      });
+      
+    } catch (error: any) {
+      console.error('Conversion error:', error);
+      toast({
+        title: "Erro na conversão",
+        description: error.message || "Ocorreu um erro ao converter o arquivo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsConverting(false);
+    }
+  };
+  
+  const handleConvertDownload = () => {
+    if (convertDownloadUrl) {
+      const link = document.createElement('a');
+      link.href = convertDownloadUrl;
+      link.download = convertFileName;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
 
   // Export all extracted text as TXT
   const exportAllTextAsTxt = () => {
@@ -814,6 +897,15 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-8 w-8 text-blue-600 hover:text-blue-700"
+                          onClick={() => openConvertDialog(doc.id, doc.file_url || '')}
+                          title="Converter para outro formato"
+                        >
+                          <FileType className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
                           onClick={() => handleDeleteDocument(doc.id)}
                           title="Excluir"
@@ -985,6 +1077,97 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Convert Document Dialog */}
+      <Dialog open={convertDialogOpen} onOpenChange={setConvertDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileType className="w-5 h-5" />
+              Converter PDF
+            </DialogTitle>
+            <DialogDescription>
+              Converta seu documento PDF para outro formato
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Format Selection */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1 space-y-2">
+                <Label>De</Label>
+                <div className="px-3 py-2 border rounded-md bg-muted/50 text-sm">
+                  PDF
+                </div>
+              </div>
+              
+              <ArrowRight className="w-5 h-5 text-muted-foreground mt-6" />
+              
+              <div className="flex-1 space-y-2">
+                <Label>Para</Label>
+                <Select value={convertOutputFormat} onValueChange={setConvertOutputFormat}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(PDF_OUTPUT_FORMATS).map(([format, label]) => (
+                      <SelectItem key={format} value={format}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            {/* Download Result */}
+            {convertDownloadUrl && (
+              <Card className="border-green-500/50 bg-green-500/5">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <Check className="w-6 h-6 text-green-500" />
+                      <div>
+                        <p className="font-medium text-sm">Conversão concluída!</p>
+                        <p className="text-xs text-muted-foreground">{convertFileName}</p>
+                      </div>
+                    </div>
+                    <Button size="sm" onClick={handleConvertDownload} className="gap-2">
+                      <Download className="w-4 h-4" />
+                      Baixar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
+            {/* Actions */}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setConvertDialogOpen(false)}>
+                Fechar
+              </Button>
+              {!convertDownloadUrl && (
+                <Button 
+                  onClick={handleConvertDocument}
+                  disabled={!convertOutputFormat || isConverting}
+                >
+                  {isConverting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Convertendo...
+                    </>
+                  ) : (
+                    <>
+                      <FileType className="w-4 h-4 mr-2" />
+                      Converter
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
