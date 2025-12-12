@@ -4,7 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, X, FileText, Camera, Image as ImageIcon, GripVertical } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Upload, X, FileText, Camera, Image as ImageIcon, ScanText, Loader2, Copy, Check } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,6 +17,7 @@ interface ScannedPage {
   id: string;
   dataUrl: string;
   name: string;
+  extractedText?: string;
 }
 
 interface DocumentScannerProps {
@@ -29,6 +32,11 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [activeTab, setActiveTab] = useState("upload");
+  const [isExtractingOcr, setIsExtractingOcr] = useState(false);
+  const [ocrDialogOpen, setOcrDialogOpen] = useState(false);
+  const [ocrText, setOcrText] = useState("");
+  const [ocrPageId, setOcrPageId] = useState<string | null>(null);
+  const [copiedOcr, setCopiedOcr] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -36,6 +44,75 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
   const streamRef = useRef<MediaStream | null>(null);
 
   const generateId = () => Math.random().toString(36).substr(2, 9);
+
+  const extractTextFromPage = async (pageId: string) => {
+    const page = pages.find(p => p.id === pageId);
+    if (!page) return;
+
+    // If already extracted, just show it
+    if (page.extractedText) {
+      setOcrText(page.extractedText);
+      setOcrPageId(pageId);
+      setOcrDialogOpen(true);
+      return;
+    }
+
+    setIsExtractingOcr(true);
+    setOcrPageId(pageId);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('extract-text-ocr', {
+        body: { imageDataUrl: page.dataUrl, language: 'pt' }
+      });
+
+      if (error) throw error;
+
+      const extractedText = data?.text || '';
+      
+      // Save to page state
+      setPages(prev => prev.map(p => 
+        p.id === pageId ? { ...p, extractedText } : p
+      ));
+
+      setOcrText(extractedText);
+      setOcrDialogOpen(true);
+
+      toast({
+        title: "Texto Extraído!",
+        description: extractedText.length > 0 
+          ? `${extractedText.split(' ').length} palavras detectadas.`
+          : "Nenhum texto detectado na imagem.",
+      });
+
+    } catch (error: any) {
+      console.error('OCR extraction error:', error);
+      toast({
+        title: "Erro no OCR",
+        description: error.message || "Não foi possível extrair o texto da imagem.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExtractingOcr(false);
+    }
+  };
+
+  const copyOcrText = async () => {
+    try {
+      await navigator.clipboard.writeText(ocrText);
+      setCopiedOcr(true);
+      setTimeout(() => setCopiedOcr(false), 2000);
+      toast({
+        title: "Copiado!",
+        description: "Texto copiado para a área de transferência.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível copiar o texto.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -362,6 +439,11 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
                     <span className="bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded">
                       {index + 1}
                     </span>
+                    {page.extractedText && (
+                      <span className="bg-green-500 text-white text-xs px-1.5 py-0.5 rounded" title="Texto extraído">
+                        <ScanText className="w-3 h-3" />
+                      </span>
+                    )}
                   </div>
                   <img
                     src={page.dataUrl}
@@ -369,6 +451,20 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
                     className="w-full h-32 object-cover rounded"
                   />
                   <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => extractTextFromPage(page.id)}
+                      disabled={isExtractingOcr && ocrPageId === page.id}
+                      title="Extrair texto (OCR)"
+                    >
+                      {isExtractingOcr && ocrPageId === page.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <ScanText className="w-3 h-3" />
+                      )}
+                    </Button>
                     <Button
                       variant="secondary"
                       size="icon"
@@ -422,6 +518,53 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
           </>
         )}
       </Button>
+
+      {/* OCR Dialog */}
+      <Dialog open={ocrDialogOpen} onOpenChange={setOcrDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ScanText className="w-5 h-5" />
+              Texto Extraído (OCR)
+            </DialogTitle>
+            <DialogDescription>
+              Texto reconhecido na imagem usando inteligência artificial
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyOcrText}
+                disabled={!ocrText}
+              >
+                {copiedOcr ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Copiado!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copiar Texto
+                  </>
+                )}
+              </Button>
+            </div>
+            <Textarea
+              value={ocrText}
+              onChange={(e) => setOcrText(e.target.value)}
+              placeholder="Nenhum texto detectado..."
+              className="min-h-[300px] font-mono text-sm"
+              readOnly={false}
+            />
+            <p className="text-xs text-muted-foreground">
+              {ocrText ? `${ocrText.split(/\s+/).filter(Boolean).length} palavras detectadas` : "Nenhum texto detectado"}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

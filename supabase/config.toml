@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.generate-catalog-image]
 verify_jwt = false
+
+[functions.extract-text-ocr]
+verify_jwt = false
