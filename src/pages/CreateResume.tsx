@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,9 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, FileText, Sparkles, Upload, X, Edit, Eye } from "lucide-react";
-import Navbar from "@/components/Navbar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import MobileQuickActions from "@/components/MobileQuickActions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PhotoEditor } from "@/components/PhotoEditor";
 import { SignaturePad } from "@/components/SignaturePad";
@@ -264,17 +266,35 @@ export default function CreateResume() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-2 mb-6">
-            <FileText className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold text-foreground">Criar Currículo</h1>
-          </div>
+  useEffect(() => {
+    if (!user) {
+      navigate("/auth", { replace: true });
+    }
+  }, [user, navigate]);
 
-          <div className="grid gap-6 md:grid-cols-2">
+  if (!user) {
+    return null;
+  }
+
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-muted/30">
+        <AppSidebar />
+        
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Header */}
+          <header className="bg-background border-b border-border sticky top-0 z-50 h-16 flex items-center px-4">
+            <SidebarTrigger />
+            <div className="flex items-center gap-2 ml-4">
+              <FileText className="h-6 w-6 text-primary" />
+              <h1 className="text-xl font-bold text-foreground">Criar Currículo</h1>
+            </div>
+          </header>
+
+          {/* Main Content */}
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+            <div className="max-w-4xl mx-auto">
+              <div className="grid gap-6 md:grid-cols-2">
             {/* Seleção de Template */}
             <Card>
               <CardHeader>
@@ -502,7 +522,12 @@ export default function CreateResume() {
                 )}
               </CardContent>
             </Card>
-          </div>
+              </div>
+            </div>
+          </main>
+
+          {/* Mobile Quick Actions */}
+          <MobileQuickActions />
         </div>
       </div>
 
@@ -520,6 +545,6 @@ export default function CreateResume() {
         onClose={() => setIsViewModalOpen(false)}
         document={generatedResume}
       />
-    </div>
+    </SidebarProvider>
   );
 }
