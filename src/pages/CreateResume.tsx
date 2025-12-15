@@ -8,9 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, FileText, Sparkles, Upload, X, Edit, Eye, Menu } from "lucide-react";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Loader2, FileText, Sparkles, Upload, X, Edit, Eye } from "lucide-react";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { DashboardHeader } from "@/components/DashboardHeader";
 import MobileQuickActions from "@/components/MobileQuickActions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PhotoEditor } from "@/components/PhotoEditor";
@@ -282,26 +283,10 @@ export default function CreateResume() {
         <AppSidebar />
         
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Header */}
-          <header className="bg-background border-b border-border sticky top-0 z-50 h-16 flex items-center px-4 gap-3">
-            {/* Mobile-optimized hamburger button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                const trigger = document.querySelector('[data-sidebar="trigger"]');
-                if (trigger) (trigger as HTMLButtonElement).click();
-              }}
-              className="h-11 w-11 shrink-0 md:h-9 md:w-9 hover:bg-primary/10 active:scale-95 transition-all rounded-xl border border-border/50"
-              aria-label="Abrir menu"
-            >
-              <Menu className="h-6 w-6 md:h-5 md:w-5 text-foreground" />
-            </Button>
-            <div className="flex items-center gap-2 min-w-0">
-              <FileText className="h-6 w-6 text-primary shrink-0" />
-              <h1 className="text-lg md:text-xl font-bold text-foreground truncate">Criar Currículo</h1>
-            </div>
-          </header>
+          <DashboardHeader 
+            title="Criar Currículo" 
+            icon={<FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />} 
+          />
 
           {/* Main Content */}
           <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
