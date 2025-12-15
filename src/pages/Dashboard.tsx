@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Upload, FileText, Zap, LogOut, Settings, Download, Eye, MoreVertical, Edit, Trash2, User, BookOpen, Palette } from "lucide-react";
+import { Upload, FileText, Zap, LogOut, Settings, Download, Eye, MoreVertical, Edit, Trash2, User, BookOpen, Palette, Menu } from "lucide-react";
 import MobileQuickActions from "@/components/MobileQuickActions";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -151,20 +151,29 @@ const Dashboard = () => {
       <div className="min-h-screen flex w-full bg-muted/30">
         <AppSidebar />
         
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
-          <header className="bg-background border-b border-border sticky top-0 z-50 h-16 flex items-center px-4">
-            <SidebarTrigger />
-            <div className="flex items-center justify-between flex-1 ml-4">
-              <div className="flex items-center gap-2 font-bold text-xl">
-                <span>Dashboard</span>
-              </div>
+          <header className="bg-background border-b border-border sticky top-0 z-50 h-16 flex items-center px-4 gap-3">
+            {/* Mobile-optimized hamburger button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                const trigger = document.querySelector('[data-sidebar="trigger"]');
+                if (trigger) (trigger as HTMLButtonElement).click();
+              }}
+              className="h-11 w-11 shrink-0 md:h-9 md:w-9 hover:bg-primary/10 active:scale-95 transition-all rounded-xl border border-border/50"
+              aria-label="Abrir menu"
+            >
+              <Menu className="h-6 w-6 md:h-5 md:w-5 text-foreground" />
+            </Button>
 
-              <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={handleLogout}>
-                  <LogOut className="w-5 h-5" />
-                </Button>
-              </div>
+            <div className="flex items-center justify-between flex-1 min-w-0">
+              <span className="font-bold text-lg md:text-xl truncate">Dashboard</span>
+
+              <Button variant="ghost" size="icon" onClick={handleLogout} className="shrink-0">
+                <LogOut className="w-5 h-5" />
+              </Button>
             </div>
           </header>
 
