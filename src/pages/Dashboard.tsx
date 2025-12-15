@@ -20,9 +20,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Upload, FileText, Zap, LogOut, Settings, Download, Eye, MoreVertical, Edit, Trash2, User, BookOpen, Palette, Menu } from "lucide-react";
+import { DashboardHeader } from "@/components/DashboardHeader";
+import { Upload, FileText, Zap, LogOut, Settings, Download, Eye, MoreVertical, Edit, Trash2, User, BookOpen, Palette } from "lucide-react";
 import MobileQuickActions from "@/components/MobileQuickActions";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -101,17 +102,17 @@ const Dashboard = () => {
       <SidebarProvider>
         <div className="min-h-screen flex w-full bg-muted/30">
           <AppSidebar />
-          <div className="flex-1 flex flex-col">
-            <header className="bg-background border-b border-border h-16 flex items-center px-4">
-              <SidebarTrigger />
-              <Skeleton className="h-8 w-48 ml-4" />
+          <div className="flex-1 flex flex-col min-w-0">
+            <header className="bg-background border-b border-border h-14 sm:h-16 flex items-center px-3 sm:px-4 gap-2">
+              <Skeleton className="h-10 w-10 rounded-lg" />
+              <Skeleton className="h-6 w-32 sm:w-48" />
             </header>
-            <main className="flex-1 p-8">
-              <Skeleton className="h-12 w-64 mb-8" />
-              <div className="grid md:grid-cols-3 gap-6">
-                <Skeleton className="h-40" />
-                <Skeleton className="h-40" />
-                <Skeleton className="h-40" />
+            <main className="flex-1 p-4 sm:p-6 lg:p-8">
+              <Skeleton className="h-10 w-48 sm:w-64 mb-8" />
+              <div className="grid md:grid-cols-3 gap-4 sm:gap-6">
+                <Skeleton className="h-32 sm:h-40" />
+                <Skeleton className="h-32 sm:h-40" />
+                <Skeleton className="h-32 sm:h-40" />
               </div>
             </main>
           </div>
@@ -152,30 +153,7 @@ const Dashboard = () => {
         <AppSidebar />
         
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Header */}
-          <header className="bg-background border-b border-border sticky top-0 z-50 h-16 flex items-center px-4 gap-3">
-            {/* Mobile-optimized hamburger button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                const trigger = document.querySelector('[data-sidebar="trigger"]');
-                if (trigger) (trigger as HTMLButtonElement).click();
-              }}
-              className="h-11 w-11 shrink-0 md:h-9 md:w-9 hover:bg-primary/10 active:scale-95 transition-all rounded-xl border border-border/50"
-              aria-label="Abrir menu"
-            >
-              <Menu className="h-6 w-6 md:h-5 md:w-5 text-foreground" />
-            </Button>
-
-            <div className="flex items-center justify-between flex-1 min-w-0">
-              <span className="font-bold text-lg md:text-xl truncate">Dashboard</span>
-
-              <Button variant="ghost" size="icon" onClick={handleLogout} className="shrink-0">
-                <LogOut className="w-5 h-5" />
-              </Button>
-            </div>
-          </header>
+          <DashboardHeader title="Dashboard" onLogout={handleLogout} />
 
           {/* Main Content */}
           <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
