@@ -3,16 +3,19 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Image as ImageIcon, Sparkles } from "lucide-react";
+import { ArrowLeft, Image as ImageIcon, Sparkles, FileType, Download, Loader2 } from "lucide-react";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { toast } from "@/hooks/use-toast";
 import ImageToPdfConverter from "@/components/ImageToPdfConverter";
 import PdfGenerator from "@/components/PdfGenerator";
+import { supabase } from "@/integrations/supabase/client";
 
 const CreatePdf = () => {
   const navigate = useNavigate();
   const { profile } = useUserProfile();
   const [activeTab, setActiveTab] = useState("images");
+  const [generatedPdfContent, setGeneratedPdfContent] = useState<string | null>(null);
+  const [isConverting, setIsConverting] = useState(false);
 
   const handleTabChange = (value: string) => {
     if (value === "ai" && profile?.plan === "free") {
@@ -26,12 +29,62 @@ const CreatePdf = () => {
     setActiveTab(value);
   };
 
-  const handlePdfGenerated = () => {
+  const handlePdfGenerated = (pdfContent?: string) => {
+    if (pdfContent) {
+      setGeneratedPdfContent(pdfContent);
+    }
     toast({
       title: "PDF Criado!",
       description: "Seu PDF foi criado com sucesso. Você pode encontrá-lo na biblioteca do dashboard.",
     });
-    // Permanece na página ao invés de redirecionar
+  };
+
+  const handleConvertPdf = async (format: string) => {
+    if (!generatedPdfContent) {
+      toast({
+        title: "Erro",
+        description: "Nenhum PDF gerado para converter.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsConverting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('convert-file', {
+        body: {
+          fileName: `documento.pdf`,
+          fileBase64: generatedPdfContent.split(',')[1] || generatedPdfContent,
+          inputFormat: 'pdf',
+          outputFormat: format,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.downloadUrl) {
+        const link = document.createElement('a');
+        link.href = data.downloadUrl;
+        link.download = data.outputFileName || `documento.${format}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast({
+          title: "Conversão concluída!",
+          description: `PDF convertido para ${format.toUpperCase()} com sucesso.`,
+        });
+      }
+    } catch (error: any) {
+      console.error('Conversion error:', error);
+      toast({
+        title: "Erro na conversão",
+        description: error.message || "Não foi possível converter o arquivo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsConverting(false);
+    }
   };
 
   return (
@@ -99,6 +152,42 @@ const CreatePdf = () => {
                 )}
               </TabsContent>
             </Tabs>
+
+            {/* Conversion Options */}
+            {generatedPdfContent && (
+              <div className="mt-6 pt-6 border-t border-border">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <FileType className="w-5 h-5" />
+                  Converter PDF para outros formatos
+                </h3>
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleConvertPdf('docx')}
+                    disabled={isConverting}
+                  >
+                    {isConverting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                    Word (.docx)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleConvertPdf('xlsx')}
+                    disabled={isConverting}
+                  >
+                    {isConverting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                    Excel (.xlsx)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleConvertPdf('pptx')}
+                    disabled={isConverting}
+                  >
+                    {isConverting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                    PowerPoint (.pptx)
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </main>
