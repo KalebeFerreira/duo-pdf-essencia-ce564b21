@@ -412,7 +412,7 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
         
         const { data, error } = await supabase.functions.invoke("convert-file", {
           body: {
-            file: base64data,
+            fileBase64: base64data,
             fileName: `design.png`,
             inputFormat: "png",
             outputFormat: format,
