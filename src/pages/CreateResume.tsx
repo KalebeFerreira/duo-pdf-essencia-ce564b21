@@ -30,7 +30,7 @@ const templates = [
 
 export default function CreateResume() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -269,10 +269,32 @@ export default function CreateResume() {
   };
 
   useEffect(() => {
-    if (!user) {
+    if (!authLoading && !user) {
       navigate("/auth", { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
+
+  if (authLoading) {
+    return (
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full bg-muted/30">
+          <AppSidebar />
+          <div className="flex-1 flex flex-col min-w-0">
+            <DashboardHeader 
+              title="Criar Currículo" 
+              icon={<FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />} 
+            />
+            <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto flex items-center justify-center">
+              <div className="text-center">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                <p className="mt-2 text-muted-foreground">Carregando...</p>
+              </div>
+            </main>
+          </div>
+        </div>
+      </SidebarProvider>
+    );
+  }
 
   if (!user) {
     return null;
