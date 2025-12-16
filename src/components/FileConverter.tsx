@@ -47,6 +47,7 @@ const FORMAT_LABELS: Record<string, string> = {
   csv: 'CSV',
 };
 
+const MONTHLY_CONVERSION_LIMIT_FREE = 5;
 const MONTHLY_CONVERSION_LIMIT_BASIC = 100;
 
 interface FileConverterProps {
@@ -72,7 +73,7 @@ const FileConverter = ({ onConversionComplete }: FileConverterProps) => {
   const isBasicPlan = userPlan === 'basic';
   const isProfessionalPlan = userPlan === 'professional';
   
-  // Count conversions this month (only for basic plan)
+  // Count conversions this month
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
   const conversionsThisMonth = documents?.filter(doc => {
@@ -80,9 +81,10 @@ const FileConverter = ({ onConversionComplete }: FileConverterProps) => {
     return docDate.getMonth() === currentMonth && docDate.getFullYear() === currentYear;
   }).length || 0;
   
-  // Free plan: blocked entirely, Basic: 100/month, Professional: unlimited
-  const remainingConversions = isBasicPlan ? Math.max(0, MONTHLY_CONVERSION_LIMIT_BASIC - conversionsThisMonth) : 0;
-  const hasReachedLimit = isBasicPlan && conversionsThisMonth >= MONTHLY_CONVERSION_LIMIT_BASIC;
+  // Free: 5/month, Basic: 100/month, Professional: unlimited
+  const monthlyLimit = isFreePlan ? MONTHLY_CONVERSION_LIMIT_FREE : MONTHLY_CONVERSION_LIMIT_BASIC;
+  const remainingConversions = isFreePlan || isBasicPlan ? Math.max(0, monthlyLimit - conversionsThisMonth) : 0;
+  const hasReachedLimit = (isFreePlan || isBasicPlan) && conversionsThisMonth >= monthlyLimit;
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -116,19 +118,13 @@ const FileConverter = ({ onConversionComplete }: FileConverterProps) => {
       return;
     }
 
-    if (isFreePlan) {
-      toast({
-        title: "Recurso Exclusivo",
-        description: "O conversor de arquivos está disponível apenas para planos pagos.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (hasReachedLimit) {
+      const limitMsg = isFreePlan 
+        ? `Você atingiu o limite de ${MONTHLY_CONVERSION_LIMIT_FREE} conversões do plano gratuito.`
+        : `Você atingiu o limite de ${MONTHLY_CONVERSION_LIMIT_BASIC} conversões por mês.`;
       toast({
         title: "Limite Mensal Atingido",
-        description: "Você atingiu o limite de 100 conversões por mês. Faça upgrade para o plano Profissional.",
+        description: `${limitMsg} Faça upgrade para mais conversões.`,
         variant: "destructive",
       });
       return;
@@ -219,22 +215,34 @@ const FileConverter = ({ onConversionComplete }: FileConverterProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Free plan: blocked entirely */}
+      {/* Free plan: limit indicator */}
       {isFreePlan && (
-        <Card className="border-destructive bg-destructive/5">
+        <Card className={`border ${hasReachedLimit ? 'border-destructive bg-destructive/5' : 'border-blue-500/50 bg-blue-500/5'}`}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <Lock className="w-5 h-5 text-destructive" />
+                {hasReachedLimit ? (
+                  <Lock className="w-5 h-5 text-destructive" />
+                ) : (
+                  <FileType className="w-5 h-5 text-blue-600" />
+                )}
                 <div>
-                  <p className="font-medium text-sm">Recurso Exclusivo para Assinantes</p>
+                  <p className="font-medium text-sm">
+                    {hasReachedLimit 
+                      ? "Limite Mensal Atingido" 
+                      : `${remainingConversions} de ${MONTHLY_CONVERSION_LIMIT_FREE} conversões restantes`
+                    }
+                  </p>
                   <p className="text-xs text-muted-foreground">
-                    O conversor de arquivos está disponível apenas para planos pagos
+                    {hasReachedLimit 
+                      ? "Faça upgrade para mais conversões"
+                      : "Plano Gratuito - limite mensal de conversões"
+                    }
                   </p>
                 </div>
               </div>
               <Link to="/pricing">
-                <Button size="sm">Fazer Upgrade</Button>
+                <Button size="sm">{hasReachedLimit ? 'Fazer Upgrade' : 'Ver Planos'}</Button>
               </Link>
             </div>
           </CardContent>
@@ -305,11 +313,11 @@ const FileConverter = ({ onConversionComplete }: FileConverterProps) => {
             <Label>Selecionar Arquivo</Label>
             <div
               className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                isFreePlan || hasReachedLimit 
+                hasReachedLimit 
                   ? 'border-muted bg-muted/20 cursor-not-allowed' 
                   : 'border-border hover:border-primary'
               }`}
-              onClick={() => !isFreePlan && !hasReachedLimit && fileInputRef.current?.click()}
+              onClick={() => !hasReachedLimit && fileInputRef.current?.click()}
             >
               {selectedFile ? (
                 <div className="flex items-center justify-center gap-3">
@@ -325,7 +333,7 @@ const FileConverter = ({ onConversionComplete }: FileConverterProps) => {
                 <>
                   <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground mb-2">
-                    {isFreePlan ? "Disponível apenas para assinantes" : "Clique para selecionar um arquivo"}
+                    {hasReachedLimit ? "Limite de conversões atingido" : "Clique para selecionar um arquivo"}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     PDF, Word, Excel, PowerPoint, Imagens (JPG, PNG, WebP)
@@ -338,7 +346,7 @@ const FileConverter = ({ onConversionComplete }: FileConverterProps) => {
                 accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.txt,.csv"
                 onChange={handleFileSelect}
                 className="hidden"
-                disabled={isFreePlan || hasReachedLimit}
+                disabled={hasReachedLimit}
               />
             </div>
           </div>
@@ -415,7 +423,7 @@ const FileConverter = ({ onConversionComplete }: FileConverterProps) => {
               <>
                 <Button
                   onClick={handleConvert}
-                  disabled={!selectedFile || !outputFormat || isConverting || isFreePlan || hasReachedLimit}
+                  disabled={!selectedFile || !outputFormat || isConverting || hasReachedLimit}
                   className="flex-1"
                 >
                   {isConverting ? (

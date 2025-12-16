@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, FileText, Sparkles, Upload, X, Edit, Eye } from "lucide-react";
+import { Loader2, FileText, Sparkles, Upload, X, Edit, Eye, FileType, Download } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -32,6 +32,7 @@ export default function CreateResume() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [template, setTemplate] = useState("modern");
   const [photoUrl, setPhotoUrl] = useState("");
@@ -507,15 +508,117 @@ export default function CreateResume() {
                 </Button>
                 
                 {generatedResume && (
-                  <Button
-                    onClick={() => setIsViewModalOpen(true)}
-                    variant="outline"
-                    className="w-full"
-                    size="lg"
-                  >
-                    <Eye className="mr-2 h-4 w-4" />
-                    Ver Currículo Gerado
-                  </Button>
+                  <>
+                    <Button
+                      onClick={() => setIsViewModalOpen(true)}
+                      variant="outline"
+                      className="w-full"
+                      size="lg"
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      Ver Currículo Gerado
+                    </Button>
+                    
+                    {/* Opções de Conversão */}
+                    <div className="pt-4 border-t">
+                      <p className="text-sm font-medium mb-3 flex items-center gap-2">
+                        <FileType className="h-4 w-4" />
+                        Converter para outros formatos
+                      </p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isConverting}
+                          onClick={async () => {
+                            setIsConverting(true);
+                            try {
+                              const { data, error } = await supabase.functions.invoke('convert-file', {
+                                body: {
+                                  fileName: `${generatedResume.title}.pdf`,
+                                  fileBase64: generatedResume.content ? btoa(unescape(encodeURIComponent(generatedResume.content))) : '',
+                                  inputFormat: 'pdf',
+                                  outputFormat: 'docx',
+                                },
+                              });
+                              if (error) throw error;
+                              if (data.downloadUrl) {
+                                window.open(data.downloadUrl, '_blank');
+                                toast({ title: "Conversão concluída!", description: "Download iniciado." });
+                              }
+                            } catch (err: any) {
+                              toast({ title: "Erro na conversão", description: err.message, variant: "destructive" });
+                            } finally {
+                              setIsConverting(false);
+                            }
+                          }}
+                        >
+                          {isConverting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+                          Word
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isConverting}
+                          onClick={async () => {
+                            setIsConverting(true);
+                            try {
+                              const { data, error } = await supabase.functions.invoke('convert-file', {
+                                body: {
+                                  fileName: `${generatedResume.title}.pdf`,
+                                  fileBase64: generatedResume.content ? btoa(unescape(encodeURIComponent(generatedResume.content))) : '',
+                                  inputFormat: 'pdf',
+                                  outputFormat: 'xlsx',
+                                },
+                              });
+                              if (error) throw error;
+                              if (data.downloadUrl) {
+                                window.open(data.downloadUrl, '_blank');
+                                toast({ title: "Conversão concluída!", description: "Download iniciado." });
+                              }
+                            } catch (err: any) {
+                              toast({ title: "Erro na conversão", description: err.message, variant: "destructive" });
+                            } finally {
+                              setIsConverting(false);
+                            }
+                          }}
+                        >
+                          {isConverting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+                          Excel
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isConverting}
+                          onClick={async () => {
+                            setIsConverting(true);
+                            try {
+                              const { data, error } = await supabase.functions.invoke('convert-file', {
+                                body: {
+                                  fileName: `${generatedResume.title}.pdf`,
+                                  fileBase64: generatedResume.content ? btoa(unescape(encodeURIComponent(generatedResume.content))) : '',
+                                  inputFormat: 'pdf',
+                                  outputFormat: 'pptx',
+                                },
+                              });
+                              if (error) throw error;
+                              if (data.downloadUrl) {
+                                window.open(data.downloadUrl, '_blank');
+                                toast({ title: "Conversão concluída!", description: "Download iniciado." });
+                              }
+                            } catch (err: any) {
+                              toast({ title: "Erro na conversão", description: err.message, variant: "destructive" });
+                            } finally {
+                              setIsConverting(false);
+                            }
+                          }}
+                        >
+                          {isConverting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+                          PowerPoint
+                        </Button>
+                      </div>
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
