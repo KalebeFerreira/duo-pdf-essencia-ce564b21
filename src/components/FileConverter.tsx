@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Upload, FileType, Download, Loader2, ArrowRight, Lock, CheckCircle2, AlertCircle } from "lucide-react";
+import { Upload, FileType, Download, Loader2, ArrowRight, Lock, CheckCircle2, AlertCircle, Activity } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -66,6 +66,46 @@ const FileConverter = ({ onConversionComplete }: FileConverterProps) => {
   const [progress, setProgress] = useState(0);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [outputFileName, setOutputFileName] = useState<string>("");
+  const [healthStatus, setHealthStatus] = useState<'idle' | 'testing' | 'ok' | 'error'>('idle');
+  const [healthMessage, setHealthMessage] = useState<string>("");
+
+  const testCloudConvertHealth = async () => {
+    setHealthStatus('testing');
+    setHealthMessage('Testando conexão...');
+    
+    try {
+      // Create a minimal test file (1x1 pixel PNG)
+      const testBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      
+      const { data, error } = await supabase.functions.invoke('convert-file', {
+        body: {
+          fileName: 'health-test.png',
+          fileBase64: testBase64,
+          inputFormat: 'png',
+          outputFormat: 'jpg',
+        },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+
+      setHealthStatus('ok');
+      setHealthMessage('CloudConvert funcionando corretamente!');
+      toast({
+        title: "✓ Conversor OK",
+        description: "A API CloudConvert está funcionando corretamente.",
+      });
+    } catch (error: any) {
+      console.error('Health check error:', error);
+      setHealthStatus('error');
+      setHealthMessage(error.message || 'Erro na conexão com CloudConvert');
+      toast({
+        title: "✗ Erro no Conversor",
+        description: error.message || "Falha ao conectar com CloudConvert.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Check user plan
   const userPlan = profile?.plan || 'free';
@@ -302,10 +342,43 @@ const FileConverter = ({ onConversionComplete }: FileConverterProps) => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileType className="w-5 h-5" />
-            Conversor de Arquivos
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <FileType className="w-5 h-5" />
+              Conversor de Arquivos
+            </CardTitle>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={testCloudConvertHealth}
+              disabled={healthStatus === 'testing'}
+              className={`gap-2 ${
+                healthStatus === 'ok' ? 'border-green-500 text-green-600' : 
+                healthStatus === 'error' ? 'border-destructive text-destructive' : ''
+              }`}
+            >
+              {healthStatus === 'testing' ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : healthStatus === 'ok' ? (
+                <CheckCircle2 className="w-4 h-4" />
+              ) : healthStatus === 'error' ? (
+                <AlertCircle className="w-4 h-4" />
+              ) : (
+                <Activity className="w-4 h-4" />
+              )}
+              {healthStatus === 'testing' ? 'Testando...' : 
+               healthStatus === 'ok' ? 'OK' : 
+               healthStatus === 'error' ? 'Erro' : 'Testar API'}
+            </Button>
+          </div>
+          {healthMessage && healthStatus !== 'idle' && (
+            <p className={`text-xs mt-1 ${
+              healthStatus === 'ok' ? 'text-green-600' : 
+              healthStatus === 'error' ? 'text-destructive' : 'text-muted-foreground'
+            }`}>
+              {healthMessage}
+            </p>
+          )}
         </CardHeader>
         <CardContent className="space-y-6">
           {/* File Upload */}
