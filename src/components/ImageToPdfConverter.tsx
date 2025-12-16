@@ -11,7 +11,7 @@ import { usePdfLimit } from "@/hooks/usePdfLimit";
 import jsPDF from "jspdf";
 
 interface ImageToPdfConverterProps {
-  onPdfCreated?: () => void;
+  onPdfCreated?: (pdfContent?: string) => void;
 }
 
 const ImageToPdfConverter = ({ onPdfCreated }: ImageToPdfConverterProps) => {
@@ -154,7 +154,7 @@ const ImageToPdfConverter = ({ onPdfCreated }: ImageToPdfConverterProps) => {
         fileInputRef.current.value = "";
       }
 
-      onPdfCreated?.();
+      onPdfCreated?.(pdfContent);
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast({

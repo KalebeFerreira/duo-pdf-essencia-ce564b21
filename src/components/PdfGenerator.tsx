@@ -20,7 +20,7 @@ import { addWatermarkToPdf, checkIsFreePlan } from "@/utils/pdfWatermark";
 import { useAuth } from "@/hooks/useAuth";
 
 interface PdfGeneratorProps {
-  onPdfGenerated: () => void;
+  onPdfGenerated: (pdfContent?: string) => void;
 }
 
 interface BatchResult {
@@ -174,8 +174,44 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
           : "Seu conteúdo foi gerado com sucesso.",
       });
 
-      // Não resetar mais o formulário para permitir exportações
-      // onPdfGenerated();
+      // Criar PDF e passar para o callback para permitir conversões
+      try {
+        const pdf = new jsPDF();
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = 20;
+        const maxWidth = pageWidth - (margin * 2);
+        let yPosition = margin;
+
+        pdf.setFontSize(18);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(topic, margin, yPosition);
+        yPosition += 15;
+
+        pdf.setFontSize(11);
+        pdf.setFont("helvetica", "normal");
+        
+        const lines = contentToSave.split('\n');
+        for (const line of lines) {
+          if (line.trim().startsWith('![')) continue;
+          
+          const wrappedLines = pdf.splitTextToSize(line || ' ', maxWidth);
+          
+          if (yPosition + (wrappedLines.length * 7) > pageHeight - margin) {
+            pdf.addPage();
+            yPosition = margin;
+          }
+          
+          pdf.text(wrappedLines, margin, yPosition);
+          yPosition += wrappedLines.length * 7;
+        }
+
+        const pdfDataUri = pdf.output('datauristring');
+        onPdfGenerated(pdfDataUri);
+      } catch (pdfError) {
+        console.error('Error creating PDF for callback:', pdfError);
+        onPdfGenerated();
+      }
     } catch (error: any) {
       console.error('Error generating PDF:', error);
       toast({
