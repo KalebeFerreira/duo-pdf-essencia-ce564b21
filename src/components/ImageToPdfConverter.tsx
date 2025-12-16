@@ -113,38 +113,73 @@ const ImageToPdfConverter = ({ onPdfCreated }: ImageToPdfConverterProps) => {
       const pdfBlob = pdf.output("blob");
       const pdfContent = await pdf.output("datauristring");
 
-      // Save to database
+      // Save to database with retry logic
       if (user) {
-        const { error } = await supabase.from("documents").insert({
-          user_id: user.id,
-          title: title.trim(),
-          file_url: pdfContent,
-          file_size: pdfBlob.size,
-        });
+        let saveSuccess = false;
+        let retryCount = 0;
+        const maxRetries = 3;
 
-        if (error) throw error;
+        while (!saveSuccess && retryCount < maxRetries) {
+          try {
+            const { error } = await supabase.from("documents").insert({
+              user_id: user.id,
+              title: title.trim(),
+              file_url: pdfContent,
+              file_size: pdfBlob.size,
+            });
 
-        // Update profile pdfs_used (both monthly and daily)
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("pdfs_used, pdfs_used_today")
-          .eq("id", user.id)
-          .single();
+            if (error) {
+              console.error(`Database save attempt ${retryCount + 1} failed:`, error);
+              retryCount++;
+              if (retryCount < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+              }
+            } else {
+              saveSuccess = true;
+            }
+          } catch (err) {
+            console.error(`Database save attempt ${retryCount + 1} error:`, err);
+            retryCount++;
+            if (retryCount < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+            }
+          }
+        }
 
-        if (profile) {
-          await supabase
-            .from("profiles")
-            .update({ 
-              pdfs_used: (profile.pdfs_used || 0) + 1,
-              pdfs_used_today: (profile.pdfs_used_today || 0) + 1
-            })
-            .eq("id", user.id);
+        if (saveSuccess) {
+          // Update profile pdfs_used (both monthly and daily)
+          try {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("pdfs_used, pdfs_used_today")
+              .eq("id", user.id)
+              .single();
+
+            if (profile) {
+              await supabase
+                .from("profiles")
+                .update({ 
+                  pdfs_used: (profile.pdfs_used || 0) + 1,
+                  pdfs_used_today: (profile.pdfs_used_today || 0) + 1
+                })
+                .eq("id", user.id);
+            }
+          } catch (profileError) {
+            console.warn("Failed to update profile usage:", profileError);
+          }
+        } else {
+          console.warn("Failed to save PDF to database after retries, but PDF was generated successfully");
+          toast({
+            title: "Aviso",
+            description: "PDF criado mas não foi possível salvar no histórico. Extensões do navegador podem estar bloqueando.",
+            variant: "default",
+          });
         }
       }
 
       toast({
         title: "Sucesso!",
-        description: "PDF criado e salvo com sucesso.",
+        description: "PDF criado com sucesso.",
       });
 
       // Reset form
@@ -159,7 +194,7 @@ const ImageToPdfConverter = ({ onPdfCreated }: ImageToPdfConverterProps) => {
       console.error("Error generating PDF:", error);
       toast({
         title: "Erro",
-        description: "Ocorreu um erro ao gerar o PDF. Tente novamente.",
+        description: "Ocorreu um erro ao gerar o PDF. Verifique se extensões do navegador estão bloqueando conexões.",
         variant: "destructive",
       });
     } finally {
