@@ -16,10 +16,11 @@ serve(async (req) => {
   }
 
   try {
-    const CLOUDCONVERT_API_KEY = Deno.env.get('CLOUDCONVERT_API_KEY');
+    const CLOUDCONVERT_API_KEY = Deno.env.get('CLOUDCONVERT_API_KEY')?.trim();
     if (!CLOUDCONVERT_API_KEY) {
       throw new Error('CLOUDCONVERT_API_KEY not configured');
     }
+    logStep('Loaded CloudConvert API key', { length: CLOUDCONVERT_API_KEY.length });
 
     const { fileName, fileBase64, inputFormat, outputFormat } = await req.json();
     
@@ -58,8 +59,21 @@ serve(async (req) => {
     if (!jobResponse.ok) {
       const errorText = await jobResponse.text();
       logStep('CloudConvert job creation failed', { status: jobResponse.status, error: errorText });
-      throw new Error(`CloudConvert error: ${errorText}`);
+
+      const friendlyMessage = (jobResponse.status === 401 || jobResponse.status === 403)
+        ? 'CloudConvert authentication failed. Please update CLOUDCONVERT_API_KEY (and ensure no extra spaces/newlines).'
+        : `CloudConvert error: ${errorText}`;
+
+      return new Response(JSON.stringify({
+        success: false,
+        error: friendlyMessage,
+        status: jobResponse.status,
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
+
 
     const jobData = await jobResponse.json();
     const jobId = jobData.data.id;
