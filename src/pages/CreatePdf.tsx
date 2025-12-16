@@ -61,6 +61,7 @@ const CreatePdf = () => {
       });
 
       if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Não foi possível converter o arquivo.");
 
       if (data?.downloadUrl) {
         const link = document.createElement('a');
@@ -69,12 +70,15 @@ const CreatePdf = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         toast({
           title: "Conversão concluída!",
           description: `PDF convertido para ${format.toUpperCase()} com sucesso.`,
         });
+      } else {
+        throw new Error("Conversão concluída, mas nenhum link de download foi retornado.");
       }
+
     } catch (error: any) {
       console.error('Conversion error:', error);
       toast({
