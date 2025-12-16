@@ -7,9 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Type, Square, Circle as CircleIcon, Image as ImageIcon, Download, Sparkles, Palette, Wand2 } from "lucide-react";
+import { Type, Square, Circle as CircleIcon, Image as ImageIcon, Download, Sparkles, Wand2, FileImage, FileText, FileSpreadsheet, ChevronDown, Loader2 } from "lucide-react";
 import { PhotoEditor } from "./PhotoEditor";
 import jsPDF from "jspdf";
 import { predefinedTemplates } from "@/utils/designTemplates";
@@ -30,6 +31,7 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
   const [showPhotoEditor, setShowPhotoEditor] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [isFreePlan, setIsFreePlan] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const { user } = useAuth();
 
   const currentTemplate = predefinedTemplates.find(t => t.id === selectedTemplate) || predefinedTemplates[0];
@@ -328,6 +330,120 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
     toast({ title: "PDF exportado com sucesso!" });
   };
 
+  const exportToImage = (format: "jpeg" | "png") => {
+    if (!fabricCanvas) return;
+
+    const dataUrl = fabricCanvas.toDataURL({
+      format: format,
+      quality: 1,
+      multiplier: 2,
+    });
+
+    // Create download link
+    const link = document.createElement("a");
+    link.download = `design-${selectedTemplate || "template"}.${format === "jpeg" ? "jpg" : "png"}`;
+    link.href = dataUrl;
+    link.click();
+
+    toast({ title: `${format.toUpperCase()} exportado com sucesso!` });
+  };
+
+  const saveToGallery = async () => {
+    if (!fabricCanvas) return;
+
+    try {
+      const dataUrl = fabricCanvas.toDataURL({
+        format: "png",
+        quality: 1,
+        multiplier: 2,
+      });
+
+      // Convert base64 to blob
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+
+      // Try to use Web Share API for mobile
+      if (navigator.share && navigator.canShare) {
+        const file = new File([blob], `design-${selectedTemplate || "template"}.png`, { type: "image/png" });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: "Design Exportado",
+            text: "Minha arte criada no Essência Duo",
+          });
+          toast({ title: "Imagem compartilhada/salva com sucesso!" });
+          return;
+        }
+      }
+
+      // Fallback: download directly
+      const link = document.createElement("a");
+      link.download = `design-${selectedTemplate || "template"}.png`;
+      link.href = dataUrl;
+      link.click();
+      toast({ title: "Imagem salva com sucesso!" });
+    } catch (error) {
+      console.error("Erro ao salvar:", error);
+      toast({ title: "Erro ao salvar imagem", variant: "destructive" });
+    }
+  };
+
+  const exportToFormat = async (format: "docx" | "xlsx") => {
+    if (!fabricCanvas) return;
+
+    setIsExporting(true);
+    try {
+      const dataUrl = fabricCanvas.toDataURL({
+        format: "png",
+        quality: 1,
+        multiplier: 2,
+      });
+
+      // First convert to PNG blob
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+
+      // Upload to convert-file edge function
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      
+      reader.onloadend = async () => {
+        const base64data = reader.result as string;
+        
+        const { data, error } = await supabase.functions.invoke("convert-file", {
+          body: {
+            file: base64data,
+            fileName: `design.png`,
+            inputFormat: "png",
+            outputFormat: format,
+          },
+        });
+
+        if (error) throw error;
+
+        if (data?.downloadUrl) {
+          const link = document.createElement("a");
+          link.href = data.downloadUrl;
+          link.download = `design-${selectedTemplate || "template"}.${format}`;
+          link.click();
+          toast({ title: `${format.toUpperCase()} exportado com sucesso!` });
+        } else if (data?.error) {
+          throw new Error(data.error);
+        }
+        
+        setIsExporting(false);
+      };
+    } catch (error: any) {
+      console.error("Erro ao converter:", error);
+      toast({ 
+        title: "Erro ao exportar", 
+        description: error.message || "Não foi possível converter o arquivo",
+        variant: "destructive" 
+      });
+      setIsExporting(false);
+    }
+  };
+
   return (
     <>
       <PhotoEditor
@@ -443,10 +559,47 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
           <Separator />
 
           {/* Export */}
-          <Button className="w-full" onClick={exportToPDF}>
-            <Download className="w-4 h-4 mr-2" />
-            Exportar PDF
-          </Button>
+          <div className="space-y-2">
+            <Label>Exportar Design</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" size="sm" onClick={exportToPDF} disabled={isExporting}>
+                <Download className="w-4 h-4 mr-2" />
+                PDF
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => exportToImage("jpeg")} disabled={isExporting}>
+                <FileImage className="w-4 h-4 mr-2" />
+                JPG
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => exportToImage("png")} disabled={isExporting}>
+                <FileImage className="w-4 h-4 mr-2" />
+                PNG
+              </Button>
+              <Button variant="outline" size="sm" onClick={saveToGallery} disabled={isExporting}>
+                <Download className="w-4 h-4 mr-2" />
+                Galeria
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => exportToFormat("docx")} 
+                disabled={isExporting}
+              >
+                {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />}
+                Word
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => exportToFormat("xlsx")} 
+                disabled={isExporting}
+              >
+                {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 mr-2" />}
+                Excel
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
