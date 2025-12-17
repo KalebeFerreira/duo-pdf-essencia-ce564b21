@@ -603,42 +603,6 @@ export default function CreateResume() {
                                   fileName: `${generatedResume.title}.pdf`,
                                   fileBase64: pdfBase64,
                                   inputFormat: 'pdf',
-                                  outputFormat: 'xlsx',
-                                },
-                              });
-                              if (error) throw error;
-                              if (data?.success === false) throw new Error(data.error || 'Conversion failed');
-                              if (data.downloadUrl) {
-                                window.open(data.downloadUrl, '_blank');
-                                toast({ title: "Conversão concluída!", description: "Download iniciado." });
-                              }
-                            } catch (err: any) {
-                              toast({ title: "Erro na conversão", description: err.message, variant: "destructive" });
-                            } finally {
-                              setIsConverting(false);
-                            }
-                          }}
-                        >
-                          {isConverting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
-                          Excel
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={isConverting}
-                          onClick={async () => {
-                            setIsConverting(true);
-                            try {
-                              // Generate actual PDF using jsPDF
-                              const pdf = new jsPDF();
-                              const styledPdf = applyTemplate(pdf, template, generatedResume.content, generatedResume.title, photoUrl, signatureUrl, false);
-                              const pdfBase64 = styledPdf.output('datauristring').split(',')[1];
-                              
-                              const { data, error } = await supabase.functions.invoke('convert-file', {
-                                body: {
-                                  fileName: `${generatedResume.title}.pdf`,
-                                  fileBase64: pdfBase64,
-                                  inputFormat: 'pdf',
                                   outputFormat: 'pptx',
                                 },
                               });
