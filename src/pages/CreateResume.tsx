@@ -9,6 +9,8 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, FileText, Sparkles, Upload, X, Edit, Eye, FileType, Download } from "lucide-react";
+import jsPDF from "jspdf";
+import { applyTemplate } from "@/utils/pdfTemplates";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -555,15 +557,21 @@ export default function CreateResume() {
                           onClick={async () => {
                             setIsConverting(true);
                             try {
+                              // Generate actual PDF using jsPDF
+                              const pdf = new jsPDF();
+                              const styledPdf = applyTemplate(pdf, template, generatedResume.content, generatedResume.title, photoUrl, signatureUrl, false);
+                              const pdfBase64 = styledPdf.output('datauristring').split(',')[1];
+                              
                               const { data, error } = await supabase.functions.invoke('convert-file', {
                                 body: {
                                   fileName: `${generatedResume.title}.pdf`,
-                                  fileBase64: generatedResume.content ? btoa(unescape(encodeURIComponent(generatedResume.content))) : '',
+                                  fileBase64: pdfBase64,
                                   inputFormat: 'pdf',
                                   outputFormat: 'docx',
                                 },
                               });
                               if (error) throw error;
+                              if (data?.success === false) throw new Error(data.error || 'Conversion failed');
                               if (data.downloadUrl) {
                                 window.open(data.downloadUrl, '_blank');
                                 toast({ title: "Conversão concluída!", description: "Download iniciado." });
@@ -585,15 +593,21 @@ export default function CreateResume() {
                           onClick={async () => {
                             setIsConverting(true);
                             try {
+                              // Generate actual PDF using jsPDF
+                              const pdf = new jsPDF();
+                              const styledPdf = applyTemplate(pdf, template, generatedResume.content, generatedResume.title, photoUrl, signatureUrl, false);
+                              const pdfBase64 = styledPdf.output('datauristring').split(',')[1];
+                              
                               const { data, error } = await supabase.functions.invoke('convert-file', {
                                 body: {
                                   fileName: `${generatedResume.title}.pdf`,
-                                  fileBase64: generatedResume.content ? btoa(unescape(encodeURIComponent(generatedResume.content))) : '',
+                                  fileBase64: pdfBase64,
                                   inputFormat: 'pdf',
                                   outputFormat: 'xlsx',
                                 },
                               });
                               if (error) throw error;
+                              if (data?.success === false) throw new Error(data.error || 'Conversion failed');
                               if (data.downloadUrl) {
                                 window.open(data.downloadUrl, '_blank');
                                 toast({ title: "Conversão concluída!", description: "Download iniciado." });
@@ -615,15 +629,21 @@ export default function CreateResume() {
                           onClick={async () => {
                             setIsConverting(true);
                             try {
+                              // Generate actual PDF using jsPDF
+                              const pdf = new jsPDF();
+                              const styledPdf = applyTemplate(pdf, template, generatedResume.content, generatedResume.title, photoUrl, signatureUrl, false);
+                              const pdfBase64 = styledPdf.output('datauristring').split(',')[1];
+                              
                               const { data, error } = await supabase.functions.invoke('convert-file', {
                                 body: {
                                   fileName: `${generatedResume.title}.pdf`,
-                                  fileBase64: generatedResume.content ? btoa(unescape(encodeURIComponent(generatedResume.content))) : '',
+                                  fileBase64: pdfBase64,
                                   inputFormat: 'pdf',
                                   outputFormat: 'pptx',
                                 },
                               });
                               if (error) throw error;
+                              if (data?.success === false) throw new Error(data.error || 'Conversion failed');
                               if (data.downloadUrl) {
                                 window.open(data.downloadUrl, '_blank');
                                 toast({ title: "Conversão concluída!", description: "Download iniciado." });
