@@ -24,6 +24,7 @@ import PublicCatalog from "./pages/PublicCatalog";
 import ScanDocument from "./pages/ScanDocument";
 import ConvertFile from "./pages/ConvertFile";
 import TestImageApi from "./pages/TestImageApi";
+import TestEbookApi from "./pages/TestEbookApi";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -67,6 +68,7 @@ const App = () => (
               <Route path="/catalog/:id" element={<CreateCatalog />} />
               <Route path="/c/:id" element={<PublicCatalog />} />
               <Route path="/test-image-api" element={<TestImageApi />} />
+              <Route path="/test-ebook-api" element={<TestEbookApi />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<NotFound />} />
