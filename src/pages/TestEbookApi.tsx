@@ -45,6 +45,7 @@ export default function TestEbookApi() {
   const [prompt, setPrompt] = useState("");
   const [language, setLanguage] = useState("pt");
   const [numChapters, setNumChapters] = useState("5");
+  const [model, setModel] = useState("gpt-4o-mini");
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<EbookResult | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<number>(0);
@@ -68,7 +69,8 @@ export default function TestEbookApi() {
         body: { 
           prompt: prompt.trim(),
           language,
-          numChapters: parseInt(numChapters)
+          numChapters: parseInt(numChapters),
+          model
         }
       });
 
@@ -140,7 +142,7 @@ export default function TestEbookApi() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Idioma</label>
                   <Select value={language} onValueChange={setLanguage}>
@@ -169,6 +171,19 @@ export default function TestEbookApi() {
                           {num} capítulos
                         </SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Modelo</label>
+                  <Select value={model} onValueChange={setModel}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gpt-4o-mini">GPT-4o Mini (rápido)</SelectItem>
+                      <SelectItem value="gpt-4o">GPT-4o (qualidade)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
