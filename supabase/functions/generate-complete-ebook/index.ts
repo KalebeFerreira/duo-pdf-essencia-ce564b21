@@ -13,252 +13,184 @@ serve(async (req) => {
 
   try {
     const { prompt, language = 'pt', colorPalette = 'classic', numPages = 5 } = await req.json();
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-    if (!lovableApiKey) {
-      throw new Error('LOVABLE_API_KEY not configured');
+    if (!openAIApiKey) {
+      throw new Error('OPENAI_API_KEY not configured');
     }
 
-    console.log('Starting complete ebook generation from prompt:', prompt, 'language:', language);
+    console.log('Starting optimized ebook generation:', { prompt, language, numPages });
+    const startTime = Date.now();
 
-    const languageInstructions: Record<string, string> = {
-      pt: 'em Português do Brasil',
-      en: 'in English',
-      es: 'en Español',
-      fr: 'en Français',
-      de: 'auf Deutsch',
-      it: 'in Italiano',
+    const languageNames: Record<string, string> = {
+      pt: 'Brazilian Portuguese',
+      en: 'English',
+      es: 'Spanish',
+      fr: 'French',
+      de: 'German',
+      it: 'Italian',
     };
 
-    const langInstruction = languageInstructions[language] || languageInstructions['pt'];
+    const langName = languageNames[language] || 'Brazilian Portuguese';
 
-    // Passo 1: Gerar estrutura do ebook (título, descrição, capítulos)
-    const structurePrompt = `You are an expert in creating high-quality ebooks.
+    // PASSO ÚNICO: Gerar estrutura + todo o conteúdo em uma chamada só
+    const fullPrompt = `You are an expert ebook writer. Create a complete, high-quality ebook about: "${prompt}"
 
-Based on the user's prompt, create a complete ebook structure ${langInstruction}.
+Write entirely in ${langName}.
 
-USER PROMPT: "${prompt}"
-
-Return ONLY a valid JSON (no markdown, no explanations) with this structure:
+Return ONLY valid JSON with this exact structure:
 {
-  "title": "Título cativante do ebook (máximo 60 caracteres)",
-  "description": "Descrição profissional e envolvente do ebook (2-3 linhas)",
+  "title": "Compelling title (max 60 chars)",
+  "description": "Professional 2-3 sentence description",
   "chapters": [
-    "Título do Capítulo 1",
-    "Título do Capítulo 2",
-    "Título do Capítulo 3"
+    {
+      "title": "Chapter 1 Title",
+      "content": "Full chapter content with 400-500 words, well-structured with paragraphs, bullet points, and practical examples"
+    }
   ]
 }
 
-IMPORTANT:
-- Create EXACTLY ${numPages} chapters (no more, no less)
-- Titles must be specific and progressive
-- Structure must be logically coherent
-- ALL CONTENT must be ${langInstruction}
-- Return ONLY the JSON, no additional text`;
+REQUIREMENTS:
+- Generate exactly ${numPages} chapters
+- Each chapter: 400-500 words of rich, valuable content
+- Use engaging, professional writing style
+- Include practical tips, examples, and actionable insights
+- Structure content with clear paragraphs
+- Make content educational and transformative
+- Write EVERYTHING in ${langName}
+- Return ONLY the JSON, no markdown or extra text`;
 
-    const structureResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    // Gerar conteúdo completo com OpenAI (muito mais rápido que múltiplas chamadas)
+    const contentResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'gpt-4o-mini',
         messages: [
-          { role: 'user', content: structurePrompt }
+          { 
+            role: 'system', 
+            content: `You are a professional ebook writer. Write high-quality, engaging content in ${langName}. Be creative and informative.`
+          },
+          { role: 'user', content: fullPrompt }
         ],
+        max_tokens: 8000,
+        temperature: 0.7,
       }),
     });
 
-    if (!structureResponse.ok) {
-      const errorText = await structureResponse.text();
-      console.error('Structure generation error:', structureResponse.status, errorText);
+    if (!contentResponse.ok) {
+      const errorText = await contentResponse.text();
+      console.error('OpenAI content error:', contentResponse.status, errorText);
       
-      if (structureResponse.status === 402) {
+      if (contentResponse.status === 429) {
         return new Response(
           JSON.stringify({ 
-            error: 'Créditos de IA esgotados',
-            message: 'Seus créditos do Lovable AI acabaram. Adicione créditos em Settings → Workspace → Usage.',
-            code: 'NO_CREDITS'
+            error: 'Rate limit exceeded',
+            message: 'Muitas requisições. Aguarde um momento e tente novamente.',
+            code: 'RATE_LIMIT'
           }),
-          { 
-            status: 402,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      
-      throw new Error('Failed to generate ebook structure');
+      throw new Error('Failed to generate ebook content');
     }
 
-    const structureData = await structureResponse.json();
-    const structureContent = structureData.choices?.[0]?.message?.content || '';
+    const contentData = await contentResponse.json();
+    const rawContent = contentData.choices?.[0]?.message?.content || '';
     
-    // Limpar o JSON de possíveis marcadores de markdown
-    const cleanJson = structureContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const ebookStructure = JSON.parse(cleanJson);
-    
-    console.log('Ebook structure generated:', ebookStructure);
-
-    // Passo 2: Gerar múltiplas imagens para todos os capítulos
-    console.log('Generating images for all chapters');
-    const chapterImages: string[] = [];
-    
-    // Gerar imagem para CADA capítulo (capa + todos os capítulos)
-    const totalImages = ebookStructure.chapters.length + 1; // +1 para capa
-    
+    // Parse JSON do conteúdo
+    let ebook;
     try {
-      const imagePromises = [];
-      
-      // Imagem da capa
-      imagePromises.push(
-        fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${lovableApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash-image-preview',
-            messages: [
-              { 
-                role: 'user', 
-                content: `Create a professional, realistic cover image for "${ebookStructure.title}". 
-Style: Modern, photorealistic, high-quality professional design. 
-Theme: ${ebookStructure.description}
-Requirements: Clean, elegant, vibrant colors, impressive visual` 
-              }
-            ],
-            modalities: ['image', 'text']
-          }),
-        })
-      );
-
-      // Imagem para CADA capítulo
-      for (let i = 0; i < ebookStructure.chapters.length; i++) {
-        const chapterTitle = ebookStructure.chapters[i];
-        imagePromises.push(
-          fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${lovableApiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'google/gemini-2.5-flash-image-preview',
-              messages: [
-                { 
-                  role: 'user', 
-                  content: `Create a professional, realistic image demonstrating: "${chapterTitle}". 
-Theme: ${ebookStructure.description}
-Style: Modern, photorealistic, high-quality, educational, clear visual demonstration
-Requirements: Professional, vibrant, illustrative, relevant to the topic` 
-                }
-              ],
-              modalities: ['image', 'text']
-            }),
-          })
-        );
-      }
-
-      const imageResponses = await Promise.all(imagePromises);
-      
-      for (const response of imageResponses) {
-        if (response.ok) {
-          const imageData = await response.json();
-          const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url || '';
-          if (imageUrl) {
-            chapterImages.push(imageUrl);
-          }
-        }
-      }
-      
-      console.log(`Successfully generated ${chapterImages.length} images out of ${totalImages} requested`);
-    } catch (imgError) {
-      console.error('Error generating images:', imgError);
+      let cleanedText = rawContent.trim();
+      if (cleanedText.startsWith('```json')) cleanedText = cleanedText.slice(7);
+      if (cleanedText.startsWith('```')) cleanedText = cleanedText.slice(3);
+      if (cleanedText.endsWith('```')) cleanedText = cleanedText.slice(0, -3);
+      ebook = JSON.parse(cleanedText.trim());
+    } catch (parseError) {
+      console.error('Failed to parse ebook JSON:', parseError);
+      console.log('Raw content:', rawContent);
+      throw new Error('Failed to parse ebook structure');
     }
 
-    // Passo 3: Gerar conteúdo REDUZIDO para cada capítulo em paralelo
-    console.log('Generating concise content for all chapters in parallel...');
+    const contentTime = Date.now();
+    console.log(`Content generated in ${contentTime - startTime}ms`);
+
+    // GERAR IMAGENS EM PARALELO usando OpenAI gpt-image-1
+    console.log('Generating images with OpenAI gpt-image-1...');
     
-    const chapterPromises = ebookStructure.chapters.map(async (chapterTitle: string, i: number) => {
-      const contentPrompt = `Write CONCISE, visual-focused content for this ebook chapter ${langInstruction}:
+    const imagePrompts = [
+      // Capa
+      `Professional ebook cover design for "${ebook.title}". Modern, clean, vibrant colors, professional typography placeholder, elegant visual design. High quality book cover.`,
+      // Imagens dos capítulos
+      ...ebook.chapters.map((ch: any) => 
+        `Professional illustration for chapter: "${ch.title}". Educational, clean, modern style, relevant visual representation of the topic. High quality.`
+      )
+    ];
 
-Ebook Title: ${ebookStructure.title}
-Description: ${ebookStructure.description}
-Chapter: ${chapterTitle}
-
-CRITICAL GUIDELINES:
-- MAXIMUM 300-400 words (shorter is better)
-- Focus on key points and actionable insights
-- Use bullet points and short paragraphs
-- Write for visual learning (text complements images)
-- Clear, direct language
-- Practical examples in brief format
-- Professional yet accessible tone
-- Write ENTIRELY ${langInstruction}
-- AVOID long explanations - be concise and impactful`;
-
+    const imagePromises = imagePrompts.map(async (imgPrompt, idx) => {
       try {
-        const contentResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        const imgResponse = await fetch('https://api.openai.com/v1/images/generations', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${lovableApiKey}`,
+            'Authorization': `Bearer ${openAIApiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              { role: 'user', content: contentPrompt }
-            ],
+            model: 'gpt-image-1',
+            prompt: imgPrompt,
+            n: 1,
+            size: '1024x1024',
+            quality: 'medium',
           }),
         });
 
-        if (!contentResponse.ok) {
-          console.error(`Failed to generate content for chapter ${i + 1}`);
-          return {
-            title: chapterTitle,
-            content: 'Erro ao gerar conteúdo para este capítulo.',
-            imageUrl: ''
-          };
+        if (!imgResponse.ok) {
+          console.error(`Image ${idx} generation failed:`, imgResponse.status);
+          return null;
         }
 
-        const contentData = await contentResponse.json();
-        const chapterContent = contentData.choices?.[0]?.message?.content || '';
-
-        // Distribuir imagens: capa no primeiro capítulo, depois uma imagem por capítulo
-        let chapterImageUrl = '';
-        if (i === 0 && chapterImages.length > 0) {
-          chapterImageUrl = chapterImages[0]; // Capa
-        } else if (chapterImages.length > i) {
-          chapterImageUrl = chapterImages[i + 1]; // Imagem do capítulo (i+1 porque índice 0 é a capa)
+        const imgData = await imgResponse.json();
+        // gpt-image-1 retorna b64_json por padrão
+        const b64 = imgData.data?.[0]?.b64_json;
+        if (b64) {
+          return `data:image/png;base64,${b64}`;
         }
-
-        return {
-          title: chapterTitle,
-          content: chapterContent,
-          imageUrl: chapterImageUrl
-        };
-      } catch (error) {
-        console.error(`Error generating chapter ${i + 1}:`, error);
-        return {
-          title: chapterTitle,
-          content: 'Erro ao gerar conteúdo para este capítulo.',
-          imageUrl: ''
-        };
+        return imgData.data?.[0]?.url || null;
+      } catch (imgError) {
+        console.error(`Image ${idx} error:`, imgError);
+        return null;
       }
     });
 
-    const chaptersWithContent = await Promise.all(chapterPromises);
+    const images = await Promise.all(imagePromises);
+    const imageTime = Date.now();
+    console.log(`Images generated in ${imageTime - contentTime}ms. Got ${images.filter(Boolean).length}/${images.length} images`);
 
-    console.log('Complete ebook generation finished');
+    // Montar capítulos com imagens
+    const chaptersWithImages = ebook.chapters.map((chapter: any, idx: number) => ({
+      title: chapter.title,
+      content: chapter.content,
+      imageUrl: images[idx + 1] || '' // +1 porque índice 0 é a capa
+    }));
+
+    // Adicionar imagem de capa ao primeiro capítulo se existir
+    if (images[0] && chaptersWithImages.length > 0) {
+      chaptersWithImages[0].coverImage = images[0];
+    }
+
+    const totalTime = Date.now() - startTime;
+    console.log(`Total ebook generation time: ${totalTime}ms`);
 
     return new Response(
       JSON.stringify({ 
-        title: ebookStructure.title,
-        description: ebookStructure.description,
-        chapters: chaptersWithContent,
+        title: ebook.title,
+        description: ebook.description,
+        chapters: chaptersWithImages,
+        coverImage: images[0] || '',
+        processingTime: totalTime,
         timestamp: new Date().toISOString()
       }),
       {
