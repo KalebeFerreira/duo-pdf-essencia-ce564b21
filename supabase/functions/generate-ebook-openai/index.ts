@@ -12,14 +12,14 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, language = 'pt', numChapters = 5 } = await req.json();
+    const { prompt, language = 'pt', numChapters = 5, model = 'gpt-4o-mini' } = await req.json();
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
     if (!openAIApiKey) {
       throw new Error('OPENAI_API_KEY not configured');
     }
 
-    console.log('Generating ebook with OpenAI:', { prompt, language, numChapters });
+    console.log('Generating ebook with OpenAI:', { prompt, language, numChapters, model });
 
     const languageNames: Record<string, string> = {
       pt: 'Brazilian Portuguese',
@@ -74,12 +74,12 @@ Return ONLY valid JSON, no additional text.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: model,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 4000,
+        max_tokens: model === 'gpt-4o' ? 8000 : 4000,
         temperature: 0.7,
       }),
     });
