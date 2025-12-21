@@ -3,17 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Image as ImageIcon, Sparkles, FileType, Download, Loader2 } from "lucide-react";
+import { ArrowLeft, Image as ImageIcon, Sparkles, FileType, Download, Loader2, ScanLine } from "lucide-react";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { toast } from "@/hooks/use-toast";
 import ImageToPdfConverter from "@/components/ImageToPdfConverter";
 import PdfGenerator from "@/components/PdfGenerator";
+import QuickScanner from "@/components/QuickScanner";
 import { supabase } from "@/integrations/supabase/client";
 
 const CreatePdf = () => {
   const navigate = useNavigate();
   const { profile } = useUserProfile();
-  const [activeTab, setActiveTab] = useState("images");
+  const [activeTab, setActiveTab] = useState("scanner");
   const [generatedPdfContent, setGeneratedPdfContent] = useState<string | null>(null);
   const [isConverting, setIsConverting] = useState(false);
 
@@ -121,21 +122,29 @@ const CreatePdf = () => {
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={handleTabChange}>
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="scanner" className="gap-2">
+                  <ScanLine className="w-4 h-4" />
+                  <span className="hidden sm:inline">Scanner</span>
+                </TabsTrigger>
                 <TabsTrigger value="images" className="gap-2">
                   <ImageIcon className="w-4 h-4" />
-                  Converter Imagens
+                  <span className="hidden sm:inline">Imagens</span>
                 </TabsTrigger>
                 <TabsTrigger value="ai" className="gap-2" disabled={profile?.plan === "free"}>
                   <Sparkles className="w-4 h-4" />
-                  Automação com IA
+                  <span className="hidden sm:inline">IA</span>
                   {profile?.plan === "free" && (
-                    <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded">
-                      Premium
+                    <span className="ml-1 text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded">
+                      Pro
                     </span>
                   )}
                 </TabsTrigger>
               </TabsList>
+
+              <TabsContent value="scanner" className="mt-6">
+                <QuickScanner onPdfCreated={handlePdfGenerated} />
+              </TabsContent>
 
               <TabsContent value="images" className="mt-6">
                 <ImageToPdfConverter onPdfCreated={handlePdfGenerated} />
