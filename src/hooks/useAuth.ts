@@ -11,60 +11,60 @@ export const useAuth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session ? 'Session exists' : 'No session');
-        
-        // Handle token expiration
-        if (event === 'TOKEN_REFRESHED') {
-          console.log('Token refreshed successfully');
-        }
-        
-        if (event === 'SIGNED_OUT' || !session) {
-          setSession(null);
-          setUser(null);
-          setLoading(false);
-          return;
-        }
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
+    let didResolve = false;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error('Error getting session:', error);
-        setSession(null);
-        setUser(null);
-        setLoading(false);
+    const finish = (nextSession: Session | null) => {
+      didResolve = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+      setLoading(false);
+    };
+
+    // Set up auth state listener FIRST
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
+      console.log('Auth state changed:', event, nextSession ? 'Session exists' : 'No session');
+
+      // Se não há sessão, mantém estado limpo
+      if (event === 'SIGNED_OUT' || !nextSession) {
+        finish(null);
         return;
       }
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    }).catch((error) => {
-      console.error('Fatal error getting session:', error);
-      setSession(null);
-      setUser(null);
-      setLoading(false);
+
+      finish(nextSession);
     });
 
-    // Safety timeout: if still loading after 5 seconds, stop loading
-    const timeout = setTimeout(() => {
-      console.log('Auth loading timeout - forcing load complete');
-      setLoading(false);
-    }, 5000);
+    // THEN check for existing session
+    supabase.auth
+      .getSession()
+      .then(({ data: { session: nextSession }, error }) => {
+        if (error) {
+          console.error('Error getting session:', error);
+          finish(null);
+          return;
+        }
+        finish(nextSession);
+      })
+      .catch((error) => {
+        console.error('Fatal error getting session:', error);
+        finish(null);
+      });
+
+    // Safety timeout (evita travar a UI), mas só se nada resolveu ainda
+    timeoutId = setTimeout(() => {
+      if (didResolve) return;
+      console.warn('Auth init timeout - continuing without session');
+      finish(null);
+    }, 15000);
 
     return () => {
       subscription.unsubscribe();
-      clearTimeout(timeout);
+      if (timeoutId) clearTimeout(timeoutId);
     };
-  }, []);
+  }, [navigate]);
 
   const signUp = async (email: string, password: string, nomeCompleto: string) => {
     try {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -38,6 +39,7 @@ import UpgradeBanner from "@/components/UpgradeBanner";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user, loading: authLoading, signOut } = useAuth();
   const { profile, isLoading: profileLoading } = useUserProfile();
   const { documents, isLoading: documentsLoading, deleteDocument, updateDocument } = useDocuments();
@@ -48,8 +50,10 @@ const Dashboard = () => {
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
 
   const handlePdfGenerated = () => {
-    // Invalidate queries to refresh data without full page reload
-    // The useDocuments and useUserProfile hooks will automatically refetch
+    if (!user?.id) return;
+    // Atualiza lista/contadores sem precisar dar refresh
+    queryClient.invalidateQueries({ queryKey: ['documents', user.id] });
+    queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
   };
 
   useEffect(() => {
