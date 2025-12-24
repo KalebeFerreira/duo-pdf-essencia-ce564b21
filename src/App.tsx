@@ -32,9 +32,8 @@ const queryClient = new QueryClient({
       retry: (failureCount, error: any) => {
         if (error?.message?.includes('JWT expired') || error?.code === 'PGRST301' || error?.code === 'PGRST303') {
           console.error('JWT expired detected, forcing logout');
-          supabase.auth.signOut().then(() => {
-            window.location.href = '/auth';
-          });
+          supabase.auth.signOut();
+          // Navigation will be handled by the auth state listener in useAuth
           return false;
         }
         return failureCount < 2;

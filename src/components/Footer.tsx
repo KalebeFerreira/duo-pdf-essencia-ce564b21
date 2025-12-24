@@ -47,19 +47,19 @@ const Footer = () => {
             <h3 className="font-semibold text-foreground mb-4">Suporte</h3>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300">
+                <Link to="/settings" className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300">
                   Central de Ajuda
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300">
+                <Link to="/settings" className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300">
                   Documentação
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300">
+                <Link to="/settings" className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300">
                   Contato
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -69,19 +69,19 @@ const Footer = () => {
             <h3 className="font-semibold text-foreground mb-4">Legal</h3>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300">
+                <Link to="/settings" className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300">
                   Privacidade
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300">
+                <Link to="/settings" className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300">
                   Termos de Uso
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300">
+                <Link to="/settings" className="text-sm text-muted-foreground hover:text-primary transition-colors duration-300">
                   LGPD
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -101,20 +101,18 @@ const Footer = () => {
               >
                 <Mail className="w-5 h-5" />
               </a>
-              <a 
-                href="#" 
-                className="text-muted-foreground hover:text-primary transition-colors duration-300"
+              <span 
+                className="text-muted-foreground hover:text-primary transition-colors duration-300 cursor-pointer"
                 aria-label="Instagram"
               >
                 <Instagram className="w-5 h-5" />
-              </a>
-              <a 
-                href="#" 
-                className="text-muted-foreground hover:text-primary transition-colors duration-300"
+              </span>
+              <span 
+                className="text-muted-foreground hover:text-primary transition-colors duration-300 cursor-pointer"
                 aria-label="Twitter"
               >
                 <Twitter className="w-5 h-5" />
-              </a>
+              </span>
             </div>
           </div>
         </div>
