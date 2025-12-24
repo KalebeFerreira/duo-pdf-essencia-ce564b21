@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,7 @@ interface BatchResult {
 }
 
 const PdfGenerator = ({ onPdfGenerated }: PdfGeneratorProps) => {
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const { checkLimit, getLimitInfo } = usePdfLimit();
   const [topic, setTopic] = useState("");
@@ -132,7 +134,7 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
       }
 
       // Save document to database with content (real or mock)
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user: authUser } } = await supabase.auth.getUser();
       
       // Codificar conteúdo em base64 UTF-8 para armazenamento correto
       const base64Content = btoa(unescape(encodeURIComponent(contentToSave)));
@@ -141,7 +143,7 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
         .from('documents')
         .insert({
           title: topic,
-          user_id: user?.id,
+          user_id: authUser?.id,
           file_url: `data:text/plain;base64,${base64Content}`,
           file_size: contentToSave.length,
         });
@@ -149,11 +151,11 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
       if (insertError) throw insertError;
 
       // Update profile PDFs used count (both monthly and daily)
-      if (user) {
+      if (authUser) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('pdfs_used, pdfs_used_today')
-          .eq('id', user.id)
+          .eq('id', authUser.id)
           .single();
 
         if (profile) {
@@ -163,8 +165,12 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
               pdfs_used: (profile.pdfs_used || 0) + 1,
               pdfs_used_today: (profile.pdfs_used_today || 0) + 1
             })
-            .eq('id', user.id);
+            .eq('id', authUser.id);
         }
+
+        // Força re-fetch no dashboard/listas (sem refresh)
+        queryClient.invalidateQueries({ queryKey: ['documents', authUser.id] });
+        queryClient.invalidateQueries({ queryKey: ['profile', authUser.id] });
       }
 
       toast({
