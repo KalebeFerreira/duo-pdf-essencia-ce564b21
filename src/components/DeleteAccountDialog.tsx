@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,6 +24,7 @@ interface DeleteAccountDialogProps {
 type Step = 'choice' | 'confirm-email' | 'final-confirm';
 
 export const DeleteAccountDialog = ({ userEmail, onSignOut }: DeleteAccountDialogProps) => {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>('choice');
   const [emailConfirmation, setEmailConfirmation] = useState('');
@@ -87,8 +89,8 @@ export const DeleteAccountDialog = ({ userEmail, onSignOut }: DeleteAccountDialo
       setOpen(false);
       resetDialog();
       
-      // Redirect to home page after deletion
-      window.location.href = '/';
+      // Redirect to home page after deletion using React Router
+      navigate('/', { replace: true });
       
     } catch (error: any) {
       console.error('Error deleting account:', error);

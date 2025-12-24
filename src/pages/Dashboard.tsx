@@ -48,8 +48,8 @@ const Dashboard = () => {
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
 
   const handlePdfGenerated = () => {
-    // Refresh profile data after PDF generation
-    window.location.reload();
+    // Invalidate queries to refresh data without full page reload
+    // The useDocuments and useUserProfile hooks will automatically refetch
   };
 
   useEffect(() => {
