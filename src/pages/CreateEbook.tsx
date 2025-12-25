@@ -16,9 +16,6 @@ import Navbar from "@/components/Navbar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import jsPDF from "jspdf";
-import PptxGenJS from "pptxgenjs";
-import html2canvas from "html2canvas";
 import { addWatermarkToPdf, checkIsFreePlan } from "@/utils/pdfWatermark";
 
 const colorPalettes = {
@@ -198,6 +195,14 @@ export default function CreateEbook() {
     if (!generatedEbook) return;
 
     try {
+      toast({
+        title: "Preparando PDF...",
+        description: "Carregando recursos necessários.",
+      });
+
+      // Import dinâmico do jsPDF
+      const { default: jsPDF } = await import("jspdf");
+      
       // Verificar se é plano gratuito
       const isFreePlan = await checkIsFreePlan(supabase, user?.id);
       
@@ -283,6 +288,14 @@ export default function CreateEbook() {
     if (!generatedEbook) return;
 
     try {
+      toast({
+        title: "Preparando PowerPoint...",
+        description: "Carregando recursos necessários.",
+      });
+
+      // Import dinâmico do PptxGenJS
+      const { default: PptxGenJS } = await import("pptxgenjs");
+      
       // Verificar se é plano gratuito
       const isFreePlan = await checkIsFreePlan(supabase, user?.id);
       
@@ -404,6 +417,9 @@ export default function CreateEbook() {
     if (!generatedEbook) return;
 
     try {
+      // Import dinâmico do html2canvas
+      const { default: html2canvas } = await import("html2canvas");
+      
       // Verificar se é plano gratuito
       const isFreePlan = await checkIsFreePlan(supabase, user?.id);
       
