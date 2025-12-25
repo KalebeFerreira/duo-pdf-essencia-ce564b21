@@ -6,44 +6,31 @@ const MOBILE_BREAKPOINT = 768;
  * Hook to detect if the current viewport is mobile.
  * Uses matchMedia for efficient detection without resize listener overhead.
  * 
- * CRITICAL: Returns a stable value to prevent re-render loops.
- * Initial value is calculated synchronously if window is available.
+ * Returns a stable value to prevent re-render loops.
  */
-export function useIsMobile() {
-  // Calculate initial value synchronously if possible to avoid flicker
-  const getInitialValue = (): boolean => {
+export function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = React.useState<boolean>(() => {
+    // Calculate initial value synchronously
     if (typeof window === 'undefined') return false;
-    return window.innerWidth < MOBILE_BREAKPOINT;
-  };
-
-  const [isMobile, setIsMobile] = React.useState<boolean>(getInitialValue);
-  
-  // Use ref to track if we've done initial setup
-  const hasInitialized = React.useRef(false);
+    return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`).matches;
+  });
 
   React.useEffect(() => {
-    // Skip if already initialized with correct value
-    if (hasInitialized.current) return;
-    hasInitialized.current = true;
-    
     const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
     
-    // Update only if different from initial
-    if (mql.matches !== isMobile) {
-      setIsMobile(mql.matches);
-    }
-    
-    // Handler for media query changes
+    // Handler for media query changes only
     const handleChange = (e: MediaQueryListEvent) => {
       setIsMobile(e.matches);
     };
     
-    mql.addEventListener("change", handleChange);
+    // Sync with current state if different (for SSR hydration)
+    if (mql.matches !== isMobile) {
+      setIsMobile(mql.matches);
+    }
     
-    return () => {
-      mql.removeEventListener("change", handleChange);
-    };
-  }, [isMobile]);
+    mql.addEventListener("change", handleChange);
+    return () => mql.removeEventListener("change", handleChange);
+  }, []); // Empty dependency array - only run once on mount
 
   return isMobile;
 }

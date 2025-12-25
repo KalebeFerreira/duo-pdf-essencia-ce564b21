@@ -1,6 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 
 interface Props {
   children: ReactNode;
@@ -10,23 +10,32 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  errorInfo: ErrorInfo | null;
 }
 
 class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, errorInfo: null };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("ErrorBoundary capturou erro:", error, errorInfo);
+    console.error("ErrorBoundary capturou erro:", error);
+    console.error("Component stack:", errorInfo.componentStack);
+    this.setState({ errorInfo });
   }
 
   handleReload = () => {
+    // Limpar cache do React Query antes de recarregar
+    try {
+      localStorage.removeItem('REACT_QUERY_OFFLINE_CACHE');
+    } catch (e) {
+      // Ignorar erros de localStorage
+    }
     window.location.reload();
   };
 
@@ -34,11 +43,27 @@ class ErrorBoundary extends Component<Props, State> {
     window.location.href = "/";
   };
 
+  handleClearAndReload = () => {
+    try {
+      // Limpar storage que pode estar corrompido
+      sessionStorage.clear();
+      localStorage.removeItem('REACT_QUERY_OFFLINE_CACHE');
+    } catch (e) {
+      // Ignorar
+    }
+    window.location.href = "/auth";
+  };
+
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;
       }
+
+      const errorMessage = this.state.error?.message || 'Erro desconhecido';
+      const isAuthError = errorMessage.toLowerCase().includes('jwt') || 
+                          errorMessage.toLowerCase().includes('auth') ||
+                          errorMessage.toLowerCase().includes('session');
 
       return (
         <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -52,32 +77,40 @@ class ErrorBoundary extends Component<Props, State> {
                 Algo deu errado
               </h1>
               <p className="text-muted-foreground">
-                Ocorreu um erro inesperado no aplicativo. Isso pode acontecer por problemas de conexão ou incompatibilidade do navegador.
+                {isAuthError 
+                  ? "Sua sessão expirou ou há um problema de autenticação."
+                  : "Ocorreu um erro inesperado no aplicativo."
+                }
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={this.handleReload} className="gap-2">
-                <RefreshCw className="w-4 h-4" />
-                Recarregar Página
-              </Button>
-              <Button variant="outline" onClick={this.handleGoHome}>
+            <div className="flex flex-col gap-3">
+              {isAuthError ? (
+                <Button onClick={this.handleClearAndReload} className="gap-2 w-full">
+                  <RefreshCw className="w-4 h-4" />
+                  Fazer Login Novamente
+                </Button>
+              ) : (
+                <Button onClick={this.handleReload} className="gap-2 w-full">
+                  <RefreshCw className="w-4 h-4" />
+                  Recarregar Página
+                </Button>
+              )}
+              <Button variant="outline" onClick={this.handleGoHome} className="gap-2 w-full">
+                <Home className="w-4 h-4" />
                 Ir para Início
               </Button>
             </div>
 
-            {process.env.NODE_ENV === "development" && this.state.error && (
-              <details className="mt-6 text-left bg-muted p-4 rounded-lg">
-                <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
-                  Detalhes do erro (desenvolvimento)
-                </summary>
-                <pre className="mt-2 text-xs text-destructive overflow-auto max-h-40">
-                  {this.state.error.toString()}
-                  {"\n"}
-                  {this.state.error.stack}
-                </pre>
-              </details>
-            )}
+            {/* Mostrar detalhes do erro para debug */}
+            <details className="mt-6 text-left bg-muted p-4 rounded-lg">
+              <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+                Detalhes do erro
+              </summary>
+              <pre className="mt-2 text-xs text-destructive overflow-auto max-h-40 whitespace-pre-wrap">
+                {errorMessage}
+              </pre>
+            </details>
           </div>
         </div>
       );
