@@ -1,7 +1,7 @@
 project_id = "ikyrgqxvjvnalnrqibyi"
 
 [functions.generate-pdf-content]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-automation]
 verify_jwt = true
