@@ -31,30 +31,60 @@ function createMemoryStorage(): AuthStorage {
   };
 }
 
-// iOS/Safari (principalmente modo privado / in-app browser) pode lançar erro ao usar localStorage.
-// Se isso acontecer, caímos para um storage em memória para evitar logout/redirect inesperado.
+// iOS/Safari (principalmente modo privado / in-app browser) pode falhar no localStorage.
+// Caso detectemos qualquer falha, usamos somente memória para evitar sessão “sumir”.
 const memoryStorage = createMemoryStorage();
+
+const canUseLocalStorage = (): boolean => {
+  try {
+    const testKey = "__sb_ls_test__";
+    localStorage.setItem(testKey, "1");
+    localStorage.removeItem(testKey);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+let forceMemoryStorage = !canUseLocalStorage();
 
 const safeStorage: AuthStorage = {
   getItem: (key) => {
+    if (forceMemoryStorage) return memoryStorage.getItem(key);
+
     try {
-      return localStorage.getItem(key);
+      const v = localStorage.getItem(key);
+      // Em alguns cenários (Safari privado), setItem falha mas getItem não lança erro e retorna null.
+      // Se tivermos o valor em memória, preferimos ele para não perder a sessão.
+      return v ?? memoryStorage.getItem(key);
     } catch {
+      forceMemoryStorage = true;
       return memoryStorage.getItem(key);
     }
   },
   setItem: (key, value) => {
+    if (forceMemoryStorage) {
+      memoryStorage.setItem(key, value);
+      return;
+    }
+
     try {
       localStorage.setItem(key, value);
     } catch {
+      forceMemoryStorage = true;
       memoryStorage.setItem(key, value);
     }
   },
   removeItem: (key) => {
+    // Sempre limpa a memória também.
+    memoryStorage.removeItem(key);
+
+    if (forceMemoryStorage) return;
+
     try {
       localStorage.removeItem(key);
     } catch {
-      memoryStorage.removeItem(key);
+      forceMemoryStorage = true;
     }
   },
 };
