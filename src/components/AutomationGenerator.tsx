@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Zap } from "lucide-react";
 import { useAutomationLimit } from "@/hooks/useAutomationLimit";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AutomationGeneratorProps {
   onAutomationGenerated: () => void;
@@ -14,6 +15,7 @@ interface AutomationGeneratorProps {
 
 const AutomationGenerator = ({ onAutomationGenerated }: AutomationGeneratorProps) => {
   const { checkLimit } = useAutomationLimit();
+  const { user } = useAuth();
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState("");
@@ -28,6 +30,15 @@ const AutomationGenerator = ({ onAutomationGenerated }: AutomationGeneratorProps
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Sessão não encontrada",
+        description: "Faça login novamente para usar a automação.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Check limit before generating
     if (!checkLimit()) {
       return;
@@ -37,8 +48,8 @@ const AutomationGenerator = ({ onAutomationGenerated }: AutomationGeneratorProps
     setGeneratedContent("");
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-automation', {
-        body: { prompt }
+      const { data, error } = await supabase.functions.invoke("generate-automation", {
+        body: { prompt },
       });
 
       if (error) throw error;
@@ -46,23 +57,20 @@ const AutomationGenerator = ({ onAutomationGenerated }: AutomationGeneratorProps
       setGeneratedContent(data.content);
 
       // Update profile automations used count (both total and daily)
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('automations_used, automations_used_today')
-          .eq('id', user.id)
-          .single();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("automations_used, automations_used_today")
+        .eq("id", user.id)
+        .single();
 
-        if (profile) {
-          await supabase
-            .from('profiles')
-            .update({ 
-              automations_used: (profile.automations_used || 0) + 1,
-              automations_used_today: (profile.automations_used_today || 0) + 1
-            })
-            .eq('id', user.id);
-        }
+      if (profile) {
+        await supabase
+          .from("profiles")
+          .update({
+            automations_used: (profile.automations_used || 0) + 1,
+            automations_used_today: (profile.automations_used_today || 0) + 1,
+          })
+          .eq("id", user.id);
       }
 
       toast({
@@ -73,7 +81,7 @@ const AutomationGenerator = ({ onAutomationGenerated }: AutomationGeneratorProps
       onAutomationGenerated();
       setPrompt("");
     } catch (error: any) {
-      console.error('Error generating automation:', error);
+      console.error("Error generating automation:", error);
       toast({
         title: "Erro ao processar automação",
         description: error.message || "Ocorreu um erro ao processar sua solicitação.",
