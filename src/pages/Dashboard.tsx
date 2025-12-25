@@ -118,8 +118,34 @@ const Dashboard = () => {
     );
   }
 
-  if (!user || !profile) {
-    return null;
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="text-center space-y-4">
+          <p className="text-muted-foreground">Sessão expirada ou usuário não encontrado.</p>
+          <Button onClick={() => navigate("/auth")}>Ir para Login</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full bg-muted/30">
+          <AppSidebar />
+          <div className="flex-1 flex flex-col min-w-0">
+            <DashboardHeader title="Dashboard" onLogout={handleLogout} />
+            <main className="flex-1 p-4 sm:p-6 lg:p-8 flex items-center justify-center">
+              <div className="text-center space-y-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-muted-foreground">Carregando perfil...</p>
+              </div>
+            </main>
+          </div>
+        </div>
+      </SidebarProvider>
+    );
   }
 
   const pdfsUsed = profile.pdfs_used || 0;

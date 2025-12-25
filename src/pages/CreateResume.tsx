@@ -293,7 +293,14 @@ export default function CreateResume() {
   }
 
   if (!user) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="text-center space-y-4">
+          <p className="text-muted-foreground">Sessão expirada ou usuário não encontrado.</p>
+          <Button onClick={() => navigate("/auth")}>Ir para Login</Button>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -6,23 +6,62 @@ export const useUserProfile = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: profile, isLoading, error } = useQuery({
+  const { data: profile, isLoading, error, refetch } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
 
+      // Usar maybeSingle() para não lançar erro se não existir
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao buscar perfil:', error);
+        throw error;
+      }
+      
+      // Se não existir perfil, criar um padrão
+      if (!data) {
+        console.log('Perfil não encontrado, criando perfil padrão...');
+        const defaultProfile = {
+          id: user.id,
+          nome_completo: user.email?.split('@')[0] || 'Usuário',
+          plan: 'free',
+          pdfs_limit: 5,
+          pdfs_used: 0,
+          pdfs_used_today: 0,
+          daily_pdfs_limit: 3,
+          automations_used: 0,
+          automations_used_today: 0,
+          daily_automations_limit: 1,
+          monthly_credits: 10,
+          remaining_credits: 10,
+        };
+
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .upsert(defaultProfile, { onConflict: 'id' })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Erro ao criar perfil padrão:', insertError);
+          // Retornar perfil default mesmo se falhar insert (pode ser RLS)
+          return defaultProfile as any;
+        }
+
+        return newProfile;
+      }
+
       return data;
     },
     enabled: !!user?.id,
     staleTime: 1000 * 60 * 5, // 5 minutos - evita re-fetches desnecessários
     gcTime: 1000 * 60 * 10, // 10 minutos no cache
+    retry: 2,
   });
 
   const updateProfile = useMutation({
@@ -48,6 +87,7 @@ export const useUserProfile = () => {
     profile,
     isLoading,
     error,
+    refetch,
     updateProfile: updateProfile.mutate,
   };
 };
