@@ -134,29 +134,29 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
       }
 
       // Save document to database with content (real or mock)
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      
+      const authUser = user;
+      if (!authUser) throw new Error("Sessão não encontrada. Faça login novamente.");
+
       // Codificar conteúdo em base64 UTF-8 para armazenamento correto
       const base64Content = btoa(unescape(encodeURIComponent(contentToSave)));
-      
-      const { error: insertError } = await supabase
-        .from('documents')
-        .insert({
-          title: topic,
-          user_id: authUser?.id,
-          file_url: `data:text/plain;base64,${base64Content}`,
-          file_size: contentToSave.length,
-        });
+
+      const { error: insertError } = await supabase.from("documents").insert({
+        title: topic,
+        user_id: authUser.id,
+        file_url: `data:text/plain;base64,${base64Content}`,
+        file_size: contentToSave.length,
+      });
 
       if (insertError) throw insertError;
 
       // Update profile PDFs used count (both monthly and daily)
-      if (authUser) {
+      {
         const { data: profile } = await supabase
-          .from('profiles')
-          .select('pdfs_used, pdfs_used_today')
-          .eq('id', authUser.id)
+          .from("profiles")
+          .select("pdfs_used, pdfs_used_today")
+          .eq("id", authUser.id)
           .single();
+
 
         if (profile) {
           await supabase
@@ -522,7 +522,16 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
     setCurrentBatchIndex(0);
 
     const results: BatchResult[] = [];
-    const { data: { user } } = await supabase.auth.getUser();
+    const authUser = user;
+    if (!authUser) {
+      toast({
+        title: "Sessão não encontrada",
+        description: "Faça login novamente para gerar PDFs.",
+        variant: "destructive",
+      });
+      setIsBatchGenerating(false);
+      return;
+    }
 
     for (let i = 0; i < topicsList.length; i++) {
       const currentTopic = topicsList[i];
@@ -538,14 +547,13 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
         
         // Save to database
         const base64Content = btoa(unescape(encodeURIComponent(content)));
-        const { error: insertError } = await supabase
-          .from('documents')
-          .insert({
-            title: currentTopic,
-            user_id: user?.id,
-            file_url: `data:text/plain;base64,${base64Content}`,
-            file_size: content.length,
-          });
+        const { error: insertError } = await supabase.from("documents").insert({
+          title: currentTopic,
+          user_id: authUser.id,
+          file_url: `data:text/plain;base64,${base64Content}`,
+          file_size: content.length,
+        });
+
 
         if (insertError) throw insertError;
 

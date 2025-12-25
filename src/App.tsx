@@ -8,8 +8,8 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { DeviceThemeApplier } from "@/components/DeviceThemeApplier";
 import { AuthProvider } from "@/components/AuthProvider";
 import { RequireAuth } from "@/components/RequireAuth";
-import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
+
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import CreatePdf from "./pages/CreatePdf";
@@ -32,14 +32,14 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: (failureCount, error: any) => {
+        // NÃO forçar logout automático aqui: em mobile (Safari/in-app) isso pode disparar por erro transitório
+        // e derrubar o usuário para /auth, parecendo que “nada funciona”.
         if (
           error?.message?.includes("JWT expired") ||
           error?.code === "PGRST301" ||
           error?.code === "PGRST303"
         ) {
-          console.error("JWT expired detected, forcing logout");
-          supabase.auth.signOut();
-          // Navigation will be handled by the auth state listener in AuthProvider
+          console.warn("Auth token issue detected; stopping retries.", error);
           return false;
         }
         return failureCount < 2;
@@ -48,6 +48,7 @@ const queryClient = new QueryClient({
     },
   },
 });
+
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
