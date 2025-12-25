@@ -36,9 +36,12 @@ const TestEbookApi = lazy(() => import("./pages/TestEbookApi"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      // 5 minutos de staleTime para evitar refetches constantes em mobile
+      staleTime: 5 * 60 * 1000,
+      // Cache por 10 minutos
+      gcTime: 10 * 60 * 1000,
       retry: (failureCount, error: any) => {
         // NÃO forçar logout automático aqui: em mobile (Safari/in-app) isso pode disparar por erro transitório
-        // e derrubar o usuário para /auth, parecendo que "nada funciona".
         if (
           error?.message?.includes("JWT expired") ||
           error?.code === "PGRST301" ||
@@ -47,9 +50,12 @@ const queryClient = new QueryClient({
           console.warn("Auth token issue detected; stopping retries.", error);
           return false;
         }
-        return failureCount < 2;
+        // Máximo de 1 retry para não congelar UI em conexões instáveis
+        return failureCount < 1;
       },
       refetchOnWindowFocus: false,
+      // Não refazer fetch ao reconectar - evita loops em mobile com rede instável
+      refetchOnReconnect: false,
     },
   },
 });
