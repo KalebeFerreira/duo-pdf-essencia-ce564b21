@@ -32,7 +32,7 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [isFreePlan, setIsFreePlan] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
-  const { user } = useAuth();
+  const { user, session, loading: authLoading } = useAuth();
 
   const currentTemplate = predefinedTemplates.find(t => t.id === selectedTemplate) || predefinedTemplates[0];
 
@@ -183,21 +183,19 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
       return;
     }
 
+    if (authLoading || !session?.access_token) {
+      toast({
+        title: "Sessão não pronta",
+        description: "Aguarde a sessão carregar (ou faça login novamente) para gerar designs.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsGenerating(true);
     
     const attemptGeneration = async (): Promise<boolean> => {
       try {
-        // Get the current session to include the access token
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) {
-          toast({
-            title: "Sessão expirada",
-            description: "Faça login novamente para gerar designs",
-            variant: "destructive",
-          });
-          return true; // Don't retry - need to login
-        }
-
         const { data, error } = await supabase.functions.invoke("generate-design-ai", {
           body: { prompt: aiPrompt, template: selectedTemplate || "flyer" },
           headers: {

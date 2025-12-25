@@ -30,20 +30,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const initRef = useRef(false);
+  const didInitRef = useRef(false);
 
   useEffect(() => {
-    // Evita re-init em StrictMode (dev) e garante apenas 1 listener no app inteiro.
-    if (initRef.current) return;
-    initRef.current = true;
-
     let isMounted = true;
 
     const applySession = (nextSession: Session | null) => {
       if (!isMounted) return;
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
-      setLoading(false);
+      if (didInitRef.current) setLoading(false);
     };
 
     // 1) Listener primeiro (não perde eventos)
@@ -51,20 +47,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       applySession(nextSession);
     });
 
-    // 2) Sessão inicial
+    // 2) Sessão inicial (somente aqui encerramos o loading inicial)
     supabase.auth
       .getSession()
       .then(({ data: { session: initialSession }, error }) => {
+        didInitRef.current = true;
         if (error) {
           console.error("Error getting session:", error);
-          applySession(null);
+          setSession(null);
+          setUser(null);
+          setLoading(false);
           return;
         }
-        applySession(initialSession);
+        setSession(initialSession);
+        setUser(initialSession?.user ?? null);
+        setLoading(false);
       })
       .catch((error) => {
+        didInitRef.current = true;
         console.error("Fatal error getting session:", error);
-        applySession(null);
+        setSession(null);
+        setUser(null);
+        setLoading(false);
       });
 
     return () => {

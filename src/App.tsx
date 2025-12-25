@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { DeviceThemeApplier } from "@/components/DeviceThemeApplier";
 import { AuthProvider } from "@/components/AuthProvider";
+import { RequireAuth } from "@/components/RequireAuth";
 import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -60,22 +61,26 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/create-pdf" element={<CreatePdf />} />
-                <Route path="/create-resume" element={<CreateResume />} />
-                <Route path="/create-ebook" element={<CreateEbook />} />
-                <Route path="/create-design" element={<CreateDesign />} />
-                <Route path="/scan-document" element={<ScanDocument />} />
-                <Route path="/convert-file" element={<ConvertFile />} />
-                <Route path="/automations" element={<Automations />} />
-                <Route path="/catalogs" element={<Catalogs />} />
-                <Route path="/catalog/new" element={<CreateCatalog />} />
-                <Route path="/catalog/:id" element={<CreateCatalog />} />
+
+                <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
+                <Route path="/create-pdf" element={<RequireAuth><CreatePdf /></RequireAuth>} />
+                <Route path="/create-resume" element={<RequireAuth><CreateResume /></RequireAuth>} />
+                <Route path="/create-ebook" element={<RequireAuth><CreateEbook /></RequireAuth>} />
+                <Route path="/create-design" element={<RequireAuth><CreateDesign /></RequireAuth>} />
+                <Route path="/scan-document" element={<RequireAuth><ScanDocument /></RequireAuth>} />
+                <Route path="/convert-file" element={<RequireAuth><ConvertFile /></RequireAuth>} />
+                <Route path="/automations" element={<RequireAuth><Automations /></RequireAuth>} />
+                <Route path="/catalogs" element={<RequireAuth><Catalogs /></RequireAuth>} />
+                <Route path="/catalog/new" element={<RequireAuth><CreateCatalog /></RequireAuth>} />
+                <Route path="/catalog/:id" element={<RequireAuth><CreateCatalog /></RequireAuth>} />
+
                 <Route path="/c/:id" element={<PublicCatalog />} />
-                <Route path="/test-image-api" element={<TestImageApi />} />
-                <Route path="/test-ebook-api" element={<TestEbookApi />} />
+
+                <Route path="/test-image-api" element={<RequireAuth><TestImageApi /></RequireAuth>} />
+                <Route path="/test-ebook-api" element={<RequireAuth><TestEbookApi /></RequireAuth>} />
+
                 <Route path="/pricing" element={<Pricing />} />
-                <Route path="/settings" element={<Settings />} />
+                <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </DeviceThemeApplier>

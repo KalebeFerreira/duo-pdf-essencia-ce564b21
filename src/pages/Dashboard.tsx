@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -55,13 +55,6 @@ const Dashboard = () => {
     queryClient.invalidateQueries({ queryKey: ['documents', user.id] });
     queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
   };
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      console.log('No user detected, redirecting to auth');
-      navigate("/auth", { replace: true });
-    }
-  }, [user, authLoading, navigate]);
 
   const handleLogout = async () => {
     await signOut();
