@@ -1,0 +1,12 @@
+# SPA fallback para React Router (Hostinger/Apache)
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Se o arquivo ou diretório existe, sirva-o diretamente
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # Caso contrário, entregue o index.html (React Router)
+  RewriteRule ^ index.html [QSA,L]
+</IfModule>
