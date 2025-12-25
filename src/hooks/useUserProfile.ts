@@ -11,57 +11,72 @@ export const useUserProfile = () => {
     queryFn: async () => {
       if (!user?.id) return null;
 
-      // Usar maybeSingle() para não lançar erro se não existir
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Erro ao buscar perfil:', error);
-        throw error;
-      }
-      
-      // Se não existir perfil, criar um padrão
-      if (!data) {
-        console.log('Perfil não encontrado, criando perfil padrão...');
-        const defaultProfile = {
-          id: user.id,
-          nome_completo: user.email?.split('@')[0] || 'Usuário',
-          plan: 'free',
-          pdfs_limit: 5,
-          pdfs_used: 0,
-          pdfs_used_today: 0,
-          daily_pdfs_limit: 3,
-          automations_used: 0,
-          automations_used_today: 0,
-          daily_automations_limit: 1,
-          monthly_credits: 10,
-          remaining_credits: 10,
-        };
-
-        const { data: newProfile, error: insertError } = await supabase
+      try {
+        // Usar maybeSingle() para não lançar erro se não existir
+        const { data, error } = await supabase
           .from('profiles')
-          .upsert(defaultProfile, { onConflict: 'id' })
-          .select()
-          .single();
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
 
-        if (insertError) {
-          console.error('Erro ao criar perfil padrão:', insertError);
-          // Retornar perfil default mesmo se falhar insert (pode ser RLS)
-          return defaultProfile as any;
+        if (error) {
+          console.error('Erro ao buscar perfil:', error);
+          // Se for erro de autenticação, retornar null em vez de throw
+          if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
+            return null;
+          }
+          throw error;
+        }
+        
+        // Se não existir perfil, criar um padrão
+        if (!data) {
+          console.log('Perfil não encontrado, criando perfil padrão...');
+          const defaultProfile = {
+            id: user.id,
+            nome_completo: user.email?.split('@')[0] || 'Usuário',
+            plan: 'free',
+            pdfs_limit: 5,
+            pdfs_used: 0,
+            pdfs_used_today: 0,
+            daily_pdfs_limit: 3,
+            automations_used: 0,
+            automations_used_today: 0,
+            daily_automations_limit: 1,
+            monthly_credits: 10,
+            remaining_credits: 10,
+          };
+
+          try {
+            const { data: newProfile, error: insertError } = await supabase
+              .from('profiles')
+              .upsert(defaultProfile, { onConflict: 'id' })
+              .select()
+              .single();
+
+            if (insertError) {
+              console.error('Erro ao criar perfil padrão:', insertError);
+              // Retornar perfil default mesmo se falhar insert (pode ser RLS)
+              return defaultProfile as any;
+            }
+
+            return newProfile;
+          } catch (upsertError) {
+            console.error('Erro no upsert do perfil:', upsertError);
+            return defaultProfile as any;
+          }
         }
 
-        return newProfile;
+        return data;
+      } catch (err) {
+        console.error('Erro geral ao buscar perfil:', err);
+        // Retornar null para não quebrar a aplicação
+        return null;
       }
-
-      return data;
     },
     enabled: !!user?.id,
-    staleTime: 1000 * 60 * 5, // 5 minutos - evita re-fetches desnecessários
+    staleTime: 1000 * 60 * 5, // 5 minutos
     gcTime: 1000 * 60 * 10, // 10 minutos no cache
-    retry: 2,
+    retry: 1, // Máximo 1 retry para não travar
   });
 
   const updateProfile = useMutation({

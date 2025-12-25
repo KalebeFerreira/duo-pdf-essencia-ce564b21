@@ -8,49 +8,37 @@ import { useUserProfile } from '@/hooks/useUserProfile';
  * Component that automatically applies the correct theme based on device type
  * and custom background color. Only loads profile for authenticated users.
  * 
- * CRITICAL: Uses refs to track applied theme and prevent infinite loops.
- * The theme is only applied ONCE per device change or profile change.
+ * Uses refs to track applied theme and prevent infinite loops.
  */
 export const DeviceThemeApplier = ({ children }: { children: React.ReactNode }) => {
-  const { setTheme, theme } = useTheme();
+  const { setTheme } = useTheme();
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const { profile } = useUserProfile();
   const [isMounted, setIsMounted] = useState(false);
   
-  // Track what theme we've already applied to prevent loops
-  const appliedThemeRef = useRef<string | null>(null);
-  const lastDeviceRef = useRef<boolean | null>(null);
+  // Track applied theme and device to prevent unnecessary updates
+  const appliedConfigRef = useRef<string>('');
   
-  // Ensure we only run client-side
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Apply device-specific theme ONLY when device or profile preferences change
+  // Apply device-specific theme
   useEffect(() => {
-    if (!isMounted) return;
-    if (!user || !profile) return;
+    if (!isMounted || !user || !profile) return;
 
     const deviceTheme = isMobile 
-      ? profile?.theme_mobile || 'system'
-      : profile?.theme_desktop || 'system';
+      ? (profile.theme_mobile || 'system')
+      : (profile.theme_desktop || 'system');
 
-    // Only apply if:
-    // 1. Device type changed (mobile <-> desktop)
-    // 2. The theme preference itself changed
-    // 3. We haven't applied this exact theme yet
-    const deviceChanged = lastDeviceRef.current !== isMobile;
-    const themeChanged = appliedThemeRef.current !== deviceTheme;
+    // Create a unique key for current config
+    const configKey = `${isMobile ? 'mobile' : 'desktop'}-${deviceTheme}`;
     
-    if (deviceChanged || themeChanged) {
-      lastDeviceRef.current = isMobile;
-      appliedThemeRef.current = deviceTheme;
-      
-      // Use requestAnimationFrame to batch with other updates
-      requestAnimationFrame(() => {
-        setTheme(deviceTheme);
-      });
+    // Only apply if config actually changed
+    if (configKey !== appliedConfigRef.current) {
+      appliedConfigRef.current = configKey;
+      setTheme(deviceTheme);
     }
   }, [isMobile, profile?.theme_mobile, profile?.theme_desktop, setTheme, user, profile, isMounted]);
 
