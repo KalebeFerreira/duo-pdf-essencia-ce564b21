@@ -4,13 +4,13 @@ project_id = "ikyrgqxvjvnalnrqibyi"
 verify_jwt = false
 
 [functions.generate-automation]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-resume]
 verify_jwt = false
 
 [functions.generate-ebook-chapter]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-complete-ebook]
 verify_jwt = false
@@ -19,7 +19,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.improve-chapter]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-checkout]
 verify_jwt = false
@@ -28,16 +28,16 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.customer-portal]
-verify_jwt = true
+verify_jwt = false
 
 [functions.register-referral]
-verify_jwt = true
+verify_jwt = false
 
 [functions.process-referral-commission]
-verify_jwt = true
+verify_jwt = false
 
 [functions.delete-user]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-catalog-content]
 verify_jwt = false
