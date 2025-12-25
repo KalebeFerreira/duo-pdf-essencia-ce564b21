@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,51 +14,35 @@ export const DeviceThemeApplier = ({ children }: { children: React.ReactNode }) 
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const { profile } = useUserProfile();
-  const shouldApplyProfile = !!user && !!profile;
+  const [isMounted, setIsMounted] = useState(false);
   
-  // Debounce timer ref to prevent rapid theme changes
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
-  const lastAppliedThemeRef = useRef<string | null>(null);
-
-  // Apply device-specific theme with debounce and change detection
+  // Ensure we only run client-side
   useEffect(() => {
-    if (!shouldApplyProfile) return;
+    setIsMounted(true);
+  }, []);
+
+  // Apply device-specific theme only when different from current
+  useEffect(() => {
+    if (!isMounted) return;
+    if (!user || !profile) return;
 
     const deviceTheme = isMobile 
       ? profile?.theme_mobile || 'system'
       : profile?.theme_desktop || 'system';
 
-    // Only apply if theme actually changed
-    if (deviceTheme === lastAppliedThemeRef.current) {
-      return;
+    // Only apply if theme is actually different from resolved theme
+    if (deviceTheme !== resolvedTheme) {
+      setTheme(deviceTheme);
     }
-
-    // Clear any pending debounce
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-
-    // Debounce theme changes to avoid rapid switching on mobile scroll
-    debounceRef.current = setTimeout(() => {
-      // Double-check theme still needs to change
-      if (deviceTheme !== lastAppliedThemeRef.current) {
-        lastAppliedThemeRef.current = deviceTheme;
-        setTheme(deviceTheme);
-      }
-    }, 150);
-
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    };
-  }, [isMobile, profile?.theme_mobile, profile?.theme_desktop, setTheme, shouldApplyProfile]);
+  }, [isMobile, profile?.theme_mobile, profile?.theme_desktop, setTheme, resolvedTheme, user, profile, isMounted]);
 
   // Apply custom background color
   useEffect(() => {
+    if (!isMounted) return;
+    
     const root = document.documentElement;
     
-    if (shouldApplyProfile && profile?.custom_bg_color) {
+    if (user && profile?.custom_bg_color) {
       root.style.setProperty('--custom-bg-color', profile.custom_bg_color);
       root.classList.add('custom-bg');
     } else {
@@ -70,7 +54,7 @@ export const DeviceThemeApplier = ({ children }: { children: React.ReactNode }) 
       root.style.removeProperty('--custom-bg-color');
       root.classList.remove('custom-bg');
     };
-  }, [profile?.custom_bg_color, shouldApplyProfile]);
+  }, [profile?.custom_bg_color, user, isMounted]);
 
   return <>{children}</>;
 };
