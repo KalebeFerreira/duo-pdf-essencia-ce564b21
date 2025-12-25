@@ -6,8 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, ImageIcon, Loader2, Download, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const TestImageApi = () => {
+  const { session, loading: authLoading } = useAuth();
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -39,12 +41,10 @@ const TestImageApi = () => {
     const startTime = Date.now();
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
+      if (authLoading || !session?.access_token) {
         toast({
           title: "Não autenticado",
-          description: "Faça login para testar a API.",
+          description: "Aguarde a sessão carregar (ou faça login novamente).",
           variant: "destructive",
         });
         setIsGenerating(false);
@@ -53,6 +53,9 @@ const TestImageApi = () => {
 
       const { data, error: fnError } = await supabase.functions.invoke('generate-design-ai', {
         body: { prompt, template: 'flyer' },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       const endTime = Date.now();

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
+import { useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./useAuth";
 
-export type SubscriptionPlan = 'free' | 'basic' | 'professional';
+export type SubscriptionPlan = "free" | "basic" | "professional";
 
 interface SubscriptionStatus {
   subscribed: boolean;
@@ -13,156 +14,127 @@ interface SubscriptionStatus {
   error: string | null;
 }
 
-export const useSubscription = () => {
-  const { user } = useAuth();
-  const [status, setStatus] = useState<SubscriptionStatus>({
-    subscribed: false,
-    plan: 'free',
-    product_id: null,
-    subscription_end: null,
-    isLoading: true,
-    error: null,
+type SubscriptionResponse = Omit<SubscriptionStatus, "isLoading" | "error">;
+
+const DEFAULT_STATUS: SubscriptionResponse = {
+  subscribed: false,
+  plan: "free",
+  product_id: null,
+  subscription_end: null,
+};
+
+async function fetchSubscription(accessToken: string | null | undefined): Promise<SubscriptionResponse> {
+  if (!accessToken) return DEFAULT_STATUS;
+
+  const { data, error } = await supabase.functions.invoke("check-subscription", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
   });
 
-  const checkSubscription = async () => {
-    if (!user) {
-      setStatus({
-        subscribed: false,
-        plan: 'free',
-        product_id: null,
-        subscription_end: null,
-        isLoading: false,
-        error: null,
-      });
-      return;
-    }
+  if (!error) {
+    return {
+      subscribed: data?.subscribed ?? false,
+      plan: (data?.plan ?? "free") as SubscriptionPlan,
+      product_id: data?.product_id ?? null,
+      subscription_end: data?.subscription_end ?? null,
+    };
+  }
 
-    try {
-      setStatus(prev => ({ ...prev, isLoading: true, error: null }));
+  // Sessão pode ter expirado: tenta refresh uma vez e repete
+  if (error.message?.includes("401") || error.message?.includes("JWT")) {
+    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError || !refreshData.session?.access_token) return DEFAULT_STATUS;
 
-      // Get current session to include the access token
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.access_token) {
-        // No valid session, reset to free plan
-        setStatus({
-          subscribed: false,
-          plan: 'free',
-          product_id: null,
-          subscription_end: null,
-          isLoading: false,
-          error: null,
-        });
-        return;
+    const { data: retryData, error: retryError } = await supabase.functions.invoke("check-subscription", {
+      headers: {
+        Authorization: `Bearer ${refreshData.session.access_token}`,
+      },
+    });
+
+    if (retryError) throw retryError;
+
+    return {
+      subscribed: retryData?.subscribed ?? false,
+      plan: (retryData?.plan ?? "free") as SubscriptionPlan,
+      product_id: retryData?.product_id ?? null,
+      subscription_end: retryData?.subscription_end ?? null,
+    };
+  }
+
+  throw error;
+}
+
+export const useSubscription = () => {
+  const { user, session } = useAuth();
+
+  const query = useQuery({
+    queryKey: ["subscription", user?.id],
+    enabled: !!user,
+    queryFn: () => fetchSubscription(session?.access_token),
+    staleTime: 10 * 60 * 1000,
+    refetchInterval: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+
+  const checkSubscription = useCallback(async () => {
+    await query.refetch();
+  }, [query]);
+
+  const createCheckout = useCallback(
+    async (priceId: string) => {
+      if (!user || !session?.access_token) {
+        throw new Error("Você precisa estar logado para assinar um plano");
       }
 
-      const { data, error } = await supabase.functions.invoke('check-subscription', {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { priceId },
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
       });
 
-      if (error) {
-        // Handle 401 errors gracefully - session may have expired
-        if (error.message?.includes('401') || error.message?.includes('JWT')) {
-          // Try to refresh the session
-          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-          if (refreshError || !refreshData.session) {
-            // Session truly expired, reset to defaults
-            setStatus({
-              subscribed: false,
-              plan: 'free',
-              product_id: null,
-              subscription_end: null,
-              isLoading: false,
-              error: null,
-            });
-            return;
-          }
-          // Retry after refresh with new token
-          const { data: retryData, error: retryError } = await supabase.functions.invoke('check-subscription', {
-            headers: {
-              Authorization: `Bearer ${refreshData.session.access_token}`,
-            },
-          });
-          if (retryError) throw retryError;
-          
-          setStatus({
-            subscribed: retryData.subscribed,
-            plan: retryData.plan,
-            product_id: retryData.product_id,
-            subscription_end: retryData.subscription_end,
-            isLoading: false,
-            error: null,
-          });
-          return;
-        }
-        throw error;
-      }
+      if (error) throw error;
+      if (data?.url) window.open(data.url, "_blank");
+    },
+    [user, session?.access_token]
+  );
 
-      setStatus({
-        subscribed: data.subscribed,
-        plan: data.plan,
-        product_id: data.product_id,
-        subscription_end: data.subscription_end,
+  const openCustomerPortal = useCallback(async () => {
+    if (!user || !session?.access_token) {
+      throw new Error("Você precisa estar logado para gerenciar sua assinatura");
+    }
+
+    const { data, error } = await supabase.functions.invoke("customer-portal", {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
+
+    if (error) throw error;
+    if (data?.url) window.open(data.url, "_blank");
+  }, [user, session?.access_token]);
+
+  const computed = useMemo<SubscriptionStatus>(() => {
+    if (!user) {
+      return {
+        ...DEFAULT_STATUS,
         isLoading: false,
         error: null,
-      });
-    } catch (error) {
-      console.error('Error checking subscription:', error);
-      setStatus(prev => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to check subscription',
-      }));
-    }
-  };
-
-  const createCheckout = async (priceId: string) => {
-    if (!user) {
-      throw new Error('Você precisa estar logado para assinar um plano');
+      };
     }
 
-    try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { priceId },
-      });
-
-      if (error) throw error;
-      if (data.url) {
-        window.open(data.url, '_blank');
-      }
-    } catch (error) {
-      console.error('Error creating checkout:', error);
-      throw error;
-    }
-  };
-
-  const openCustomerPortal = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('customer-portal');
-
-      if (error) throw error;
-      if (data.url) {
-        window.open(data.url, '_blank');
-      }
-    } catch (error) {
-      console.error('Error opening customer portal:', error);
-      throw error;
-    }
-  };
-
-  useEffect(() => {
-    checkSubscription();
-
-    // Check subscription every 60 seconds
-    const interval = setInterval(checkSubscription, 60000);
-
-    return () => clearInterval(interval);
-  }, [user]);
+    return {
+      ...DEFAULT_STATUS,
+      ...(query.data ?? {}),
+      isLoading: query.isLoading || query.isFetching,
+      error: query.error instanceof Error ? query.error.message : null,
+    };
+  }, [user, query.data, query.error, query.isFetching, query.isLoading]);
 
   return {
-    ...status,
+    ...computed,
     checkSubscription,
     createCheckout,
     openCustomerPortal,

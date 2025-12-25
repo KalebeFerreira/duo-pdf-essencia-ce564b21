@@ -52,7 +52,7 @@ interface GeneratedEbook {
 
 export default function CreateEbook() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, session, loading: authLoading } = useAuth();
   const { ebooks, isLoading: loadingEbooks, saveEbook, updateEbook, deleteEbook } = useEbooks();
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -80,12 +80,10 @@ export default function CreateEbook() {
     setIsGenerating(true);
 
     try {
-      // Get the current session to include the access token
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
+      if (authLoading || !session?.access_token) {
         toast({
-          title: "Sessão expirada",
-          description: "Faça login novamente para gerar ebooks",
+          title: "Sessão não pronta",
+          description: "Aguarde a sessão carregar (ou faça login novamente) para gerar ebooks.",
           variant: "destructive",
         });
         return;
