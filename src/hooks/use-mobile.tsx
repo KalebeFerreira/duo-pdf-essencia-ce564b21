@@ -9,28 +9,22 @@ const MOBILE_BREAKPOINT = 768;
  * Returns a stable value to prevent re-render loops.
  */
 export function useIsMobile(): boolean {
-  const [isMobile, setIsMobile] = React.useState<boolean>(() => {
-    // Calculate initial value synchronously
-    if (typeof window === 'undefined') return false;
-    return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`).matches;
-  });
+  // Sempre inicia como false para evitar mismatch de hidratação SSR/CSR
+  const [isMobile, setIsMobile] = React.useState<boolean>(false);
 
   React.useEffect(() => {
     const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
     
-    // Handler for media query changes only
+    // Sincroniza com o valor real apenas no cliente
+    setIsMobile(mql.matches);
+    
     const handleChange = (e: MediaQueryListEvent) => {
       setIsMobile(e.matches);
     };
     
-    // Sync with current state if different (for SSR hydration)
-    if (mql.matches !== isMobile) {
-      setIsMobile(mql.matches);
-    }
-    
     mql.addEventListener("change", handleChange);
     return () => mql.removeEventListener("change", handleChange);
-  }, []); // Empty dependency array - only run once on mount
+  }, []);
 
   return isMobile;
 }
