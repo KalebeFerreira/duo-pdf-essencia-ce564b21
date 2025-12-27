@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { useAuth } from "@/hooks/useAuth";
 import { useEbooks, type Ebook } from "@/hooks/useEbooks";
 import { Loader2, BookOpen, Sparkles, Download, ArrowLeft, Palette, Globe, History, Save, Edit, Trash2 } from "lucide-react";
@@ -91,15 +92,12 @@ export default function CreateEbook() {
         description: "A IA está criando conteúdo conciso com múltiplas imagens. Isso leva cerca de 40-70 segundos.",
       });
 
-      const { data, error } = await supabase.functions.invoke('generate-complete-ebook', {
-        body: { 
+      const { data, error } = await invokeEdgeFunction<GeneratedEbook>("generate-complete-ebook", {
+        body: {
           prompt,
           language: selectedLanguage,
           colorPalette: selectedColorPalette,
-          numPages: numPages || 10
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          numPages: numPages || 10,
         },
       });
 
@@ -559,13 +557,13 @@ export default function CreateEbook() {
         description: "A IA está analisando e aprimorando o texto.",
       });
 
-      const { data, error } = await supabase.functions.invoke('improve-chapter', {
-        body: { 
+      const { data, error } = await invokeEdgeFunction<{ improvedContent: string }>("improve-chapter", {
+        body: {
           title: chapter.title,
           content: chapter.content,
           language: selectedLanguage,
-          ebookTheme: generatedEbook.description || generatedEbook.title
-        }
+          ebookTheme: generatedEbook.description || generatedEbook.title,
+        },
       });
 
       if (error) {

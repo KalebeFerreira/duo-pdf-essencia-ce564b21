@@ -21,6 +21,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { jsPDF } from "jspdf";
 import { addWatermarkToPdf } from "@/utils/pdfWatermark";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 
 import CatalogCoverSection from "@/components/catalog/CatalogCoverSection";
 import CatalogAboutSection from "@/components/catalog/CatalogAboutSection";
@@ -129,8 +130,8 @@ const CreateCatalog = () => {
     setIsGeneratingAll(true);
     try {
       // Generate about text
-      const aboutResponse = await supabase.functions.invoke('generate-catalog-content', {
-        body: { type: 'about', prompt: catalog.title }
+      const aboutResponse = await invokeEdgeFunction("generate-catalog-content", {
+        body: { type: "about", prompt: catalog.title },
       });
       
       if (aboutResponse.data?.content) {
@@ -140,8 +141,8 @@ const CreateCatalog = () => {
       // Generate 3 products
       const products: any[] = [];
       for (let i = 0; i < 3; i++) {
-        const productResponse = await supabase.functions.invoke('generate-catalog-content', {
-          body: { type: 'product', prompt: `${catalog.title} - produto ${i + 1}` }
+        const productResponse = await invokeEdgeFunction("generate-catalog-content", {
+          body: { type: "product", prompt: `${catalog.title} - produto ${i + 1}` },
         });
         
         if (productResponse.data?.content) {
@@ -163,8 +164,8 @@ const CreateCatalog = () => {
       }
 
       // Generate price table
-      const priceResponse = await supabase.functions.invoke('generate-catalog-content', {
-        body: { type: 'price_table', prompt: catalog.title }
+      const priceResponse = await invokeEdgeFunction("generate-catalog-content", {
+        body: { type: "price_table", prompt: catalog.title },
       });
       
       if (priceResponse.data?.content) {
@@ -179,8 +180,8 @@ const CreateCatalog = () => {
       }
 
       // Generate testimonials
-      const testimonialResponse = await supabase.functions.invoke('generate-catalog-content', {
-        body: { type: 'testimonials', prompt: catalog.title }
+      const testimonialResponse = await invokeEdgeFunction("generate-catalog-content", {
+        body: { type: "testimonials", prompt: catalog.title },
       });
       
       if (testimonialResponse.data?.content) {
@@ -195,8 +196,8 @@ const CreateCatalog = () => {
       }
 
       // Generate cover image
-      const coverImageResponse = await supabase.functions.invoke('generate-catalog-image', {
-        body: { prompt: `capa profissional para catálogo de ${catalog.title}` }
+      const coverImageResponse = await invokeEdgeFunction("generate-catalog-image", {
+        body: { prompt: `capa profissional para catálogo de ${catalog.title}` },
       });
       
       if (coverImageResponse.data?.imageUrl) {
