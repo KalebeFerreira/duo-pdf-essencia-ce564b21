@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, FileText, Download, FileImage, List, CheckCircle2, XCircle } from "lucide-react";
 import { usePdfLimit } from "@/hooks/usePdfLimit";
@@ -76,8 +77,8 @@ const PdfGenerator = ({ onPdfGenerated }: PdfGeneratorProps) => {
 
       // Try to generate with AI
       try {
-        const { data, error } = await supabase.functions.invoke('generate-pdf-content', {
-          body: { topic, prompt: prompt || undefined, language }
+        const { data, error } = await invokeEdgeFunction<{ content: string }>("generate-pdf-content", {
+          body: { topic, prompt: prompt || undefined, language },
         });
 
         // Verificar erro de créditos esgotados (402)
@@ -473,8 +474,8 @@ ${prompt || 'Este conteúdo foi gerado no modo simulação enquanto a integraç�
 
   const generateSinglePdfContent = async (singleTopic: string, customPrompt?: string, lang?: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('generate-pdf-content', {
-        body: { topic: singleTopic, prompt: customPrompt || undefined, language: lang || 'pt' }
+      const { data, error } = await invokeEdgeFunction<{ content: string }>("generate-pdf-content", {
+        body: { topic: singleTopic, prompt: customPrompt || undefined, language: lang || "pt" },
       });
 
       if (error) {

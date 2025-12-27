@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles, Loader2, Plus, Trash2, Scissors, Palette, Dumbbell, Utensils, Camera, Wrench, GraduationCap, Heart, PawPrint, Stethoscope, Scale, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import type { Catalog, CatalogProduct, CatalogPriceItem, CatalogTestimonial } from "@/hooks/useCatalogs";
 import { CATALOG_TEMPLATES, type CatalogTemplate } from "@/utils/catalogTemplates";
 
@@ -106,16 +107,16 @@ const CatalogAIGenerator = ({ onGenerate, initialTemplate }: CatalogAIGeneratorP
       const context = `${businessName} - ${businessDescription || 'negócio profissional'}. Serviços: ${servicesText}`;
 
       // Generate about text
-      const aboutResponse = await supabase.functions.invoke('generate-catalog-content', {
-        body: { type: 'about', prompt: context }
+      const aboutResponse = await invokeEdgeFunction("generate-catalog-content", {
+        body: { type: "about", prompt: context },
       });
 
       // Generate products from services
       const products: CatalogProduct[] = [];
       for (const service of validServices) {
-        const productResponse = await supabase.functions.invoke('generate-catalog-content', {
-          body: { type: 'product', prompt: `${businessName} - ${service.name}` }
-        });
+         const productResponse = await invokeEdgeFunction("generate-catalog-content", {
+           body: { type: "product", prompt: `${businessName} - ${service.name}` },
+         });
         
         let productData: any = {};
         if (productResponse.data?.content) {
@@ -134,8 +135,8 @@ const CatalogAIGenerator = ({ onGenerate, initialTemplate }: CatalogAIGeneratorP
         }
 
         // Generate image for product
-        const imageResponse = await supabase.functions.invoke('generate-catalog-image', {
-          body: { prompt: `${service.name} ${businessName}, profissional, alta qualidade` }
+        const imageResponse = await invokeEdgeFunction("generate-catalog-image", {
+          body: { prompt: `${service.name} ${businessName}, profissional, alta qualidade` },
         });
 
         products.push({
@@ -155,8 +156,8 @@ const CatalogAIGenerator = ({ onGenerate, initialTemplate }: CatalogAIGeneratorP
       }));
 
       // Generate testimonials
-      const testimonialsResponse = await supabase.functions.invoke('generate-catalog-content', {
-        body: { type: 'testimonials', prompt: context }
+      const testimonialsResponse = await invokeEdgeFunction("generate-catalog-content", {
+        body: { type: "testimonials", prompt: context },
       });
 
       let testimonials: CatalogTestimonial[] = [];
@@ -195,8 +196,8 @@ const CatalogAIGenerator = ({ onGenerate, initialTemplate }: CatalogAIGeneratorP
       }
 
       // Generate cover image
-      const coverResponse = await supabase.functions.invoke('generate-catalog-image', {
-        body: { prompt: `capa profissional elegante para catálogo de ${businessName}, ${businessDescription || 'negócio profissional'}` }
+      const coverResponse = await invokeEdgeFunction("generate-catalog-image", {
+        body: { prompt: `capa profissional elegante para catálogo de ${businessName}, ${businessDescription || "negócio profissional"}` },
       });
 
       // Generate gallery images
@@ -207,8 +208,8 @@ const CatalogAIGenerator = ({ onGenerate, initialTemplate }: CatalogAIGeneratorP
       ];
       
       for (const prompt of galleryPrompts) {
-        const galleryResponse = await supabase.functions.invoke('generate-catalog-image', {
-          body: { prompt }
+        const galleryResponse = await invokeEdgeFunction("generate-catalog-image", {
+          body: { prompt },
         });
         if (galleryResponse.data?.imageUrl) {
           gallery.push(galleryResponse.data.imageUrl);

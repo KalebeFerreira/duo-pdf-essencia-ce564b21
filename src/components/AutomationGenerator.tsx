@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Zap } from "lucide-react";
 import { useAutomationLimit } from "@/hooks/useAutomationLimit";
@@ -48,7 +49,7 @@ const AutomationGenerator = ({ onAutomationGenerated }: AutomationGeneratorProps
     setGeneratedContent("");
 
     try {
-      const { data, error } = await supabase.functions.invoke("generate-automation", {
+      const { data, error } = await invokeEdgeFunction("generate-automation", {
         body: { prompt },
       });
 

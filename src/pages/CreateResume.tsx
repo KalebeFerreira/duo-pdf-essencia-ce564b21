@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, FileText, Sparkles, Upload, X, Edit, Eye, FileType, Download } from "lucide-react";
 import jsPDF from "jspdf";
@@ -171,15 +172,15 @@ export default function CreateResume() {
 
     try {
       // Gerar currículo com Lovable AI
-      const { data: aiData, error: aiError } = await supabase.functions.invoke('generate-resume', {
-        body: { 
+      const { data: aiData, error: aiError } = await invokeEdgeFunction<{ content: string }>("generate-resume", {
+        body: {
           formData: {
             ...formData,
             photoUrl: photoUrl || undefined,
-            signatureUrl: signatureUrl || undefined
+            signatureUrl: signatureUrl || undefined,
           },
-          template 
-        }
+          template,
+        },
       });
 
       if (aiError) {
@@ -563,12 +564,12 @@ export default function CreateResume() {
                               const styledPdf = applyTemplate(pdf, template, generatedResume.content, generatedResume.title, photoUrl, signatureUrl, false);
                               const pdfBase64 = styledPdf.output('datauristring').split(',')[1];
                               
-                              const { data, error } = await supabase.functions.invoke('convert-file', {
+                              const { data, error } = await invokeEdgeFunction("convert-file", {
                                 body: {
                                   fileName: `${generatedResume.title}.pdf`,
                                   fileBase64: pdfBase64,
-                                  inputFormat: 'pdf',
-                                  outputFormat: 'docx',
+                                  inputFormat: "pdf",
+                                  outputFormat: "docx",
                                 },
                               });
                               if (error) throw error;
@@ -599,12 +600,12 @@ export default function CreateResume() {
                               const styledPdf = applyTemplate(pdf, template, generatedResume.content, generatedResume.title, photoUrl, signatureUrl, false);
                               const pdfBase64 = styledPdf.output('datauristring').split(',')[1];
                               
-                              const { data, error } = await supabase.functions.invoke('convert-file', {
+                              const { data, error } = await invokeEdgeFunction("convert-file", {
                                 body: {
                                   fileName: `${generatedResume.title}.pdf`,
                                   fileBase64: pdfBase64,
-                                  inputFormat: 'pdf',
-                                  outputFormat: 'pptx',
+                                  inputFormat: "pdf",
+                                  outputFormat: "pptx",
                                 },
                               });
                               if (error) throw error;
