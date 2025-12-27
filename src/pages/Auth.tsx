@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import PlanSelectionDialog from "@/components/PlanSelectionDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { Badge } from "@/components/ui/badge";
 
 import { toast } from "@/hooks/use-toast";
@@ -100,10 +101,10 @@ const Auth = () => {
       // Registrar indicação se houver código
       if (referralCode) {
         try {
-          await supabase.functions.invoke('register-referral', {
-            body: { 
-              referral_code: referralCode, 
-              referred_user_id: result.data.user.id 
+          await invokeEdgeFunction("register-referral", {
+            body: {
+              referral_code: referralCode,
+              referred_user_id: result.data.user.id,
             },
           });
         } catch (error) {
