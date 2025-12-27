@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
 export type SubscriptionPlan = "free" | "basic" | "professional";
@@ -23,31 +23,55 @@ const DEFAULT_STATUS: SubscriptionResponse = {
   subscription_end: null,
 };
 
-async function fetchSubscription(): Promise<SubscriptionResponse> {
-  const { data, error } = await invokeEdgeFunction<{
-    subscribed?: boolean;
-    plan?: string;
-    product_id?: string | null;
-    subscription_end?: string | null;
-  }>("check-subscription");
+async function fetchSubscription(accessToken: string | null | undefined): Promise<SubscriptionResponse> {
+  if (!accessToken) return DEFAULT_STATUS;
 
-  if (error) throw error;
+  const { data, error } = await supabase.functions.invoke("check-subscription", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
 
-  return {
-    subscribed: data?.subscribed ?? false,
-    plan: (data?.plan ?? "free") as SubscriptionPlan,
-    product_id: data?.product_id ?? null,
-    subscription_end: data?.subscription_end ?? null,
-  };
+  if (!error) {
+    return {
+      subscribed: data?.subscribed ?? false,
+      plan: (data?.plan ?? "free") as SubscriptionPlan,
+      product_id: data?.product_id ?? null,
+      subscription_end: data?.subscription_end ?? null,
+    };
+  }
+
+  // Sessão pode ter expirado: tenta refresh uma vez e repete
+  if (error.message?.includes("401") || error.message?.includes("JWT")) {
+    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError || !refreshData.session?.access_token) return DEFAULT_STATUS;
+
+    const { data: retryData, error: retryError } = await supabase.functions.invoke("check-subscription", {
+      headers: {
+        Authorization: `Bearer ${refreshData.session.access_token}`,
+      },
+    });
+
+    if (retryError) throw retryError;
+
+    return {
+      subscribed: retryData?.subscribed ?? false,
+      plan: (retryData?.plan ?? "free") as SubscriptionPlan,
+      product_id: retryData?.product_id ?? null,
+      subscription_end: retryData?.subscription_end ?? null,
+    };
+  }
+
+  throw error;
 }
 
 export const useSubscription = () => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
 
   const query = useQuery({
     queryKey: ["subscription", user?.id],
     enabled: !!user,
-    queryFn: () => fetchSubscription(),
+    queryFn: () => fetchSubscription(session?.access_token),
     staleTime: 10 * 60 * 1000,
     refetchInterval: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -60,30 +84,37 @@ export const useSubscription = () => {
 
   const createCheckout = useCallback(
     async (priceId: string) => {
-      if (!user) {
+      if (!user || !session?.access_token) {
         throw new Error("Você precisa estar logado para assinar um plano");
       }
 
-      const { data, error } = await invokeEdgeFunction<{ url?: string }>("create-checkout", {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { priceId },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
     },
-    [user]
+    [user, session?.access_token]
   );
 
   const openCustomerPortal = useCallback(async () => {
-    if (!user) {
+    if (!user || !session?.access_token) {
       throw new Error("Você precisa estar logado para gerenciar sua assinatura");
     }
 
-    const { data, error } = await invokeEdgeFunction<{ url?: string }>("customer-portal");
+    const { data, error } = await supabase.functions.invoke("customer-portal", {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
 
     if (error) throw error;
     if (data?.url) window.open(data.url, "_blank");
-  }, [user]);
+  }, [user, session?.access_token]);
 
   const computed = useMemo<SubscriptionStatus>(() => {
     if (!user) {

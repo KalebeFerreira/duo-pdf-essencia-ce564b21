@@ -10,7 +10,6 @@ import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { Type, Square, Circle as CircleIcon, Image as ImageIcon, Download, Sparkles, Wand2, FileImage, FileText, FileSpreadsheet, ChevronDown, Loader2 } from "lucide-react";
 import { PhotoEditor } from "./PhotoEditor";
 import jsPDF from "jspdf";
@@ -197,8 +196,11 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
     
     const attemptGeneration = async (): Promise<boolean> => {
       try {
-        const { data, error } = await invokeEdgeFunction("generate-design-ai", {
+        const { data, error } = await supabase.functions.invoke("generate-design-ai", {
           body: { prompt: aiPrompt, template: selectedTemplate || "flyer" },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
         });
 
         // Check for error responses from the edge function (in data or error)
@@ -405,11 +407,11 @@ const DesignCanvas = ({ selectedTemplate }: DesignCanvasProps) => {
       
       reader.onloadend = async () => {
         const base64data = reader.result as string;
-
-        const { data, error } = await invokeEdgeFunction("convert-file", {
+        
+        const { data, error } = await supabase.functions.invoke("convert-file", {
           body: {
             fileBase64: base64data,
-            fileName: "design.png",
+            fileName: `design.png`,
             inputFormat: "png",
             outputFormat: format,
           },

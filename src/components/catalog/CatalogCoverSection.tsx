@@ -5,7 +5,6 @@ import { Label } from "@/components/ui/label";
 import { Image, Sparkles, Upload, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import CatalogSectionCard from "./CatalogSectionCard";
 
 interface CatalogCoverSectionProps {
@@ -50,8 +49,8 @@ const CatalogCoverSection = ({
 
     setIsGenerating(true);
     try {
-      const { data, error } = await invokeEdgeFunction("generate-catalog-image", {
-        body: { prompt: imagePrompt },
+      const { data, error } = await supabase.functions.invoke('generate-catalog-image', {
+        body: { prompt: imagePrompt }
       });
 
       if (error) throw error;

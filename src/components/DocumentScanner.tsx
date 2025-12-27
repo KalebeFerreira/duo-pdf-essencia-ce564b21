@@ -12,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Upload, X, FileText, Camera, Image as ImageIcon, ScanText, Loader2, Copy, Check, Download, Trash2, Eye, FolderOpen, Sliders, RotateCw, Lock, FileType, ArrowRight } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { useAuth } from "@/hooks/useAuth";
 import { usePdfLimit } from "@/hooks/usePdfLimit";
 import { useDocuments } from "@/hooks/useDocuments";
@@ -118,11 +117,11 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
       // Extract base64 from data URL
       const base64Data = convertingDocUrl.split(',')[1];
       
-      const { data, error } = await invokeEdgeFunction("convert-file", {
+      const { data, error } = await supabase.functions.invoke('convert-file', {
         body: {
-          fileName: "documento.pdf",
+          fileName: 'documento.pdf',
           fileBase64: base64Data,
-          inputFormat: "pdf",
+          inputFormat: 'pdf',
           outputFormat: convertOutputFormat,
         },
       });
@@ -286,8 +285,8 @@ const DocumentScanner = ({ onPdfCreated }: DocumentScannerProps) => {
     setOcrPageId(pageId);
 
     try {
-      const { data, error } = await invokeEdgeFunction("extract-text-ocr", {
-        body: { imageDataUrl: page.dataUrl, language: "pt" },
+      const { data, error } = await supabase.functions.invoke('extract-text-ocr', {
+        body: { imageDataUrl: page.dataUrl, language: 'pt' }
       });
 
       if (error) throw error;
