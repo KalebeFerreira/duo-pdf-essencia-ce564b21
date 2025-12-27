@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeEdgeFunction } from '@/lib/invokeEdgeFunction';
 import { LogOut, Trash2, AlertTriangle } from 'lucide-react';
 
 interface DeleteAccountDialogProps {
@@ -70,7 +71,7 @@ export const DeleteAccountDialog = ({ userEmail, onSignOut }: DeleteAccountDialo
     
     try {
       // Call the delete-user edge function which handles complete account deletion
-      const { data, error } = await supabase.functions.invoke('delete-user');
+      const { data, error } = await invokeEdgeFunction("delete-user");
 
       if (error) {
         throw new Error(error.message || 'Erro ao deletar conta');

@@ -10,6 +10,7 @@ import ImageToPdfConverter from "@/components/ImageToPdfConverter";
 import PdfGenerator from "@/components/PdfGenerator";
 import QuickScanner from "@/components/QuickScanner";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 
 const CreatePdf = () => {
   const navigate = useNavigate();
@@ -52,11 +53,11 @@ const CreatePdf = () => {
 
     setIsConverting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('convert-file', {
+      const { data, error } = await invokeEdgeFunction("convert-file", {
         body: {
-          fileName: `documento.pdf`,
-          fileBase64: generatedPdfContent.split(',')[1] || generatedPdfContent,
-          inputFormat: 'pdf',
+          fileName: "documento.pdf",
+          fileBase64: generatedPdfContent.split(",")[1] || generatedPdfContent,
+          inputFormat: "pdf",
           outputFormat: format,
         },
       });
