@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { DollarSign, Plus, Sparkles, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import CatalogSectionCard from "./CatalogSectionCard";
 import type { CatalogPriceItem } from "@/hooks/useCatalogs";
 
@@ -56,7 +56,7 @@ const CatalogPriceTableSection = ({
 
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-catalog-content', {
+      const { data, error } = await invokeEdgeFunction('generate-catalog-content', {
         body: { 
           type: 'price_item', 
           prompt: aiPrompt,
@@ -65,7 +65,7 @@ const CatalogPriceTableSection = ({
       });
 
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (data?.error) throw new Error(data.error);
 
       let itemData;
       try {

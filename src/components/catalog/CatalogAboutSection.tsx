@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { User, Sparkles, Upload, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import CatalogSectionCard from "./CatalogSectionCard";
 
 interface CatalogAboutSectionProps {
@@ -54,12 +54,12 @@ const CatalogAboutSection = ({
 
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-catalog-content', {
+      const { data, error } = await invokeEdgeFunction('generate-catalog-content', {
         body: { type: 'about', prompt: aiPrompt }
       });
 
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (data?.error) throw new Error(data.error);
 
       onAboutTextChange(data.content);
       toast({

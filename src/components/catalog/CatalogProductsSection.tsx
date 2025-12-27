@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Package, Plus, Sparkles, Trash2, Upload, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import CatalogSectionCard from "./CatalogSectionCard";
 import type { CatalogProduct } from "@/hooks/useCatalogs";
 
@@ -67,12 +67,12 @@ const CatalogProductsSection = ({
 
     setIsGenerating('new');
     try {
-      const { data, error } = await supabase.functions.invoke('generate-catalog-content', {
+      const { data, error } = await invokeEdgeFunction('generate-catalog-content', {
         body: { type: 'product', prompt: aiPrompt }
       });
 
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (data?.error) throw new Error(data.error);
 
       let productData;
       try {
@@ -117,12 +117,12 @@ const CatalogProductsSection = ({
 
     setIsGenerating(id);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-catalog-image', {
+      const { data, error } = await invokeEdgeFunction('generate-catalog-image', {
         body: { prompt: `${productName}, produto profissional, fundo branco limpo` }
       });
 
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (data?.error) throw new Error(data.error);
 
       updateProduct(id, { image: data.imageUrl });
       toast({
