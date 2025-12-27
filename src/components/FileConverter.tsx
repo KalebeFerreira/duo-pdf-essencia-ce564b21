@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Upload, FileType, Download, Loader2, ArrowRight, Lock, CheckCircle2, AlertCircle, Activity } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useDocuments } from "@/hooks/useDocuments";
 import { Link } from "react-router-dom";
@@ -77,7 +77,7 @@ const FileConverter = ({ onConversionComplete }: FileConverterProps) => {
       // Create a minimal test file (1x1 pixel PNG)
       const testBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
       
-      const { data, error } = await supabase.functions.invoke('convert-file', {
+      const { data, error } = await invokeEdgeFunction('convert-file', {
         body: {
           fileName: 'health-test.png',
           fileBase64: testBase64,
@@ -188,7 +188,7 @@ const FileConverter = ({ onConversionComplete }: FileConverterProps) => {
       setProgress(30);
 
       // Call edge function
-      const { data, error } = await supabase.functions.invoke('convert-file', {
+      const { data, error } = await invokeEdgeFunction('convert-file', {
         body: {
           fileName: selectedFile.name,
           fileBase64,

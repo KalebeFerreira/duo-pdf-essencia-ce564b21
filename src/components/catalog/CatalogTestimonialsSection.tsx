@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageSquareQuote, Plus, Sparkles, Trash2, Loader2, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import CatalogSectionCard from "./CatalogSectionCard";
 import type { CatalogTestimonial } from "@/hooks/useCatalogs";
 
@@ -58,7 +58,7 @@ const CatalogTestimonialsSection = ({
 
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-catalog-content', {
+      const { data, error } = await invokeEdgeFunction('generate-catalog-content', {
         body: { 
           type: 'testimonial', 
           prompt: aiPrompt,
@@ -67,7 +67,7 @@ const CatalogTestimonialsSection = ({
       });
 
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (data?.error) throw new Error(data.error);
 
       let testimonialData;
       try {
